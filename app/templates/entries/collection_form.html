@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Log collection - Vending Books{% endblock %}
+{% block content %}
+<h1>Log collection</h1>
+{% if errors %}<div class="error-list"><ul>{% for e in errors %}<li>{{ e }}</li>{% endfor %}</ul></div>{% endif %}
+
+{% if not machines %}
+  <p class="empty-state">You need an active machine first. <a href="/machines/new">Add one</a>.</p>
+{% else %}
+<div class="card">
+<form class="stacked" method="post" action="/collections/new">
+  <label for="machine_id">Machine</label>
+  <select id="machine_id" name="machine_id">
+    {% for m in machines %}
+    <option value="{{ m.id }}" {% if form_values.get('machine_id') == m.id %}selected{% endif %}>{{ m.name }} - {{ m.location_name }}</option>
+    {% endfor %}
+  </select>
+
+  <label for="collection_date">Collection date</label>
+  <input type="date" id="collection_date" name="collection_date" value="{{ form_values.get('collection_date', '') }}">
+
+  <label for="cash_collected">Cash collected ($)</label>
+  <input type="number" step="0.01" min="0" id="cash_collected" name="cash_collected" value="{{ form_values.get('cash_collected', '0') }}">
+
+  <label for="cashless_collected">Cashless / card sales ($)</label>
+  <input type="number" step="0.01" min="0" id="cashless_collected" name="cashless_collected" value="{{ form_values.get('cashless_collected', '0') }}">
+  <div class="hint">From your card reader / cashless processor dashboard for this machine over this period.</div>
+
+  <label for="notes">Notes</label>
+  <textarea id="notes" name="notes" rows="2">{{ form_values.get('notes', '') }}</textarea>
+
+  <div class="actions" style="margin-top:20px;">
+    <button class="btn" type="submit">Save collection</button>
+    <a class="btn secondary" href="/collections">Cancel</a>
+  </div>
+</form>
+</div>
+{% endif %}
+{% endblock %}

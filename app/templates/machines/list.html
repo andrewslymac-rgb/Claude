@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Machines - Vending Books{% endblock %}
+{% block content %}
+<h1>Machines</h1>
+<div class="actions">
+  <a class="btn" href="/machines/new">Add machine</a>
+</div>
+
+<div class="card">
+  {% if not machines %}
+    <p class="empty-state">No machines yet. <a href="/machines/new">Add your first one</a>.</p>
+  {% else %}
+  <table>
+    <thead>
+      <tr><th>Name</th><th>Location</th><th>Commission</th><th>Status</th><th></th></tr>
+    </thead>
+    <tbody>
+      {% for m in machines %}
+      <tr>
+        <td>{{ m.name }}</td>
+        <td>{{ m.location_name }}{% if m.location_contact_name %} <span class="muted">({{ m.location_contact_name }})</span>{% endif %}</td>
+        <td>{{ m.commission_rate_percent }}%</td>
+        <td>
+          {% if m.active %}<span class="badge synced">Active</span>{% else %}<span class="badge inactive">Inactive</span>{% endif %}
+        </td>
+        <td><a class="btn small secondary" href="/machines/{{ m.id }}/edit">Edit</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+</div>
+{% endblock %}

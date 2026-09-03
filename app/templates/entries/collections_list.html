@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Collections - Vending Books{% endblock %}
+{% block content %}
+<h1>Collections</h1>
+<div class="actions"><a class="btn" href="/collections/new">Log collection</a></div>
+<div class="card">
+  {% if not entries %}
+    <p class="empty-state">No collections logged yet.</p>
+  {% else %}
+  <table>
+    <thead><tr><th>Date</th><th>Machine</th><th>Cash</th><th>Cashless</th><th>Total</th><th>Notes</th></tr></thead>
+    <tbody>
+      {% for e in entries %}
+      <tr>
+        <td>{{ e.collection_date }}</td>
+        <td>{{ e.machine.name }}</td>
+        <td>${{ '%.2f'|format(e.cents_to_dollars(e.cash_collected_cents)) }}</td>
+        <td>${{ '%.2f'|format(e.cents_to_dollars(e.cashless_collected_cents)) }}</td>
+        <td>${{ '%.2f'|format(e.cents_to_dollars(e.total_cents)) }}</td>
+        <td class="muted">{{ e.notes }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+</div>
+{% endblock %}

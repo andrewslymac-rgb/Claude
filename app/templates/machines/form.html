@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Edit machine' if machine else 'Add machine' }} - Vending Books{% endblock %}
+{% block content %}
+<h1>{{ 'Edit machine' if machine else 'Add machine' }}</h1>
+
+{% if errors %}
+<div class="error-list"><ul>{% for e in errors %}<li>{{ e }}</li>{% endfor %}</ul></div>
+{% endif %}
+
+<div class="card">
+<form class="stacked" method="post" action="{{ '/machines/%s/edit'|format(machine.id) if machine else '/machines/new' }}">
+  <label for="name">Machine name / label</label>
+  <input type="text" id="name" name="name" placeholder="e.g. Snack-12 or Break Room Combo"
+         value="{{ form_values.get('name', machine.name if machine else '') }}">
+  <div class="hint">However you refer to this machine day to day.</div>
+
+  <label for="location_name">Location</label>
+  <input type="text" id="location_name" name="location_name" placeholder="e.g. Acme Warehouse - Portland"
+         value="{{ form_values.get('location_name', machine.location_name if machine else '') }}">
+
+  <label for="address">Address</label>
+  <input type="text" id="address" name="address"
+         value="{{ form_values.get('address', machine.address if machine else '') }}">
+
+  <label for="location_contact_name">Location owner / contact name</label>
+  <input type="text" id="location_contact_name" name="location_contact_name"
+         value="{{ form_values.get('location_contact_name', machine.location_contact_name if machine else '') }}">
+  <div class="hint">Who you pay commission to for hosting this machine, if anyone.</div>
+
+  <label for="location_contact_email">Location contact email</label>
+  <input type="email" id="location_contact_email" name="location_contact_email"
+         value="{{ form_values.get('location_contact_email', machine.location_contact_email if machine else '') }}">
+
+  <label for="commission_rate_percent">Commission rate (%)</label>
+  <input type="number" step="0.01" min="0" max="100" id="commission_rate_percent" name="commission_rate_percent"
+         value="{{ form_values.get('commission_rate_percent', machine.commission_rate_percent if machine else '0') }}">
+  <div class="hint">Used only to suggest a commission amount when you log a payment -- never auto-paid.</div>
+
+  <label for="notes">Notes</label>
+  <textarea id="notes" name="notes" rows="3">{{ form_values.get('notes', machine.notes if machine else '') }}</textarea>
+
+  {% if machine %}
+  <div class="checkbox-row">
+    <input type="checkbox" id="active" name="active" {% if machine.active %}checked{% endif %}>
+    <label for="active" style="margin:0;">Active</label>
+  </div>
+  <div class="hint">Uncheck to hide from new-entry forms without deleting its history.</div>
+  {% endif %}
+
+  <div class="actions" style="margin-top:20px;">
+    <button class="btn" type="submit">{{ 'Save changes' if machine else 'Add machine' }}</button>
+    <a class="btn secondary" href="/machines">Cancel</a>
+  </div>
+</form>
+</div>
+{% endblock %}

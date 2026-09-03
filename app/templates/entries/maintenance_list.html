@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Maintenance - Vending Books{% endblock %}
+{% block content %}
+<h1>Maintenance expenses</h1>
+<div class="actions"><a class="btn" href="/maintenance/new">Log maintenance</a></div>
+<div class="card">
+  {% if not entries %}
+    <p class="empty-state">No maintenance expenses logged yet.</p>
+  {% else %}
+  <table>
+    <thead><tr><th>Date</th><th>Machine</th><th>Amount</th><th>Description</th></tr></thead>
+    <tbody>
+      {% for e in entries %}
+      <tr>
+        <td>{{ e.expense_date }}</td>
+        <td>{{ e.machine.name }}</td>
+        <td>${{ '%.2f'|format(e.cents_to_dollars(e.amount_cents)) }}</td>
+        <td class="muted">{{ e.description }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+</div>
+{% endblock %}

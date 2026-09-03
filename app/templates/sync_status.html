@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}QuickBooks Sync - Vending Books{% endblock %}
+{% block content %}
+<h1>QuickBooks sync</h1>
+
+{% if not mapping_complete %}
+<div class="card">
+  <p>Finish your <a href="/settings">account mapping in Settings</a> before syncing.</p>
+</div>
+{% endif %}
+
+<div class="stat-grid">
+  <div class="stat"><div class="label">Not yet synced</div><div class="value">{{ pending_count }}</div></div>
+  <div class="stat"><div class="label">Failed</div><div class="value {% if failed_count %}negative{% endif %}">{{ failed_count }}</div></div>
+</div>
+
+<div class="actions">
+  <form method="post" action="/sync/all"><button class="btn" type="submit" {% if not mapping_complete %}disabled{% endif %}>Sync everything pending</button></form>
+  {% if failed_count > 0 %}
+  <form method="post" action="/sync/retry"><button class="btn secondary" type="submit">Retry all failed</button></form>
+  {% endif %}
+</div>
+
+<div class="card">
+  {% if not rows %}
+    <p class="empty-state">Nothing logged yet -- once you record collections, restocks, commissions, or maintenance, they'll show up here.</p>
+  {% else %}
+  <table>
+    <thead><tr><th>Record</th><th>Status</th><th>Last attempt</th><th>Error</th><th></th></tr></thead>
+    <tbody>
+      {% for row in rows %}
+      <tr>
+        <td>{{ row.description }}</td>
+        <td>
+          {% if row.record.status.value == 'synced' %}<span class="badge synced">Synced</span>
+          {% elif row.record.status.value == 'failed' %}<span class="badge failed">Failed</span>
+          {% else %}<span class="badge pending">Pending</span>{% endif %}
+        </td>
+        <td class="muted">{{ row.record.last_attempt_at.strftime('%b %-d, %Y %-I:%M %p') if row.record.last_attempt_at else '-' }}</td>
+        <td class="muted">{{ row.record.last_error }}</td>
+        <td>
+          {% if row.record.status.value != 'synced' %}
+          <form method="post" action="/sync/one/{{ row.record.source_type.value }}/{{ row.record.source_id }}">
+            <button class="btn small secondary" type="submit">Sync now</button>
+          </form>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Log maintenance - Vending Books{% endblock %}
+{% block content %}
+<h1>Log maintenance expense</h1>
+{% if errors %}<div class="error-list"><ul>{% for e in errors %}<li>{{ e }}</li>{% endfor %}</ul></div>{% endif %}
+
+{% if not machines %}
+  <p class="empty-state">You need an active machine first. <a href="/machines/new">Add one</a>.</p>
+{% else %}
+<div class="card">
+<form class="stacked" method="post" action="/maintenance/new">
+  <label for="machine_id">Machine</label>
+  <select id="machine_id" name="machine_id">
+    {% for m in machines %}
+    <option value="{{ m.id }}" {% if form_values.get('machine_id') == m.id %}selected{% endif %}>{{ m.name }} - {{ m.location_name }}</option>
+    {% endfor %}
+  </select>
+
+  <label for="expense_date">Date</label>
+  <input type="date" id="expense_date" name="expense_date" value="{{ form_values.get('expense_date', '') }}">
+
+  <label for="amount">Amount ($)</label>
+  <input type="number" step="0.01" min="0" id="amount" name="amount" value="{{ form_values.get('amount', '') }}">
+
+  <label for="description">Description</label>
+  <input type="text" id="description" name="description" placeholder="e.g. Replaced coin mechanism"
+         value="{{ form_values.get('description', '') }}">
+
+  <div class="actions" style="margin-top:20px;">
+    <button class="btn" type="submit">Save expense</button>
+    <a class="btn secondary" href="/maintenance">Cancel</a>
+  </div>
+</form>
+</div>
+{% endif %}
+{% endblock %}

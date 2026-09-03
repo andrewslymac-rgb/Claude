@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Dashboard - Vending Books{% endblock %}
+{% block content %}
+<h1>Dashboard</h1>
+<p class="muted">Month to date: {{ month_start.strftime('%b %-d') }} - {{ today.strftime('%b %-d, %Y') }}</p>
+
+<div class="stat-grid">
+  <div class="stat">
+    <div class="label">Active machines</div>
+    <div class="value">{{ machine_count }}</div>
+  </div>
+  <div class="stat">
+    <div class="label">Revenue (MTD)</div>
+    <div class="value">${{ '%.2f'|format(totals.revenue) }}</div>
+  </div>
+  <div class="stat">
+    <div class="label">Expenses (MTD)</div>
+    <div class="value">${{ '%.2f'|format(totals.expenses) }}</div>
+  </div>
+  <div class="stat">
+    <div class="label">Net profit (MTD)</div>
+    <div class="value {% if totals.profit < 0 %}negative{% endif %}">${{ '%.2f'|format(totals.profit) }}</div>
+  </div>
+  <div class="stat">
+    <div class="label">Pending QBO sync</div>
+    <div class="value">{{ pending_sync_count }}</div>
+  </div>
+</div>
+
+{% if pending_sync_count > 0 %}
+<div class="card">
+  <strong>{{ pending_sync_count }}</strong> record(s) haven't been synced to QuickBooks yet.
+  <a href="/sync" class="btn small" style="margin-left:8px;">Review &amp; sync</a>
+</div>
+{% endif %}
+
+<div class="card">
+  <h2>Profit by machine (month to date)</h2>
+  {% if not machine_summaries %}
+    <p class="empty-state">No active machines yet. <a href="/machines/new">Add your first machine</a>.</p>
+  {% else %}
+  <table>
+    <thead>
+      <tr><th>Machine</th><th>Revenue</th><th>Restock</th><th>Commission</th><th>Maintenance</th><th>Net profit</th></tr>
+    </thead>
+    <tbody>
+      {% for machine, s in machine_summaries %}
+      <tr>
+        <td><a href="/machines/{{ machine.id }}/edit">{{ machine.name }}</a> <span class="muted">({{ machine.location_name }})</span></td>
+        <td>${{ '%.2f'|format(s.total_revenue) }}</td>
+        <td>${{ '%.2f'|format(s.restock_cost) }}</td>
+        <td>${{ '%.2f'|format(s.commission_paid) }}</td>
+        <td>${{ '%.2f'|format(s.maintenance_cost) }}</td>
+        <td {% if s.net_profit < 0 %}class="negative"{% endif %}>${{ '%.2f'|format(s.net_profit) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+</div>
+
+<div class="actions">
+  <a class="btn" href="/collections/new">Log collection</a>
+  <a class="btn secondary" href="/restocks/new">Log restock</a>
+  <a class="btn secondary" href="/commissions/new">Log commission</a>
+  <a class="btn secondary" href="/maintenance/new">Log maintenance</a>
+</div>
+{% endblock %}

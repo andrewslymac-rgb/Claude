@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Commissions - Vending Books{% endblock %}
+{% block content %}
+<h1>Commission payments</h1>
+<div class="actions"><a class="btn" href="/commissions/new">Log commission</a></div>
+<div class="card">
+  {% if not entries %}
+    <p class="empty-state">No commission payments logged yet.</p>
+  {% else %}
+  <table>
+    <thead><tr><th>Date</th><th>Machine</th><th>Paid to</th><th>Amount</th><th>Notes</th></tr></thead>
+    <tbody>
+      {% for e in entries %}
+      <tr>
+        <td>{{ e.payment_date }}</td>
+        <td>{{ e.machine.name }}</td>
+        <td>{{ e.machine.location_contact_name or e.machine.location_name }}</td>
+        <td>${{ '%.2f'|format(e.cents_to_dollars(e.amount_cents)) }}</td>
+        <td class="muted">{{ e.notes }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+</div>
+{% endblock %}

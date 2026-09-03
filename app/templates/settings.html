@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block title %}Settings - Vending Books{% endblock %}
+{% block content %}
+<h1>Settings</h1>
+
+<div class="card">
+  <h2 style="margin-top:0;">QuickBooks Online connection</h2>
+  {% if connection and connection.is_connected %}
+    <p>Connected to <strong>{{ connection.company_name or connection.realm_id }}</strong>
+      <span class="badge synced">{{ connection.environment }}</span></p>
+    <p class="muted">Connected {{ connection.connected_at.strftime('%b %-d, %Y') if connection.connected_at else '' }}.</p>
+    <form method="post" action="/qbo/disconnect" onsubmit="return confirm('Disconnect from QuickBooks? You can reconnect any time; nothing already synced is affected.');">
+      <button class="btn secondary" type="submit">Disconnect</button>
+    </form>
+  {% else %}
+    {% if not qbo_client_configured %}
+      <p class="muted">Add <code>QBO_CLIENT_ID</code> and <code>QBO_CLIENT_SECRET</code> to your <code>.env</code> file first --
+      see README.md "QuickBooks Developer Setup".</p>
+    {% else %}
+      <p class="muted">Environment: <strong>{{ qbo_environment }}</strong> (set <code>QBO_ENVIRONMENT</code> in .env to change).</p>
+      <a class="btn" href="/qbo/connect">Connect to QuickBooks</a>
+    {% endif %}
+  {% endif %}
+</div>
+
+{% if connection and connection.is_connected %}
+<div class="card">
+  <h2 style="margin-top:0;">Account mapping</h2>
+  <p class="hint">
+    This controls exactly where synced transactions land in QuickBooks. Confirm every field before you sync
+    real data -- see README.md "QuickBooks account mapping" for what each one means.
+  </p>
+  {% if qbo_error %}<div class="error-list">{{ qbo_error }}</div>{% endif %}
+
+  <form class="stacked" method="post" action="/settings/accounts">
+    <label for="tracking_type">Per-machine tracking</label>
+    <select id="tracking_type" name="tracking_type">
+      <option value="Class" {% if account_settings.tracking_type == 'Class' %}selected{% endif %}>Class</option>
+      <option value="Department" {% if account_settings.tracking_type == 'Department' %}selected{% endif %}>Location (Department)</option>
+    </select>
+    <div class="hint">Whichever tracking feature you have turned on in QuickBooks (Settings &gt; Advanced in QBO). Each machine becomes one Class/Location so you can run a P&amp;L by machine.</div>
+
+    <label for="deposit_account_ref">Deposit sales to</label>
+    <select id="deposit_account_ref" name="deposit_account_ref">
+      <option value="">-- choose an account --</option>
+      {% for a in accounts if a.AccountType in ['Bank', 'Other Current Asset'] %}
+      <option value="{{ a.Id }}" {% if account_settings.deposit_account_ref == a.Id %}selected{% endif %}>{{ a.Name }}</option>
+      {% endfor %}
+    </select>
+    <div class="hint">Typically "Undeposited Funds" if you batch cash/card sales into the bank later, or your checking account if it's deposited same-day.</div>
+
+    <label for="sales_item_ref">Vending sales item</label>
+    <select id="sales_item_ref" name="sales_item_ref">
+      <option value="">-- choose or create in QuickBooks first --</option>
+      {% for i in items %}
+      <option value="{{ i.Id }}" {% if account_settings.sales_item_ref == i.Id %}selected{% endif %}>{{ i.Name }}</option>
+      {% endfor %}
+    </select>
+    <div class="hint">A Service or Non-inventory item in QuickBooks, e.g. "Vending Sales" -- its income account is where revenue posts. Create it in QuickBooks (Sales &gt; Products and Services) if it's not listed.</div>
+
+    <label for="cogs_account_ref">Restock cost (COGS) account</label>
+    <select id="cogs_account_ref" name="cogs_account_ref">
+      <option value="">-- choose an account --</option>
+      {% for a in accounts if a.AccountType in ['Cost of Goods Sold', 'Expense'] %}
+      <option value="{{ a.Id }}" {% if account_settings.cogs_account_ref == a.Id %}selected{% endif %}>{{ a.Name }}</option>
+      {% endfor %}
+    </select>
+
+    <label for="commission_account_ref">Commission expense account</label>
+    <select id="commission_account_ref" name="commission_account_ref">
+      <option value="">-- choose an account --</option>
+      {% for a in accounts if a.AccountType == 'Expense' %}
+      <option value="{{ a.Id }}" {% if account_settings.commission_account_ref == a.Id %}selected{% endif %}>{{ a.Name }}</option>
+      {% endfor %}
+    </select>
+
+    <label for="maintenance_account_ref">Repairs &amp; maintenance expense account</label>
+    <select id="maintenance_account_ref" name="maintenance_account_ref">
+      <option value="">-- choose an account --</option>
+      {% for a in accounts if a.AccountType == 'Expense' %}
+      <option value="{{ a.Id }}" {% if account_settings.maintenance_account_ref == a.Id %}selected{% endif %}>{{ a.Name }}</option>
+      {% endfor %}
+    </select>
+
+    <label for="expense_payment_account_ref">Restock/commission/maintenance paid from</label>
+    <select id="expense_payment_account_ref" name="expense_payment_account_ref">
+      <option value="">-- choose an account --</option>
+      {% for a in accounts if a.AccountType in ['Bank', 'Credit Card'] %}
+      <option value="{{ a.Id }}" {% if account_settings.expense_payment_account_ref == a.Id %}selected{% endif %}>{{ a.Name }}</option>
+      {% endfor %}
+    </select>
+    <div class="hint">The account you actually pay for product, commissions, and repairs from.</div>
+
+    <div class="actions" style="margin-top:20px;">
+      <button class="btn" type="submit">Save mapping</button>
+    </div>
+  </form>
+
+  {% if not account_settings.is_complete() %}
+    <p class="muted" style="margin-top:14px;">Mapping is incomplete -- syncing is disabled until every field above is set.</p>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}
