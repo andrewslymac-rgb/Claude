@@ -6,7 +6,9 @@ payments, and maintenance costs per machine; see profit by machine; push it
 all into QuickBooks with no duplicates.
 
 Stack: Python, FastAPI, SQLite, server-rendered HTML (no build step, no
-Node required). Runs on your own machine.
+Node required). Runs on your own machine, or hosted on a small server (see
+"Deploying to Railway" below) so it's a normal website you can open from
+anywhere.
 
 ## Quick start
 
@@ -25,6 +27,75 @@ uvicorn app.main:app --reload
 
 Open http://localhost:8000. The SQLite database is created automatically at
 `data/vending.db` on first run.
+
+## Deploying to Railway
+
+This turns the app into a normal website with its own URL, so you (or
+Brittany, or anyone else you give the link to) can open it from a phone or
+laptop without installing anything. Railway hosts it for you; this repo is
+already set up for it (`Procfile` and `railway.json`).
+
+Cost is usually a few dollars a month depending on usage (Railway bills by
+actual CPU/RAM time, not a flat fee) -- you'll add a card on their site.
+
+**1. Create a Railway account and connect this repo**
+
+1. Go to **railway.app** and sign up -- choose **"Login with GitHub"** and
+   authorize it with your GitHub account (the same one this code lives in).
+2. Click **New Project > Deploy from GitHub repo**.
+3. Pick the repo (search for **"Claude"**, owner `andrewslymac-rgb`). If it
+   doesn't show up, click **Configure GitHub App** and grant Railway access
+   to that repository.
+4. Railway will start building it automatically. While that runs, click
+   into the new service, go to the **Settings** tab, find **Source >
+   Branch**, and set it to `claude/qbo-vending-app-scope-cxjhvz` (that's
+   where this code lives until it's merged into your main branch).
+
+**2. Give it a place to keep its data**
+
+The app's data (your machines, collections, everything) lives in a small
+database file. Without this step, that data would get wiped every time the
+app updates -- this step makes it permanent:
+
+1. In your Railway project, click **New > Volume**.
+2. Set the **mount path** to `/data`.
+3. Attach it to this service.
+
+**3. Set the environment variables**
+
+In the service, go to the **Variables** tab and add these one at a time
+(click **New Variable** for each):
+
+| Variable | Value |
+|---|---|
+| `SECRET_KEY` | Any long random string -- e.g. mash your keyboard for 40+ characters, or ask me to generate one for you |
+| `DATABASE_URL` | `sqlite:////data/vending.db` (note: four slashes) |
+| `APP_BASE_URL` | Leave as `http://localhost:8000` for now -- you'll change this in step 4 |
+| `QBO_ENVIRONMENT` | `sandbox` for now -- switch to `production` once you've tested and are ready to connect your real QuickBooks |
+
+Leave `QBO_CLIENT_ID` and `QBO_CLIENT_SECRET` out for now -- you'll add
+those once you've done the QuickBooks Developer Setup below. The app runs
+fine without them; you just won't be able to connect QuickBooks yet.
+
+Saving a variable triggers a redeploy automatically.
+
+**4. Get your public URL and finish wiring it up**
+
+1. Go to **Settings > Networking** and click **Generate Domain**. Railway
+   gives you a URL like `https://vending-books-production.up.railway.app`.
+2. Copy that URL, go back to **Variables**, and change `APP_BASE_URL` to it
+   (no trailing slash).
+3. Open the URL in your browser -- you should see the Vending Books
+   dashboard. That's it, it's live.
+
+From here, follow "QuickBooks Developer Setup" below as written, except
+wherever it says `http://localhost:8000`, use your Railway URL instead
+(both for the Redirect URI you register with Intuit, and it'll already be
+set as `APP_BASE_URL`). Add `QBO_CLIENT_ID`/`QBO_CLIENT_SECRET` as Railway
+variables the same way as step 3 above once you have them.
+
+Any time I push a code update to this branch, Railway redeploys
+automatically -- nothing you need to do.
 
 ## What it does
 
@@ -70,20 +141,22 @@ separate from your regular QuickBooks Online login.
 4. Once created, go to your app's **Keys & OAuth** section (under
    "Development Settings" while you're testing against the sandbox; a
    separate **Production** tab appears once you request production keys).
-   Copy the **Client ID** and **Client Secret** into your `.env`:
-   ```
-   QBO_CLIENT_ID=...
-   QBO_CLIENT_SECRET=...
-   ```
-5. Still on **Keys & OAuth**, add a **Redirect URI**:
-   `http://localhost:8000/qbo/callback` (matches `APP_BASE_URL` in your
-   `.env` -- change both together if you host this somewhere other than
-   localhost).
-6. Leave `QBO_ENVIRONMENT=sandbox` in `.env` for now. Intuit gives every
-   developer app a free **Sandbox Company** (a fake QuickBooks company with
-   test data) under the **Sandbox** tab -- use that to try the whole flow
+   Copy the **Client ID** and **Client Secret** in as `QBO_CLIENT_ID` /
+   `QBO_CLIENT_SECRET` -- into your `.env` file if running locally, or as
+   Railway Variables if you deployed there (see "Deploying to Railway"
+   above).
+5. Still on **Keys & OAuth**, add a **Redirect URI**: it must be
+   `<APP_BASE_URL>/qbo/callback`, using whatever `APP_BASE_URL` is set to
+   -- `http://localhost:8000/qbo/callback` if running locally, or your
+   Railway URL (e.g. `https://vending-books-production.up.railway.app/qbo/callback`)
+   if hosted there. The two have to match exactly or QuickBooks will
+   reject the connection.
+6. Leave `QBO_ENVIRONMENT=sandbox` for now. Intuit gives every developer
+   app a free **Sandbox Company** (a fake QuickBooks company with test
+   data) under the **Sandbox** tab -- use that to try the whole flow
    before connecting your real books.
-7. Restart the app, go to **Settings** in Vending Books, and click
+7. Restart the app (or, on Railway, just save the variables -- it
+   redeploys itself), go to **Settings** in Vending Books, and click
    **Connect to QuickBooks**. Log in with your Intuit developer sandbox
    credentials and authorize the app against your sandbox company.
 8. Once you're happy with how things map (see below), request **Production**
