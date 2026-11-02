@@ -10,7 +10,7 @@ you paste into Jobber. Zapier fills in new Jobber requests automatically.
 | `LL_Residential_Estimator.xlsx` | The workbook. Import it into Google Drive as a Google Sheet. |
 | `build_estimator.py` | Rebuilds the workbook from code (`python3 build_estimator.py`). |
 | `pricing.py` | The same pricing logic in Python. Reference copy, and the engine for a future web app. |
-| `test_estimator.py` | Rebuilds the sheet, recalculates it in LibreOffice and checks it matches `pricing.py` in 7 scenarios. |
+| `test_estimator.py` | Rebuilds the sheet, recalculates it in LibreOffice and checks it matches `pricing.py` in 8 scenarios. |
 
 ---
 
@@ -20,7 +20,7 @@ you paste into Jobber. Zapier fills in new Jobber requests automatically.
    **New ▸ File upload** and pick `LL_Residential_Estimator.xlsx`. Then double-click it and choose
    **Open with ▸ Google Sheets**, then **File ▸ Save as Google Sheets**. Delete the
    uploaded .xlsx afterward. Name the sheet **LL Residential Estimator**.
-2. **Check it works.** The Estimator tab should show the sample client "Jane Sample", a green
+2. **Check it works.** The Quote tab should show the sample client "Jane Sample", a green
    **✅ Ready to quote** bar, and the prices in the worked example below.
 3. **Share it** with the team (Editor access).
 4. **Connect Zapier** (section 4) so new requests land on the Requests tab by themselves.
@@ -28,34 +28,43 @@ you paste into Jobber. Zapier fills in new Jobber requests automatically.
    This is what saves the most time.
 6. Once real requests are coming in, delete the sample row on the Requests tab.
 
-## 2. Tabs
+## 2. Tabs (colored to match)
 
-| Tab | Who touches it | What's on it |
+| Tab | Who uses it | What's on it |
 |---|---|---|
-| **Estimator** | Team, every quote | Yellow cells = inputs. Grey = pulled from Jobber. Bold = what the price actually uses. Status bar, estimates panel, quote text, Jobber line items, and a step-by-step price breakdown at the bottom. |
-| **Requests** | Zapier writes columns A–N. Team fills O–T | One row per Jobber request. Status / Service Quoted / Price Quoted / Quoted By / Date Quoted is your quote log. |
-| **Settings** | Andrew only | **Every** rate, minimum, multiplier, time assumption, dirt-code table, service-area city list and the quote wording. Blue cells are editable. Nothing is hard-coded on the Estimator. |
-| **Rate Card** | Reference | The current rate card's tables, so every estimate shows the card's midpoint next to it. |
-| **How To Use** | Team | The 8-step routine below, inside the sheet. |
+| 🟪 **Quote** | Team, every quote | The only tab the team works in. Status bar at the top, 4 colored steps on the left, prices, quote message and Jobber line items on the right. |
+| 🟨 **Requests** | Zapier fills the purple columns; the team fills the yellow ones | One row per Jobber request. The yellow columns (Status, Service Quoted, Price Quoted, Quoted By, Date Quoted) are your quote log. |
+| ⬛ **Breakdown** | Anyone curious | Read-only. What the price used, every step of the math for every service, add-ons, and the checks. |
+| 🟦 **Settings** | Andrew only | Every number, in colored tables: ① Prices by service ② Jobber descriptions ③ Dirt code ④ People & pets ⑤ Time since last clean ⑥ Add-ons ⑦ Service area ⑧ Quote wording ⑨ Advanced. Blue cells are the editable ones. |
+| 🟩 **Rate Card** | Reference | Your current rate card. The Breakdown tab shows its midpoints next to each estimate. |
+| 🟧 **How To Use** | Team | The routine below, inside the sheet. |
 
 ## 3. Pricing a request (team routine)
 
-1. On **Estimator**, pick the client in the yellow box at **D4**. Grey cells fill in from the request.
-   For a phone call, leave D4 blank and type everything in yellow.
-2. Fill or correct the yellow cells. Anything you type in **Your entry / override** wins over Jobber's value.
-3. Open the Jobber link and look at the photos. Enter the **dirt code** (1–11). If the photos change
-   your mind, use the **Photo review** rows: an adjusted dirt code and/or a ±% adjustment, plus a reason.
-4. The **STATUS** bar must be green.
-   - **Red (dirt code 11):** we do not service this home. No prices are shown, and the quote cell turns into a polite decline message.
-   - **Amber:** something required is missing or out of range. It says what.
-   - **Warnings** flag homes over 4,000 sq ft (walk-through), cities outside the service area,
-     photo changes with no reason, and missing beds/baths.
-5. Set **In quote?** to No for services the client doesn't need. Copy the **QUOTE TEXT** cell into
-   Jobber, and build the quote from the **JOBBER LINE ITEMS** block. Tip: add them as optional line items so the client picks one.
-6. Log it on **Requests**: Status, Service Quoted, Price Quoted, Quoted By, Date Quoted.
-7. Clear the yellow cells you typed in before the next request. Overrides stay until you clear them.
+The Quote tab uses two colors:
+- **Yellow box = type here**
+- **Grey = filled in from the Jobber request**
 
-The Estimator tab is shared, so one person quotes at a time. If two people need to quote at once,
+If you type in a yellow box, your answer wins over the grey one.
+
+1. **① Pick the request.** Choose the client from the dropdown. Everything the request said fills in grey.
+   For a phone call, leave it blank and type the details yourself.
+2. **② The home.** Check square feet, beds, baths, people, pets and the last professional cleaning date. Fix anything that's wrong.
+3. **③ Condition & photos.** Open the Jobber link, look at the photos, and enter the **dirt code** (1–11).
+   The meaning of the code shows next to it. If the photos change your mind, fill in the **Photo check**
+   rows: a new dirt code and/or a ±% price change, plus **why**.
+4. **④ Add-ons & promo.** Fridge, oven, number of windows. Meta promos fill in by themselves.
+5. **Look at the bar at the top:**
+   - 🟩 **Ready to quote**: go ahead.
+   - 🟧 **Not ready**: tells you exactly what's missing.
+   - 🟥 **We do not service this home** (dirt code 11): no prices are shown, and the quote box becomes a polite decline message.
+   - The line under the bar gives heads-ups: over 4,000 sq ft (walk-through), outside the service area, a photo change with no reason, missing beds/baths.
+6. **Your prices.** Set **Put in quote?** to No for anything the client doesn't want. Copy the
+   **quote message** into Jobber and add the **line items** (as optional items so the client picks one).
+7. **Log it** in the yellow columns on Requests.
+8. **Clear the yellow boxes** you typed in before the next quote.
+
+The Quote tab is shared, so one person quotes at a time. If two people need to quote at once,
 one of them duplicates the tab (right-click ▸ Duplicate). This is the main limitation a web app would remove.
 
 ---
@@ -93,7 +102,7 @@ one of them duplicates the tab (right-click ▸ Duplicate). This is the main lim
 | M Details | Request note text **and/or** form answers. See the format below. |
 | N Photo Links | Attachment URLs, if the trigger exposes them |
 
-5. Turn it on, submit another test, and confirm the row appears and the Estimator dropdown finds it.
+5. Turn it on, submit another test, and confirm the row appears and the Quote tab dropdown finds it.
 
 **Details format.** The sheet reads `Label: value` pairs separated by ` | ` (or new lines). When you
 map form answers in Zapier, type this template into the Details field and drop the answer
@@ -147,7 +156,7 @@ Built on the rate card ("1 NEW L&L Rate Card Residential ONLY"):
 
 > **Hours = Sq Ft ÷ production rate · Price = Hours × rate, rounded up to $5, never below the minimum.**
 
-The Estimator follows that method and extends it. Each step is shown per service at the bottom of the Estimator:
+The Estimator follows that method and extends it. Each step is shown per service on the Breakdown tab:
 
 ```
 labor hours = CEILING( (sqft ÷ production rate + extra-bath hours)
@@ -184,7 +193,7 @@ A weekly home takes less time per sq ft than a monthly one:
 | Rounding | Hours up to 0.25; price up to $5 | Card (price); assumption (hours) |
 
 The rate card inconsistencies (deep/move tables vs. formula, conflicting minimums, blank add-ons and so on)
-were emailed to Andrew on Nov 2, 2026. The Rate Card tab and the "vs. rate card" row on the Estimator let you
+were emailed to Andrew on Nov 2, 2026. The Rate Card tab and the "vs. rate card" row on the Breakdown tab let you
 see the gap on every quote while you decide.
 
 ---
