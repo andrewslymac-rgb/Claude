@@ -61,6 +61,11 @@ DEFAULT_SETTINGS: dict = {
     "per_cat": 0.02,
     "per_other_animal": 0.01,
     "pet_cap": 0.20,
+    # Rooms: a small % per room beyond what the base assumes (Andrew Nov 2026: 3% each).
+    "living_included": 1, "per_extra_living": 0.03,
+    "kitchens_included": 1, "per_extra_kitchen": 0.03,
+    "bonus_included": 0, "per_extra_bonus": 0.03,
+    "room_cap": 0.15,
     "walkthrough_sqft": 4000,
     "min_sqft": 300,
     "max_sqft": 10000,
@@ -100,6 +105,9 @@ class EstimateInput:
     photo_adjust_pct: float = 0.0  # e.g. 0.10 = +10%
     photo_reason: str = ""
     occupants: int | None = None
+    living_rooms: int | None = None  # None = the included count
+    kitchens: int | None = None
+    bonus_rooms: int | None = None  # bonus rooms + basements
     dogs: int = 0
     cats: int = 0
     other_animals: int = 0
@@ -193,6 +201,12 @@ def estimate(inp: EstimateInput, s: dict = DEFAULT_SETTINGS) -> Estimate:
     occ_add = min(s["occupant_cap"], max(0, occupants - s["occupants_included"]) * s["per_extra_occupant"])
     pet_add = min(s["pet_cap"], inp.dogs * s["per_dog"] + inp.cats * s["per_cat"]
                   + inp.other_animals * s["per_other_animal"])
+    living = s["living_included"] if inp.living_rooms is None else inp.living_rooms
+    kitchens = s["kitchens_included"] if inp.kitchens is None else inp.kitchens
+    bonus = s["bonus_included"] if inp.bonus_rooms is None else inp.bonus_rooms
+    room_add = min(s["room_cap"], max(0, living - s["living_included"]) * s["per_extra_living"]
+                   + max(0, kitchens - s["kitchens_included"]) * s["per_extra_kitchen"]
+                   + max(0, bonus - s["bonus_included"]) * s["per_extra_bonus"])
     extra_baths = max(0, baths - sqft / s["sqft_per_included_bath"]) if sqft else 0
 
     addon_prices = {
@@ -236,7 +250,7 @@ def estimate(inp: EstimateInput, s: dict = DEFAULT_SETTINGS) -> Estimate:
         occ_f = 1 + hh * occ_add
         pet_f = 1 + hh * pet_add
         lc_f = last_factor if s["last_clean_applies"][i] else 1
-        hours = ceil_to((base + bath_h) * s["scope_multiplier"][i] * dirt_f * occ_f * pet_f * lc_f,
+        hours = ceil_to((base + bath_h) * s["scope_multiplier"][i] * dirt_f * occ_f * pet_f * (1 + room_add) * lc_f,
                         s["hours_rounding"])
         price = ceil_to(hours * s["billable_rate"][i] * (1 + inp.photo_adjust_pct), s["price_rounding"])
         minimum = max(s["minimum_price"][i], s["trip_minimum_one_time"] if s["one_time"][i] else 0)

@@ -26,7 +26,7 @@ PANEL = {8: ("initial_deep", "F"), 9: ("deluxe_deep", "G"), 10: ("move", "H"),
 
 CUSTOM_CLEAR = {f"custom_{w}_{i}": None for i in range(1, 7) for w in ("area", "sqft", "extra")}
 
-CLEAR = {k: None for k in ["pick", "sqft", "beds", "baths", "people", "dogs", "cats", "other", "last_clean",
+CLEAR = {k: None for k in ["living", "kitchens", "bonus", "pick", "sqft", "beds", "baths", "people", "dogs", "cats", "other", "last_clean",
                            "dirt", "photo_dirt", "photo_pct", "photo_why", "windows", "promo"]}
 CLEAR.update({"fridge": "No", "oven": "No"})
 
@@ -65,7 +65,7 @@ SCENARIOS = {
     ),
     "last_clean_never": (
         {**CLEAR, "sqft": 1800, "beds": 3, "baths": 2, "dirt": 5, "people": 2, "dogs": 0, "cats": 0,
-         "other": 0, "last_clean": "never"},
+         "other": 0, "last_clean": "never", "living": 1, "kitchens": 1, "bonus": 0},
         EstimateInput(sqft=1800, bedrooms=3, bathrooms=2, dirt_code=5, occupants=2, today=TODAY),
     ),
     "team_price_outside_range": (
@@ -94,6 +94,16 @@ SCENARIOS = {
     "custom_missing_type": (
         {**CLEAR, "dirt": 5, "custom_area_1": "Basement", "custom_sqft_1": 800},
         EstimateInput(sqft=None, dirt_code=5, custom_areas=[(800, 0)], today=TODAY),
+    ),
+    "extra_rooms": (
+        {**CLEAR, "sqft": 3000, "beds": 4, "baths": 3, "dirt": 5, "living": 2, "kitchens": 2, "bonus": 2},
+        EstimateInput(sqft=3000, bedrooms=4, bathrooms=3, dirt_code=5, living_rooms=2, kitchens=2, bonus_rooms=2,
+                      today=TODAY),
+    ),
+    "rooms_hit_cap": (
+        {**CLEAR, "sqft": 3000, "beds": 4, "baths": 3, "dirt": 5, "living": 4, "kitchens": 3, "bonus": 4},
+        EstimateInput(sqft=3000, bedrooms=4, bathrooms=3, dirt_code=5, living_rooms=4, kitchens=3, bonus_rooms=4,
+                      today=TODAY),
     ),
     "missing_sqft": (
         {**CLEAR, "dirt": 5},
@@ -202,7 +212,7 @@ def test_quote_text(wbs):
     assert "Initial Deep Clean: $785 (includes $50 off promo)" in text
     assert "Every 2 weeks: $240" in text
     assert "Lemon and Lavender Cleaning Co." in text and "&" not in text
-    assert q["D27"].value.startswith("7 = ")  # dirt description shows the code actually used
+    assert q["D30"].value.startswith("7 = ")  # dirt description shows the code actually used
     assert q["D7"].value == "Loaded ✓"
 
 
@@ -210,13 +220,13 @@ def test_todo_bar(wbs):
     done = wbs["worked_example"]["Quote"]["G4"].value
     assert "All orange fields filled in" in done, done
     todo = wbs["phone_call_average_home"]["Quote"]["G4"].value
-    assert todo.startswith("✍ Still to type in: People, Dogs, Cats, Other animals, Last cleaning"), todo
+    assert todo.startswith("✍ Still to type in: Living rooms, Kitchens, Bonus/basements, People, Dogs, Cats, Other animals, Last cleaning"), todo
     assert "filled in" in wbs["last_clean_never"]["Quote"]["G4"].value
 
 
 def test_manual_rows_point_to_jobber(wbs):
     q = wbs["worked_example"]["Quote"]
-    for cell in ("D18", "D19", "D20", "D21", "D22", "D36", "D37", "D38"):
+    for cell in ("D18", "D19", "D20", "D21", "D22", "D24", "D25", "D26", "D39", "D40", "D41"):
         assert q[cell].value == "👉 Check Jobber request", cell
 
 
@@ -259,3 +269,14 @@ def test_custom_quote_text_and_line_item(wbs):
 
 def test_custom_missing_type_blocks(wbs):
     assert "Pick the type of clean" in wbs["custom_missing_type"]["Quote"]["B2"].value
+
+
+def test_rooms_add_small_percent(wbs):
+    base = estimate(EstimateInput(sqft=3000, bedrooms=4, bathrooms=3, dirt_code=5, today=TODAY))
+    more = estimate(EstimateInput(sqft=3000, bedrooms=4, bathrooms=3, dirt_code=5, living_rooms=2, kitchens=2,
+                                  bonus_rooms=2, today=TODAY))
+    # 1 extra living + 1 extra kitchen + 2 bonus = 4 extra rooms = +12% time
+    assert more.services["initial_deep"].labor_hours > base.services["initial_deep"].labor_hours
+    bd = wbs["extra_rooms"]["Breakdown"]
+    assert bd[f"F{B.CALC['rooms']}"].value == pytest.approx(1.12)
+    assert wbs["rooms_hit_cap"]["Breakdown"][f"F{B.CALC['rooms']}"].value == pytest.approx(1.15)  # capped

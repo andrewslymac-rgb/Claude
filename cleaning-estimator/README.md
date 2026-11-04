@@ -79,6 +79,18 @@ one of them duplicates the tab (right-click ▸ Duplicate). This is the main lim
 
 ---
 
+## 3a. Rooms (small extra time)
+
+Step ② asks for **living / family rooms, kitchens, and bonus rooms & basements** (orange: type them from the Jobber
+request). Square feet still drives the price. Rooms only add a little time:
+
+- The base assumes **1 living room, 1 kitchen, 0 bonus rooms/basements**.
+- Each room beyond that adds **3% time**, capped at **+15%** total.
+- Example: 2 living rooms + 1 kitchen + 1 basement = 2 extra rooms = +6% time.
+- All of it is on **Settings ▸ Rooms**, with a separate % per room type. The **Room Times** tab holds your
+  Room-by-Room Cleaning Timeframe Sheet (minutes per room, per service) as a living reference to tune those %s.
+- Custom quotes (step ⑤) skip the room factor, since you list those areas yourself.
+
 ## 3b. Custom quotes (only certain areas)
 
 For a client who only wants part of the home cleaned, e.g. just the basement, use **step ⑤ Custom quote**:

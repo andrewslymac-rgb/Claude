@@ -236,6 +236,16 @@ def build_settings(wb) -> Ref:
         ("per_other_animal", "Extra time per other animal", PCT, "Assumption"),
         ("pet_cap", "Most extra time for pets", PCT, "Assumption"),
     ])
+    list_table("ROOMS — small extra time per extra room (square feet still drives the price)", GREEN, GREEN_T, [
+        ("living_included", "Living / family rooms included in the base", "0", "Andrew Nov 2026"),
+        ("per_extra_living", "Extra time per additional living / family room", PCT,
+         "Andrew Nov 2026: 3%. Tune from the Room Times tab as your timing sheet firms up."),
+        ("kitchens_included", "Kitchens included in the base", "0", "Andrew Nov 2026"),
+        ("per_extra_kitchen", "Extra time per additional kitchen", PCT, "Andrew Nov 2026: 3%"),
+        ("bonus_included", "Bonus rooms & basements included in the base", "0", "Andrew Nov 2026"),
+        ("per_extra_bonus", "Extra time per bonus room or basement", PCT, "Andrew Nov 2026: 3%"),
+        ("room_cap", "Most extra time for rooms", PCT, "Keeps rooms from outweighing square feet"),
+    ])
     band(ws, f"B{r}:I{r}", "5  TIME SINCE LAST PROFESSIONAL CLEAN (one-time cleans)", GREEN)
     r += 1
     put(ws, f"B{r}", "If it's been at least … months", GREEN_T, font(bold=True))
@@ -568,64 +578,68 @@ def build_quote(wb, ref: Ref):
     q("other", 21, "Other animals", BLUE_T, "Type 0 if none.", "0", manual=True)
     q("last_clean", 22, "Last professional cleaning", BLUE_T, "A date (3/1/2026) or type: never",
       "mm/dd/yyyy", manual=True)
+    q("living", 24, "Living / family rooms", BLUE_T, "Blank = 1. Each one beyond 1 adds 3% time.", "0", manual=True)
+    q("kitchens", 25, "Kitchens", BLUE_T, "Blank = 1. Each one beyond 1 adds 3% time.", "0", manual=True)
+    q("bonus", 26, "Bonus rooms & basements", BLUE_T, "Blank = 0. Each one adds 3% time.", "0", manual=True)
     q("service", 23, "Service they asked about", BLUE_T, "Info only. Every service gets priced.",
       auto=P["service"])
 
-    step(25, "③  CONDITION & PHOTOS", ORANGE)
-    subhead(26, ORANGE_T)
-    q("dirt", 27, "Dirt code (1 – 11)", ORANGE_T, "1 = cleanest ever · 5 = average · 10 = heavy · 11 = we don't "
+    step(28, "③  CONDITION & PHOTOS", ORANGE)
+    subhead(29, ORANGE_T)
+    q("dirt", 30, "Dirt code (1 – 11)", ORANGE_T, "1 = cleanest ever · 5 = average · 10 = heavy · 11 = we don't "
       "service", "0", required=True, manual=True, auto=f'=IFERROR(VLOOKUP({b("dirt_used")},{ref["dirt_table"]},3,FALSE),"")')
-    ws["D27"].alignment = WRAP
-    ws.row_dimensions[27].height = 32
-    q("photos", 28, "Photo links", ORANGE_T, "Paste links if they aren't in Jobber.", auto=req("N"))
-    put(ws, "B29", "Photo check — fill in only if the photos changed your mind:", None,
+    ws["D30"].alignment = WRAP
+    ws.row_dimensions[30].height = 32
+    q("photos", 31, "Photo links", ORANGE_T, "Paste links if they aren't in Jobber.", auto=req("N"))
+    put(ws, "B32", "Photo check — fill in only if the photos changed your mind:", None,
         font(9, True, ORANGE), border=None)
-    ws.merge_cells("B29:E29")
-    q("photo_dirt", 30, "   New dirt code after photos", ORANGE_T, "Replaces the dirt code above.", "0")
-    q("photo_pct", 31, "   Price change after photos", ORANGE_T, "e.g. 10% or -5%. Changes every price.", PCT)
-    q("photo_why", 32, "   Why?", ORANGE_T, "Required if you changed anything.")
-    ws.merge_cells("C32:D32")
-    ws["C32"].alignment = Alignment(wrap_text=True, vertical="center")
-    ws["C32"].font = font(10)
-    ws.row_dimensions[32].height = 34
+    ws.merge_cells("B32:E32")
+    q("photo_dirt", 33, "   New dirt code after photos", ORANGE_T, "Replaces the dirt code above.", "0")
+    q("photo_pct", 34, "   Price change after photos", ORANGE_T, "e.g. 10% or -5%. Changes every price.", PCT)
+    q("photo_why", 35, "   Why?", ORANGE_T, "Required if you changed anything.")
+    ws.merge_cells("C35:D35")
+    ws["C35"].alignment = Alignment(wrap_text=True, vertical="center")
+    ws["C35"].font = font(10)
+    ws.row_dimensions[35].height = 34
 
-    step(34, "④  ADD-ONS & PROMO", GREEN)
-    subhead(35, GREEN_T)
-    q("fridge", 36, "Inside refrigerator", GREEN_T, "Check the Jobber request. Yes / No", default="No", manual=True)
-    q("oven", 37, "Inside oven", GREEN_T, "Check the Jobber request. Yes / No", default="No", manual=True)
-    q("windows", 38, "Interior windows (how many)", GREEN_T, "Check the Jobber request. 0 = none", "0", default=0,
+    step(37, "④  ADD-ONS & PROMO", GREEN)
+    subhead(38, GREEN_T)
+    q("fridge", 39, "Inside refrigerator", GREEN_T, "Check the Jobber request. Yes / No", default="No", manual=True)
+    q("oven", 40, "Inside oven", GREEN_T, "Check the Jobber request. Yes / No", default="No", manual=True)
+    q("windows", 41, "Interior windows (how many)", GREEN_T, "Check the Jobber request. 0 = none", "0", default=0,
       manual=True)
-    q("promo", 39, "Promo $ off Initial Deep Clean", GREEN_T, "Fills in from Meta ads. Type 0 to remove.", MONEY,
+    q("promo", 42, "Promo $ off Initial Deep Clean", GREEN_T, "Fills in from Meta ads. Type 0 to remove.", MONEY,
       auto=P["promo"])
 
     # ---- step 5: custom / partial-home quote
-    step(41, "⑤  CUSTOM QUOTE — only certain areas (optional)", GOLD)
-    q("custom_type", 42, "Type of clean for these areas", GOLD_T,
+    step(44, "⑤  CUSTOM QUOTE — only certain areas (optional)", GOLD)
+    q("custom_type", 45, "Type of clean for these areas", GOLD_T,
       "Deep · Move-out · Weekly · Bi-weekly · Monthly")
     for col, t in zip("BCDE", ["Area (e.g. Basement)", "Sq ft", "Extra hours (optional)", "Tip"]):
-        put(ws, f"{col}43", t, GOLD_T, font(9, True, SLATE), align=CENTER if col in "CD" else None)
+        put(ws, f"{col}46", t, GOLD_T, font(9, True, SLATE), align=CENTER if col in "CD" else None)
     for i in range(1, 7):
-        r = 43 + i
+        r = 46 + i
         put(ws, f"B{r}", None, ANSWER, font(11, True), border=ANSWER_BOX)
         put(ws, f"C{r}", None, ANSWER, font(11, True), "#,##0", border=ANSWER_BOX, align=CENTER)
         put(ws, f"D{r}", None, ANSWER, font(11, True), "0.00", border=ANSWER_BOX, align=CENTER)
         put(ws, f"E{r}", "", None, font(9, italic=True, color=SLATE), align=WRAP)
         Q[f"custom_area_{i}"], Q[f"custom_sqft_{i}"], Q[f"custom_extra_{i}"] = f"B{r}", f"C{r}", f"D{r}"
-    ws["E44"] = "Extra hours = anything sq ft misses (cabinets, heavy cobwebs, clutter)."
-    ws.merge_cells("B50:E50")
-    put(ws, "B50", "Uses the dirt code, pets, people and last cleaning above. Only quoting these areas? Leave "
+    ws["E47"] = "Extra hours = anything sq ft misses (cabinets, heavy cobwebs, clutter)."
+    ws.merge_cells("B53:E53")
+    put(ws, "B53", "Uses the dirt code, pets, people and last cleaning above. Only quoting these areas? Leave "
         "Square feet in step ② blank. The price shows as \"Custom\" in YOUR PRICES.", None,
         font(9, italic=True, color=SLATE), border=None, align=WRAP)
-    ws.row_dimensions[50].height = 26
+    ws.row_dimensions[53].height = 26
 
     # worked example answers
-    for name, v in {"people": 4, "dogs": 1, "cats": 1, "other": 0, "last_clean": date(2026, 3, 1), "dirt": 6,
+    for name, v in {"living": 1, "kitchens": 1, "bonus": 0, "people": 4, "dogs": 1, "cats": 1, "other": 0, "last_clean": date(2026, 3, 1), "dirt": 6,
                     "photo_dirt": 7, "photo_why": "Kitchen grease and pet hair visible in photos",
                     "fridge": "Yes", "windows": 12}.items():
         ws[Q[name]] = v
 
     # ---- to-do bar: which orange fields are still blank
-    todo_items = [("people", "People"), ("dogs", "Dogs"), ("cats", "Cats"), ("other", "Other animals"),
+    todo_items = [("living", "Living rooms"), ("kitchens", "Kitchens"), ("bonus", "Bonus/basements"),
+                  ("people", "People"), ("dogs", "Dogs"), ("cats", "Cats"), ("other", "Other animals"),
                   ("last_clean", "Last cleaning"), ("dirt", "Dirt code")]
     todo = "&".join(f'IF({Q[n]}="","{lbl}, ","")' for n, lbl in todo_items)
     ws.merge_cells("G4:M4")
@@ -797,6 +811,7 @@ def build_quote(wb, ref: Ref):
     dv("decimal", Q["baths"], "between", "0", "15", err="Bathrooms: 0–15 (0.5 for a half bath).")
     dv("whole", Q["people"], "between", "1", "20", err="People: a whole number 1–20.")
     dv("whole", f'{Q["dogs"]}:{Q["other"]}', "between", "0", "20", err="Animals: a whole number 0–20.")
+    dv("whole", f'{Q["living"]}:{Q["bonus"]}', "between", "0", "10", err="Rooms: a whole number 0–10.")
     dv("whole", Q["dirt"], "between", "1", "11", prompt="1 cleanest · 5 average · 10 heavy · 11 we don't service",
        err="Dirt code must be a whole number 1–11.")
     dv("whole", Q["photo_dirt"], "between", "1", "11", err="Dirt code must be a whole number 1–11.")
@@ -841,11 +856,11 @@ ADDON: dict = {}    # add-on -> price cell
 
 def plan_breakdown():
     """Fix every Breakdown row number up front so Quote formulas can reference them."""
-    used = ["client", "street", "city", "sqft", "beds", "baths", "people", "dogs", "cats", "other",
+    used = ["client", "street", "city", "sqft", "beds", "baths", "living", "kitchens", "bonus", "people", "dogs", "cats", "other",
             "last_clean", "dirt_entered", "photo_dirt", "dirt_used", "photo_pct", "photo_why", "photos",
             "fridge", "oven", "windows", "promo"]
     behind = ["row_found", "notes", "errors", "dnr", "ok", "warnings", "months", "extra_baths", "occ_add",
-              "pet_add", "dirt_mult", "last_factor", "photo_factor", "first_name", "addons_total",
+              "pet_add", "room_add", "dirt_mult", "last_factor", "photo_factor", "first_name", "addons_total",
               "full_ok", "custom_idx", "custom_sqft", "custom_extra", "custom_areas", "custom_ok", "custom_recurring",
               "custom_hours", "custom_onsite", "custom_round", "custom_min", "custom_svc", "custom_minflag",
               "custom_low", "custom_high"]
@@ -856,7 +871,7 @@ def plan_breakdown():
     USED_ROWS[:] = used
     r += 2  # gap + calc band
     calc_first = r + 1  # header row = r, first step = r+1
-    steps = ["rate", "base", "bath", "scope", "dirt", "occ", "pet", "last", "hours", "onsite", "brate", "labor",
+    steps = ["rate", "base", "bath", "scope", "dirt", "occ", "pet", "rooms", "last", "hours", "onsite", "brate", "labor",
              "photo", "round", "min", "svc", "minflag", "low", "high", "promo", "addons", "total", "freq", "eff", "card", "diff"]
     CALC_HEADER[0] = r
     for i, s in enumerate(steps):
@@ -910,6 +925,9 @@ def build_breakdown(wb, ref: Ref):
         "sqft": ("Square feet", qa("sqft"), "#,##0"),
         "beds": ("Bedrooms", qa("beds"), "0"),
         "baths": ("Bathrooms", qa("baths"), "0.0"),
+        "living": ("Living / family rooms", qa("living", ref["living_included"]), "0"),
+        "kitchens": ("Kitchens", qa("kitchens", ref["kitchens_included"]), "0"),
+        "bonus": ("Bonus rooms & basements", qa("bonus", ref["bonus_included"]), "0"),
         "people": ("People", qa("people", ref["occupants_included"]), "0"),
         "dogs": ("Dogs", qa("dogs", "0"), "0"),
         "cats": ("Cats", qa("cats", "0"), "0"),
@@ -953,11 +971,12 @@ def build_breakdown(wb, ref: Ref):
         ("dirt", "× Dirt code", lambda c: f"=1+({u('dirt_mult')}-1)*{svc(ref, 'dirt_sensitivity', c)}", "0.000"),
         ("occ", "× People", lambda c: f"=1+{svc(ref, 'household_factors_apply', c)}*{u('occ_add')}", "0.000"),
         ("pet", "× Pets", lambda c: f"=1+{svc(ref, 'household_factors_apply', c)}*{u('pet_add')}", "0.000"),
+        ("rooms", "× Rooms (living, kitchens, bonus/basements)", lambda c: f"=1+{u('room_add')}", "0.000"),
         ("last", "× Time since last clean",
          lambda c: f"=IF({svc(ref, 'last_clean_applies', c)}=1,{u('last_factor')},1)", "0.000"),
         ("hours", "→ Labor hours (rounded up)",
          lambda c: (f"=CEILING(({c}{R['base']}+{c}{R['bath']})*{c}{R['scope']}*{c}{R['dirt']}*{c}{R['occ']}"
-                    f"*{c}{R['pet']}*{c}{R['last']},{st['hours_rounding']})"), HRS),
+                    f"*{c}{R['pet']}*{c}{R['rooms']}*{c}{R['last']},{st['hours_rounding']})"), HRS),
         ("onsite", "Time on site for the team", lambda c: f"={c}{R['hours']}/{st['team_size']}", HRS),
         ("brate", "× Hourly rate", lambda c: f"={svc(ref, 'billable_rate', c)}", MONEY),
         ("labor", "→ Labor price", lambda c: f"={c}{R['hours']}*{c}{R['brate']}", MONEY2),
@@ -1061,6 +1080,10 @@ def build_breakdown(wb, ref: Ref):
         "pet_add": ("Extra time for pets",
                     f"=MIN({st['pet_cap']},N({u('dogs')})*{st['per_dog']}+N({u('cats')})*{st['per_cat']}"
                     f"+N({u('other')})*{st['per_other_animal']})", PCT),
+        "room_add": ("Extra time for rooms",
+                     f"=MIN({st['room_cap']},MAX(0,N({u('living')})-{st['living_included']})*{st['per_extra_living']}"
+                     f"+MAX(0,N({u('kitchens')})-{st['kitchens_included']})*{st['per_extra_kitchen']}"
+                     f"+MAX(0,N({u('bonus')})-{st['bonus_included']})*{st['per_extra_bonus']})", PCT),
         "dirt_mult": ("Dirt code time ×", f"=IFERROR(VLOOKUP({u('dirt_used')},{st['dirt_table']},2,FALSE)*1,1)", "0.00"),
         "last_factor": ("Last clean time ×", f"=LOOKUP({u('months')},{st['bands_m']},{st['bands_f']})", "0.00"),
         "photo_factor": ("Photo price ×", f"=1+{u('photo_pct')}", "0.00"),
@@ -1150,6 +1173,8 @@ def history_fields() -> list:
          ("Client", "cell", *bd("client")), ("Jobber Request ID", "req_id", "", ""),
          ("Jobber Link", "req_link", "", ""), ("Street", "cell", *bd("street")), ("City", "cell", *bd("city")),
          ("Sq ft", "cell", *bd("sqft")), ("Bedrooms", "cell", *bd("beds")), ("Bathrooms", "cell", *bd("baths")),
+         ("Living rooms", "cell", *bd("living")), ("Kitchens", "cell", *bd("kitchens")),
+         ("Bonus rooms & basements", "cell", *bd("bonus")),
          ("People", "cell", *bd("people")), ("Dogs", "cell", *bd("dogs")), ("Cats", "cell", *bd("cats")),
          ("Other animals", "cell", *bd("other")),
          ("Last professional cleaning", "cell", "Quote", Q["last_clean"]),
@@ -1180,7 +1205,8 @@ def build_history(wb):
 
 def write_apps_script(path: Path) -> None:
     import json
-    clear = [Q[k] for k in ["pick", "client", "street", "city", "sqft", "beds", "baths", "people", "dogs", "cats",
+    clear = [Q[k] for k in ["pick", "client", "street", "city", "sqft", "beds", "baths", "living", "kitchens",
+                            "bonus", "people", "dogs", "cats",
                             "other", "last_clean", "service", "dirt", "photos", "photo_dirt", "photo_pct",
                             "photo_why", "promo", "custom_type"]]
     clear += [Q[f"custom_{w}_{i}"] for i in range(1, 7) for w in ("area", "sqft", "extra")]
@@ -1279,6 +1305,47 @@ function clearQuote() {{
     path.write_text(js)
 
 
+# ================================================================ ROOM TIMES (reference)
+ROOM_TIMES = [  # room, deluxe, move-in/out, maintenance (minutes per technician), notes
+    ("Kitchen", "65–90", "90–120", "20–30", "Move-in/out adds inside fridge, oven, microwave, cabinets and drawers. "
+     "Add 15–20 min if the oven is heavily soiled."),
+    ("Full Bathroom", "50–70", "60–75", "15–20", "Add 10–15 min for heavy hard-water buildup on glass doors."),
+    ("Half Bath / Powder Room", "30–40", "30–40", "8–12", "Toilet, sink, mirror, floor, baseboards."),
+    ("Primary / Master Bedroom", "30–40", "30–40", "10–15", "Walk-in closets add 5–10 min."),
+    ("Secondary / Guest Bedroom", "20–25", "20–30", "8–10", "Kids' rooms with toys/clutter run high end."),
+    ("Living Room / Family Room", "45–65", "30–45", "15–20", "Add time for pet hair on upholstery."),
+    ("Dining Room", "25–35", "20–30", "8–12", "Light fixtures/chandeliers add 5–10 min."),
+    ("Laundry Room", "20–25", "20–30", "5–10", "Move-in/out adds inside cabinets and washer/dryer wipe."),
+    ("Hallways & Stairs", "20–30", "25–35", "8–12", "Count each full flight of stairs separately."),
+    ("Entryway / Foyer", "10–15", "10–15", "3–5", "Oct–Apr adds a few minutes for mud/debris."),
+    ("Home Office / Bonus Room", "20–25", "20–30", "8–12", "Bonus rooms with play/gym equipment run high end."),
+    ("Basement", "", "", "", "Add your team's times here."),
+]
+
+
+def build_room_times(wb):
+    ws = wb.create_sheet("Room Times")
+    ws.sheet_view.showGridLines = False
+    for k, v in {"A": 2, "B": 28, "C": 14, "D": 16, "E": 16, "F": 70}.items():
+        ws.column_dimensions[k].width = v
+    ws.merge_cells("B1:F1")
+    put(ws, "B1", "ROOM TIMES — reference from 'Room-by-Room Cleaning Timeframe Sheet' (living document)", GREEN,
+        font(13, True, WHITE), border=None, align=Alignment(vertical="center", indent=1))
+    ws.row_dimensions[1].height = 28
+    ws.merge_cells("B2:F2")
+    put(ws, "B2", "Minutes per technician. Edit as your team's timing improves. Prices still come from square feet; "
+        "rooms only add a small % (Settings ▸ Rooms). Use these numbers to tune those percentages.", border=None,
+        f=font(9, italic=True, color=SLATE), align=WRAP)
+    ws.row_dimensions[2].height = 28
+    for col, t in zip("BCDEF", ["Room / Area", "Deluxe (min)", "Move-In/Out (min)", "Maintenance (min)", "Notes"]):
+        put(ws, f"{col}4", t, GREEN_T, font(bold=True), align=CENTER)
+    for i, row in enumerate(ROOM_TIMES, start=5):
+        for col, v in zip("BCDEF", row):
+            put(ws, f"{col}{i}", v, EDIT if col in "CDE" else None, font(10, col == "B"),
+                align=CENTER if col in "CDE" else WRAP)
+        ws.row_dimensions[i].height = 30
+
+
 # ================================================================ HOW TO
 def build_howto(wb):
     ws = wb.create_sheet("How To Use")
@@ -1351,11 +1418,12 @@ def build(path: Path = OUT, answers: dict | None = None, extra_requests: list | 
     build_rate_card(wb)
     build_howto(wb)
     build_history(wb)
+    build_room_times(wb)
     build_lists(wb)
-    wb._sheets = [wb[n] for n in ["Quote", "Requests", "Quote History", "Breakdown", "Settings", "Rate Card",
-                                  "How To Use", "Lists"]]
+    wb._sheets = [wb[n] for n in ["Quote", "Requests", "Quote History", "Breakdown", "Settings", "Room Times",
+                                  "Rate Card", "How To Use", "Lists"]]
     tab_colors = {"Quote": PURPLE, "Requests": GOLD, "Breakdown": SLATE, "Settings": BLUE,
-                  "Rate Card": GREEN, "How To Use": ORANGE, "Quote History": GREEN, "Lists": SLATE}
+                  "Rate Card": GREEN, "How To Use": ORANGE, "Quote History": GREEN, "Lists": SLATE, "Room Times": GREEN}
     for name, color in tab_colors.items():
         wb[name].sheet_properties.tabColor = color
     wb.active = 0
