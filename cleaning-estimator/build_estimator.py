@@ -38,6 +38,8 @@ GREEN, GREEN_T = "548235", "E2EFDA"     # step 4 / recurring
 GOLD, GOLD_T = "BF8F00", "FFF2CC"
 SLATE, SLATE_T = "595959", "EDEDED"
 ANSWER = "FFF2CC"                       # yellow = type here
+MANUAL = "F8CBAD"                       # orange = always typed in (Jobber can't send it)
+MANUAL_DARK = "C65911"
 AUTO = "F2F2F2"                         # grey = filled automatically
 EDIT = "DDEBF7"                         # blue = editable setting
 WHITE = "FFFFFF"
@@ -46,6 +48,8 @@ thin = Side(style="thin", color="BFBFBF")
 med = Side(style="medium", color="BF8F00")
 BOX = Border(left=thin, right=thin, top=thin, bottom=thin)
 ANSWER_BOX = Border(left=med, right=med, top=med, bottom=med)
+thick_orange = Side(style="thick", color="C65911")
+MANUAL_BOX = Border(left=thick_orange, right=thick_orange, top=thick_orange, bottom=thick_orange)
 
 MONEY = '"$"#,##0'
 MONEY2 = '"$"#,##0.00'
@@ -448,6 +452,7 @@ def build_rate_card(wb):
 # ================================================================ QUOTE (team tab)
 # input name -> (row, label, tip, number format, default answer, from-request formula key)
 Q = {}  # name -> answer cell on Quote, filled in build_quote
+MANUAL_FIELDS: dict = {}  # name -> True when Jobber can't send it (team types it in)
 
 
 def build_quote(wb, ref: Ref):
@@ -486,9 +491,11 @@ def build_quote(wb, ref: Ref):
     ws.conditional_formatting.add("B3:J3", FormulaRule(formula=['$B$3<>"No warnings"'], fill=fill("FCE4D6")))
 
     # ---- legend
-    ws["B4"] = "Yellow = type here      Grey = filled in from the Jobber request (your answer wins if you type one)"
-    ws["B4"].font = font(9, italic=True, color=SLATE)
     ws.merge_cells("B4:E4")
+    put(ws, "B4", "🟧 ORANGE = always type in (Jobber can't send it)   🟨 Yellow = only to add or fix   "
+        "⬜ Grey = filled in from the request", None, font(9, True, MANUAL_DARK), border=None,
+        align=Alignment(vertical="center", wrap_text=True))
+    ws.row_dimensions[4].height = 30
 
     # ---- steps
     def step(row, title, color):
@@ -498,13 +505,25 @@ def build_quote(wb, ref: Ref):
         for col, t in zip("BCDE", ["Question", "Your answer", "From the request", "Tip"]):
             put(ws, f"{col}{row}", t, tint, font(9, True, SLATE), align=CENTER if col in "CD" else None)
 
-    def q(name, row, label, tint, tip="", fmt=None, default=None, auto=None, required=False, answer=True):
-        put(ws, f"B{row}", label + ("  *" if required else ""), tint, font(11, required), align=WRAP)
-        if answer:
-            put(ws, f"C{row}", default, ANSWER, font(11, True), fmt=fmt, border=ANSWER_BOX, align=CENTER)
+    def q(name, row, label, tint, tip="", fmt=None, default=None, auto=None, required=False, answer=True,
+          manual=False):
+        if manual:
+            put(ws, f"B{row}", "✍ " + label + ("  *" if required else ""), MANUAL, font(11, True, "000000"),
+                align=WRAP)
+            put(ws, f"C{row}", default, MANUAL, font(11, True), fmt=fmt, border=MANUAL_BOX, align=CENTER)
+            if auto is None:
+                auto = "👉 Check Jobber request"
+                put(ws, f"D{row}", auto, AUTO, font(10, True, MANUAL_DARK, italic=True), align=CENTER)
+            else:
+                put(ws, f"D{row}", auto, AUTO, font(10, italic=True, color=SLATE), fmt=fmt, align=CENTER)
         else:
-            put(ws, f"C{row}", None, AUTO)
-        put(ws, f"D{row}", auto, AUTO, font(10, italic=True, color=SLATE), fmt=fmt, align=CENTER)
+            put(ws, f"B{row}", label + ("  *" if required else ""), tint, font(11, required), align=WRAP)
+            if answer:
+                put(ws, f"C{row}", default, ANSWER, font(11, True), fmt=fmt, border=ANSWER_BOX, align=CENTER)
+            else:
+                put(ws, f"C{row}", None, AUTO)
+            put(ws, f"D{row}", auto, AUTO, font(10, italic=True, color=SLATE), fmt=fmt, align=CENTER)
+        MANUAL_FIELDS[name] = manual
         put(ws, f"E{row}", tip, None, font(9, italic=True, color=SLATE), align=WRAP)
         ws.row_dimensions[row].height = 20
         Q[name] = f"C{row}"
@@ -528,19 +547,19 @@ def build_quote(wb, ref: Ref):
       auto=P["sqft"], required=True)
     q("beds", 16, "Bedrooms", BLUE_T, fmt="0", auto=P["beds"])
     q("baths", 17, "Bathrooms", BLUE_T, "Half bath = 0.5", "0.0", auto=P["baths"])
-    q("people", 18, "People living there", BLUE_T, "Blank = 2", "0", auto=P["people"])
-    q("dogs", 19, "Dogs", BLUE_T, "Blank = 0", "0", auto=P["dogs"])
-    q("cats", 20, "Cats", BLUE_T, "Blank = 0", "0", auto=P["cats"])
-    q("other", 21, "Other animals", BLUE_T, "Blank = 0", "0", auto=P["other"])
-    q("last_clean", 22, "Last professional cleaning", BLUE_T, "A date. Blank = never / don't know.",
-      "mm/dd/yyyy", auto=P["last_clean"])
+    q("people", 18, "People living there", BLUE_T, "From the Jobber request. Type the number.", "0", manual=True)
+    q("dogs", 19, "Dogs", BLUE_T, "Type 0 if none.", "0", manual=True)
+    q("cats", 20, "Cats", BLUE_T, "Type 0 if none.", "0", manual=True)
+    q("other", 21, "Other animals", BLUE_T, "Type 0 if none.", "0", manual=True)
+    q("last_clean", 22, "Last professional cleaning", BLUE_T, "A date (3/1/2026) or type: never",
+      "mm/dd/yyyy", manual=True)
     q("service", 23, "Service they asked about", BLUE_T, "Info only. Every service gets priced.",
       auto=P["service"])
 
     step(25, "③  CONDITION & PHOTOS", ORANGE)
     subhead(26, ORANGE_T)
     q("dirt", 27, "Dirt code (1 – 11)", ORANGE_T, "1 = cleanest ever · 5 = average · 10 = heavy · 11 = we don't "
-      "service", "0", required=True, auto=f'=IFERROR(VLOOKUP({b("dirt_used")},{ref["dirt_table"]},3,FALSE),"")')
+      "service", "0", required=True, manual=True, auto=f'=IFERROR(VLOOKUP({b("dirt_used")},{ref["dirt_table"]},3,FALSE),"")')
     ws["D27"].alignment = WRAP
     ws.row_dimensions[27].height = 32
     q("photos", 28, "Photo links", ORANGE_T, "Paste links if they aren't in Jobber.", auto=req("N"))
@@ -557,17 +576,29 @@ def build_quote(wb, ref: Ref):
 
     step(34, "④  ADD-ONS & PROMO", GREEN)
     subhead(35, GREEN_T)
-    q("fridge", 36, "Inside refrigerator", GREEN_T, "Yes / No", default="No")
-    q("oven", 37, "Inside oven", GREEN_T, "Yes / No", default="No")
-    q("windows", 38, "Interior windows (how many)", GREEN_T, "0 = none", "0", default=0)
+    q("fridge", 36, "Inside refrigerator", GREEN_T, "Check the Jobber request. Yes / No", default="No", manual=True)
+    q("oven", 37, "Inside oven", GREEN_T, "Check the Jobber request. Yes / No", default="No", manual=True)
+    q("windows", 38, "Interior windows (how many)", GREEN_T, "Check the Jobber request. 0 = none", "0", default=0,
+      manual=True)
     q("promo", 39, "Promo $ off Initial Deep Clean", GREEN_T, "Fills in from Meta ads. Type 0 to remove.", MONEY,
       auto=P["promo"])
 
     # worked example answers
-    for name, v in {"people": 4, "dogs": 1, "cats": 1, "last_clean": date(2026, 3, 1), "dirt": 6,
+    for name, v in {"people": 4, "dogs": 1, "cats": 1, "other": 0, "last_clean": date(2026, 3, 1), "dirt": 6,
                     "photo_dirt": 7, "photo_why": "Kitchen grease and pet hair visible in photos",
                     "fridge": "Yes", "windows": 12}.items():
         ws[Q[name]] = v
+
+    # ---- to-do bar: which orange fields are still blank
+    todo_items = [("people", "People"), ("dogs", "Dogs"), ("cats", "Cats"), ("other", "Other animals"),
+                  ("last_clean", "Last cleaning"), ("dirt", "Dirt code")]
+    todo = "&".join(f'IF({Q[n]}="","{lbl}, ","")' for n, lbl in todo_items)
+    ws.merge_cells("G4:J4")
+    put(ws, "G4", f'=IF(({todo})="","✍ All orange fields filled in ✓","✍ Still to type in: "&LEFT(({todo}),'
+                  f'LEN(({todo}))-2))', MANUAL, font(10, True), border=MANUAL_BOX,
+        align=Alignment(vertical="center", wrap_text=True, indent=1))
+    ws.conditional_formatting.add("G4:J4", FormulaRule(formula=['ISNUMBER(SEARCH("filled in",$G$4))'],
+                                                       fill=fill("C6EFCE"), font=font(10, True, "006100")))
 
     # ---- prices panel
     band(ws, "G5:J5", "YOUR PRICES", PURPLE, 12, 24)
@@ -675,7 +706,6 @@ def build_quote(wb, ref: Ref):
     dv("decimal", Q["baths"], "between", "0", "15", err="Bathrooms: 0–15 (0.5 for a half bath).")
     dv("whole", Q["people"], "between", "1", "20", err="People: a whole number 1–20.")
     dv("whole", f'{Q["dogs"]}:{Q["other"]}', "between", "0", "20", err="Animals: a whole number 0–20.")
-    dv("date", Q["last_clean"], "between", "36526", "73051", err="Type a date, e.g. 3/1/2026.")
     dv("whole", Q["dirt"], "between", "1", "11", prompt="1 cleanest · 5 average · 10 heavy · 11 we don't service",
        err="Dirt code must be a whole number 1–11.")
     dv("whole", Q["photo_dirt"], "between", "1", "11", err="Dirt code must be a whole number 1–11.")
@@ -772,6 +802,8 @@ def build_breakdown(wb, ref: Ref):
     def qa(name, default_expr=None):
         """Your answer if typed, else the request value, else a default."""
         c, d = Q[name], Q[name + "_auto"]
+        if MANUAL_FIELDS.get(name):
+            return f'=IF(Quote!{c}<>"",Quote!{c},{default_expr if default_expr is not None else chr(34)*2})'
         tail = default_expr if default_expr is not None else f"Quote!{d}"
         if default_expr is not None:
             tail = f'IF(Quote!{d}<>"",Quote!{d},{default_expr})'
@@ -788,7 +820,8 @@ def build_breakdown(wb, ref: Ref):
         "dogs": ("Dogs", qa("dogs", "0"), "0"),
         "cats": ("Cats", qa("cats", "0"), "0"),
         "other": ("Other animals", qa("other", "0"), "0"),
-        "last_clean": ("Last professional cleaning", qa("last_clean"), "mm/dd/yyyy"),
+        "last_clean": ("Last professional cleaning (blank or 'never' = unknown)",
+                       f'=IF(ISNUMBER(Quote!{Q["last_clean"]}),Quote!{Q["last_clean"]},"")', "mm/dd/yyyy"),
         "dirt_entered": ("Dirt code entered", f'=Quote!{Q["dirt"]}', "0"),
         "photo_dirt": ("New dirt code after photos", f'=Quote!{Q["photo_dirt"]}&""', None),
         "dirt_used": ("Dirt code used", f'=IF(Quote!{Q["photo_dirt"]}<>"",Quote!{Q["photo_dirt"]},IF(Quote!{Q["dirt"]}<>"",Quote!{Q["dirt"]},""))', "0"),
@@ -985,6 +1018,7 @@ def build_howto(wb):
 def build(path: Path = OUT, answers: dict | None = None) -> None:
     """answers = {"sqft": 2000, "pick": None, ...} overrides Quote answer cells (for tests)."""
     Q.clear()
+    MANUAL_FIELDS.clear()
     BD_REF.clear()
     CALC.clear()
     ADDON.clear()

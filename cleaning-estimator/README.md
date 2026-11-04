@@ -41,9 +41,13 @@ you paste into Jobber. Zapier fills in new Jobber requests automatically.
 
 ## 3. Pricing a request (team routine)
 
-The Quote tab uses two colors:
-- **Yellow box = type here**
-- **Grey = filled in from the Jobber request**
+The Quote tab uses three colors:
+- **🟧 Orange box = always type this in.** Jobber can't send these answers (its API only shares
+  text-box questions, and these are dropdowns on the request form). Read them on the Jobber request page:
+  people, dogs, cats, other animals, last professional cleaning (a date or "never"), dirt code, and add-ons.
+  The bar at the top lists any orange field that's still blank and turns green when they're all filled in.
+- **🟨 Yellow box = only to add or fix something.**
+- **⬜ Grey = filled in from the Jobber request.**
 
 If you type in a yellow box, your answer wins over the grey one.
 

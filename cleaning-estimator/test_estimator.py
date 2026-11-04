@@ -61,6 +61,11 @@ SCENARIOS = {
         EstimateInput(sqft=1500, bedrooms=2, bathrooms=1, dirt_code=7, photo_dirt_code=11,
                       photo_reason="y", today=TODAY),
     ),
+    "last_clean_never": (
+        {**CLEAR, "sqft": 1800, "beds": 3, "baths": 2, "dirt": 5, "people": 2, "dogs": 0, "cats": 0,
+         "other": 0, "last_clean": "never"},
+        EstimateInput(sqft=1800, bedrooms=3, bathrooms=2, dirt_code=5, occupants=2, today=TODAY),
+    ),
     "missing_sqft": (
         {**CLEAR, "dirt": 5},
         EstimateInput(sqft=None, dirt_code=5, today=TODAY),
@@ -148,3 +153,17 @@ def test_quote_text(wbs):
     assert "Lemon and Lavender Cleaning Co." in text and "&" not in text
     assert q["D27"].value.startswith("7 = ")  # dirt description shows the code actually used
     assert q["D7"].value == "Loaded ✓"
+
+
+def test_todo_bar(wbs):
+    done = wbs["worked_example"]["Quote"]["G4"].value
+    assert "All orange fields filled in" in done, done
+    todo = wbs["phone_call_average_home"]["Quote"]["G4"].value
+    assert todo.startswith("✍ Still to type in: People, Dogs, Cats, Other animals, Last cleaning"), todo
+    assert "filled in" in wbs["last_clean_never"]["Quote"]["G4"].value
+
+
+def test_manual_rows_point_to_jobber(wbs):
+    q = wbs["worked_example"]["Quote"]
+    for cell in ("D18", "D19", "D20", "D21", "D22", "D36", "D37", "D38"):
+        assert q[cell].value == "👉 Check Jobber request", cell
