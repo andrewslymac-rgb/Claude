@@ -21,7 +21,7 @@ pytestmark = pytest.mark.skipif(shutil.which("soffice") is None, reason="LibreOf
 
 TODAY = date.today()
 # Quote-tab price row -> (service key, Breakdown column)
-PANEL = {8: ("initial_deep", "F"), 9: ("deluxe_deep", "G"), 10: ("move", "H"),
+PANEL = {8: ("deluxe_deep", "F"), 9: ("move", "G"),
          12: ("weekly", "E"), 13: ("biweekly", "D"), 14: ("monthly", "C")}
 
 CUSTOM_CLEAR = {f"custom_{w}_{i}": None for i in range(1, 7) for w in ("area", "sqft", "extra")}
@@ -29,13 +29,14 @@ CUSTOM_CLEAR = {f"custom_{w}_{i}": None for i in range(1, 7) for w in ("area", "
 CLEAR = {k: None for k in ["living", "kitchens", "bonus", "pick", "sqft", "beds", "baths", "people", "dogs", "cats", "other", "last_clean",
                            "dirt", "photo_dirt", "photo_pct", "photo_why", "windows", "promo"]}
 CLEAR.update({"fridge": "No", "oven": "No"})
+ALL_IN = {f"M{r}": "Yes" for r in (8, 9, 12, 13, 14, 15)}  # every service switched on for the quote
 
 SCENARIOS = {
     "worked_example": (
-        {},
+        dict(ALL_IN),
         EstimateInput(sqft=1850, bedrooms=3, bathrooms=2.5, dirt_code=6, photo_dirt_code=7,
                       photo_reason="x", occupants=4, dogs=1, cats=1, last_pro_clean=date(2026, 3, 1),
-                      fridge=True, windows=12, promo_off_initial_deep=50, city="Milwaukie", today=TODAY),
+                      fridge=True, windows=12, promo_off_deluxe=50, city="Milwaukie", today=TODAY),
     ),
     "phone_call_average_home": (
         {**CLEAR, "city": "Gresham", "sqft": 2400, "beds": 4, "baths": 3, "dirt": 5},
@@ -51,7 +52,7 @@ SCENARIOS = {
         {**CLEAR, "city": "Beaverton", "sqft": 4500, "beds": 5, "baths": 4.5, "dirt": 8, "people": 6,
          "dogs": 3, "cats": 2, "other": 1, "photo_pct": 0.1, "oven": "Yes", "promo": 25},
         EstimateInput(sqft=4500, bedrooms=5, bathrooms=4.5, dirt_code=8, occupants=6, dogs=3, cats=2,
-                      other_animals=1, photo_adjust_pct=0.1, oven=True, promo_off_initial_deep=25,
+                      other_animals=1, photo_adjust_pct=0.1, oven=True, promo_off_deluxe=25,
                       city="Beaverton", today=TODAY),
     ),
     "dirt_code_11": (
@@ -69,10 +70,10 @@ SCENARIOS = {
         EstimateInput(sqft=1800, bedrooms=3, bathrooms=2, dirt_code=5, occupants=2, today=TODAY),
     ),
     "team_price_outside_range": (
-        {"K12": 999},
+        {**ALL_IN, "K12": 999},
         EstimateInput(sqft=1850, bedrooms=3, bathrooms=2.5, dirt_code=6, photo_dirt_code=7,
                       photo_reason="x", occupants=4, dogs=1, cats=1, last_pro_clean=date(2026, 3, 1),
-                      fridge=True, windows=12, promo_off_initial_deep=50, city="Milwaukie", today=TODAY),
+                      fridge=True, windows=12, promo_off_deluxe=50, city="Milwaukie", today=TODAY),
     ),
     "custom_only_basement": (
         {**CLEAR, "dirt": 6, "dogs": 1, "people": 3, "custom_type": "Deep",
@@ -105,6 +106,18 @@ SCENARIOS = {
         EstimateInput(sqft=3000, bedrooms=4, bathrooms=3, dirt_code=5, living_rooms=4, kitchens=3, bonus_rooms=4,
                       today=TODAY),
     ),
+    "only_deluxe_and_monthly": (
+        {"M8": "Yes", "M14": "Yes"},
+        EstimateInput(sqft=1850, bedrooms=3, bathrooms=2.5, dirt_code=6, photo_dirt_code=7,
+                      photo_reason="x", occupants=4, dogs=1, cats=1, last_pro_clean=date(2026, 3, 1),
+                      fridge=True, windows=12, promo_off_deluxe=50, city="Milwaukie", today=TODAY),
+    ),
+    "nothing_picked": (
+        {},
+        EstimateInput(sqft=1850, bedrooms=3, bathrooms=2.5, dirt_code=6, photo_dirt_code=7,
+                      photo_reason="x", occupants=4, dogs=1, cats=1, last_pro_clean=date(2026, 3, 1),
+                      fridge=True, windows=12, promo_off_deluxe=50, city="Milwaukie", today=TODAY),
+    ),
     "missing_sqft": (
         {**CLEAR, "dirt": 5},
         EstimateInput(sqft=None, dirt_code=5, today=TODAY),
@@ -130,7 +143,7 @@ def wbs(tmp_path_factory):
     paths = []
     for name, (answers, _) in SCENARIOS.items():
         p = src / f"{name}.xlsx"
-        B.build(p, answers={**CUSTOM_CLEAR, **answers} if name.startswith("custom") else answers,
+        B.build(p, answers={**CUSTOM_CLEAR, "M15": "Yes", **answers} if name.startswith("custom") else answers,
                 extra_requests=EXTRA_REQUESTS if name == "worked_example" else None)
         paths.append(str(p))
     subprocess.run(["soffice", "--headless", "--calc", "--convert-to", "xlsx", "--outdir", str(out), *paths],
@@ -196,8 +209,8 @@ def test_frequency_changes_recurring_time(wbs):
 
 def test_minimums_flagged(wbs):
     q = wbs["tiny_clean_home_hits_minimums"]["Quote"]
-    assert "(minimum)" in q["G10"].value and q["I10"].value == 450
-    assert q["H10"].value == 450  # low end never goes below the minimum
+    assert "(minimum)" in q["G9"].value and q["I9"].value == 450
+    assert q["H9"].value == 450  # low end never goes below the minimum
 
 
 def test_big_home_warnings(wbs):
@@ -209,7 +222,8 @@ def test_quote_text(wbs):
     q = wbs["worked_example"]["Quote"]
     text = q["G19"].value
     assert text.startswith("Hi Jane,")
-    assert "Initial Deep Clean: $785 (includes $50 off promo)" in text
+    assert "Deluxe Deep Clean: $985 (includes $50 off promo)" in text
+    assert "Initial" not in text
     assert "Every 2 weeks: $240" in text
     assert "Lemon and Lavender Cleaning Co." in text and "&" not in text
     assert q["D30"].value.startswith("7 = ")  # dirt description shows the code actually used
@@ -234,12 +248,12 @@ def test_team_price_used_and_flagged(wbs):
     q = wbs["team_price_outside_range"]["Quote"]
     assert "outside the suggested range" in q["B3"].value
     assert "Weekly: $999" in q["G19"].value
-    assert q["M43"].value == 999  # Jobber line item uses the team's price
+    assert q["M42"].value == 999  # Jobber line item uses the team's price
 
 
 def test_line_items_match_quoted_price_after_promo(wbs):
     q = wbs["worked_example"]["Quote"]
-    assert q["M40"].value + q["M49"].value == q["I8"].value  # Initial Deep line - promo = price quoted
+    assert q["M40"].value + q["M48"].value == q["I8"].value  # Deluxe line - promo = price quoted
 
 
 def test_dropdown_newest_first(wbs):
@@ -260,8 +274,8 @@ def test_custom_quote_text_and_line_item(wbs):
     assert "Based on the areas you'd like cleaned" in text
     assert "CUSTOM CLEAN: Basement, Laundry room (deep cleaning)" in text
     assert "ONE-TIME CLEANS" not in text
-    assert q["G50"].value == "Custom Clean (Basement, Laundry room)"
-    assert q["M50"].value == q["I15"].value
+    assert q["G49"].value == "Custom Clean (Basement, Laundry room)"
+    assert q["M49"].value == q["I15"].value
     small = wbs["custom_recurring_small"]["Quote"]
     assert small["I15"].value == 110 and "(minimum)" in small["G15"].value  # weekly per-visit minimum
     assert "per visit" in small["G19"].value
@@ -276,7 +290,23 @@ def test_rooms_add_small_percent(wbs):
     more = estimate(EstimateInput(sqft=3000, bedrooms=4, bathrooms=3, dirt_code=5, living_rooms=2, kitchens=2,
                                   bonus_rooms=2, today=TODAY))
     # 1 extra living + 1 extra kitchen + 2 bonus = 4 extra rooms = +12% time
-    assert more.services["initial_deep"].labor_hours > base.services["initial_deep"].labor_hours
+    assert more.services["deluxe_deep"].labor_hours > base.services["deluxe_deep"].labor_hours
     bd = wbs["extra_rooms"]["Breakdown"]
     assert bd[f"F{B.CALC['rooms']}"].value == pytest.approx(1.12)
     assert wbs["rooms_hit_cap"]["Breakdown"][f"F{B.CALC['rooms']}"].value == pytest.approx(1.15)  # capped
+
+
+def test_quote_only_lists_picked_services(wbs):
+    q = wbs["only_deluxe_and_monthly"]["Quote"]
+    text = q["G19"].value
+    assert "Deluxe Deep Clean: $" in text and "Monthly: $" in text
+    for gone in ("Move-In / Move-Out", "Weekly:", "Every 2 weeks:"):
+        assert gone not in text, gone
+    assert q["G40"].value == "Deluxe Deep Clean" and q["G44"].value == "Monthly Maintenance Clean"
+    assert all(q[f"G{r}"].value in (None, "") for r in (41, 42, 43)), "unpicked line items stay blank"
+
+
+def test_nothing_picked_prompts_team(wbs):
+    q = wbs["nothing_picked"]["Quote"]
+    assert q["G19"].value.startswith("👉 Pick what to quote")
+    assert q["M8"].value == "No"

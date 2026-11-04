@@ -1,7 +1,7 @@
 # Lemon and Lavender Cleaning Co. — Residential Estimator
 
 A Google Sheet your team uses to price a new Jobber request in a few minutes.
-It prices every service at once (Initial Deep, Deluxe Deep, Move-In/Out,
+It prices every service at once (Deluxe Deep, Move-In/Out,
 Weekly, Bi-Weekly, Monthly), adds the add-ons, and writes a client-ready quote
 you paste into Jobber. Zapier fills in new Jobber requests automatically.
 
@@ -69,7 +69,8 @@ If you type in a yellow box, your answer wins over the grey one.
    above Recommended (both editable on Settings; Low never drops below the service minimum). Use judgment
    from the photos and the request, and type the price you'll quote in the yellow **Your price** box.
    Leave it blank to use Recommended. A warning appears if you type a price outside the range.
-   Set **Put in quote?** to No for anything the client doesn't want. Copy the
+   Every service starts at **No** in the **✍ In quote?** column. Set **Yes** for each service the client
+   actually asked for; only those go into the quote message and line items. Copy the
    **quote message** into Jobber and add the **line items** (as optional items so the client picks one). Both use **Your price**.
 7. **Log it** in the yellow columns on Requests.
 8. **Clear the yellow boxes** you typed in before the next quote.
@@ -193,7 +194,7 @@ Jobber ▸ Settings ▸ Requests ▸ Online request form. Use these labels so th
 
 | Question | Type |
 |---|---|
-| Service requested | Dropdown: Initial Deep Clean, Deluxe Deep Clean, Move-In/Move-Out, Weekly, Bi-Weekly, Monthly, Not sure |
+| Service requested | Dropdown: Deluxe Deep Clean, Move-In/Move-Out, Weekly, Bi-Weekly, Monthly, Not sure |
 | Square footage | Number |
 | Bedrooms | Number |
 | Bathrooms | Number (allow .5) |
@@ -219,7 +220,7 @@ The Estimator follows that method and extends it. Each step is shown per service
 labor hours = CEILING( (sqft ÷ production rate + extra-bath hours)
                        × scope × dirt factor × people factor × pet factor × last-clean factor , 0.25 )
 price       = MAX( CEILING( labor hours × billable rate × (1 + photo adj %), $5 ), service minimum )
-quoted      = price − promo (Initial Deep only) + add-ons
+quoted      = price − promo (Deluxe Deep only) + add-ons
 ```
 
 **How frequency changes recurring price.** It comes straight from the rate card's production rates.
@@ -235,10 +236,10 @@ A weekly home takes less time per sq ft than a monthly one:
 
 | Setting | Default | Source |
 |---|---|---|
-| Production rates | 650 / 775 / 850 / 300 / 300 / 275 sq ft/hr | Rate card (Deluxe uses the deep rate) |
+| Production rates | 650 / 775 / 850 / 300 / 275 sq ft/hr | Rate card (Deluxe uses the deep rate) |
 | Billable rate | $80 recurring, $90 deep / deluxe / move | Andrew (the card still says $85) |
-| Minimums | $150 / $110 / $110 / $400 / $400 / $450; $250 trip minimum on one-time jobs | Rate card methodology list |
-| Deluxe Deep | Initial Deep hours × 1.25 | **Assumption.** The card has only one deep service |
+| Minimums | $150 / $110 / $110 / $400 / $450; $250 trip minimum on one-time jobs | Rate card methodology list |
+| Deluxe Deep | Deep-rate hours × 1.25 (baseboards, blinds, inside cabinets, door frames) | **Assumption.** Initial Deep was retired Nov 2026; Deluxe is the one deep clean. Set the multiplier to 1.00 on Settings for the old Initial Deep price |
 | Dirt code | 1 → 0.90 … 5 → 1.00 … 10 → 1.40 (hours). 11 = no estimate | **Assumption.** Full effect on one-time cleans, half on recurring |
 | People | +3% per person over 2, max +15% | **Assumption** (card: "use high end for kids") |
 | Pets | +3% per dog, +2% per cat, +1% per other animal, max +20% | **Assumption** (card: "use high end for pets") |
@@ -264,20 +265,20 @@ photo review raised it to **7** ("kitchen grease and pet hair"), inside fridge, 
 **Factors.** Dirt 7 = 1.16 (recurring 1.08). People = 1 + (4−2)×3% = 1.06. Pets = 1 + 3% + 2% = 1.05.
 Extra baths = 2.5 − 1,850/750 = 0.03.
 
-| | Monthly | Bi-Weekly | Weekly | Initial Deep | Deluxe Deep | Move-In/Out |
-|---|---|---|---|---|---|---|
-| Base hours (sq ft ÷ rate) | 2.85 | 2.39 | 2.18 | 6.17 | 6.17 | 6.73 |
-| × scope · dirt · people · pets · last clean | 1.08·1.06·1.05 | same | same | 1.16·1.06·1.05·1.15 | ×1.25 too | 1.16·1.15 |
-| **Labor hours** (rounded up to ¼) | 3.50 | 3.00 | 2.75 | 9.25 | 11.50 | 9.00 |
-| × rate | $80 | $80 | $80 | $90 | $90 | $90 |
-| **Service price** | **$280** | **$240** | **$220** | **$835** | **$1,035** | **$810** |
-| Promo | | | | −$50 → **$785** | | |
-| On-site time, team of 2 | 1.75 h | 1.5 h | 1.4 h | 4.6 h | 5.75 h | 4.5 h |
-| Rate card midpoint ($85, 1,801–2,200) | $275 | $235 | $215 | $645 | n/a | $720 |
+| | Monthly | Bi-Weekly | Weekly | Deluxe Deep | Move-In/Out |
+|---|---|---|---|---|---|
+| Base hours (sq ft ÷ rate) | 2.85 | 2.39 | 2.18 | 6.17 | 6.73 |
+| × scope · dirt · people · pets · last clean | 1.08·1.06·1.05 | same | same | 1.25·1.16·1.06·1.05·1.15 | 1.16·1.15 |
+| **Labor hours** (rounded up to ¼) | 3.50 | 3.00 | 2.75 | 11.50 | 9.00 |
+| × rate | $80 | $80 | $80 | $90 | $90 |
+| **Service price** | **$280** | **$240** | **$220** | **$1,035** | **$810** |
+| Promo | | | | −$50 → **$985** | |
+| On-site time, team of 2 | 1.75 h | 1.5 h | 1.4 h | 5.75 h | 4.5 h |
+| Rate card midpoint ($85, 1,801–2,200) | $275 | $235 | $215 | $645 | $720 |
 
 Add-ons: fridge 0.75 h × $90 = $67.50 → **$70**; 12 windows × 0.10 h × $90 = $108 → **$110**; total **$180** per visit.
 
-Quote text the sheet generates:
+Quote text the sheet generates (with every service set to Yes in **✍ In quote?**; each one you leave at No drops out):
 
 ```
 Hi Jane,
@@ -285,11 +286,10 @@ Hi Jane,
 Thanks for reaching out to Lemon and Lavender Cleaning Co.! Based on your 1,850 sq ft home (3 bed / 2.5 bath) at 1234 SE Sample St, here are your estimated prices:
 
 ONE-TIME CLEANS
-• Initial Deep Clean: $785 (includes $50 off promo)
-• Deluxe Deep Clean: $1,035
+• Deluxe Deep Clean: $985 (includes $50 off promo)
 • Move-In / Move-Out Clean: $810
 
-RECURRING MAINTENANCE (per visit, after an initial deep clean)
+RECURRING MAINTENANCE (per visit, after a first deep clean)
 • Weekly: $220
 • Every 2 weeks: $240
 • Monthly: $280
@@ -304,9 +304,9 @@ These estimates are based on the details you shared. If the home's condition is 
 **Checking it against the rate card.** Recurring prices land within $5 of the card's midpoints, even
 though this home is dirtier than average, because $80/hr is below the card's $85. The deep and move prices
 are higher than the card mainly because of this home's condition (dirt 7, pets, 8 months since the last clean). An average home
-(dirt 5, 2 people, no pets, professionally cleaned within the last month) at 1,850 sq ft prices Initial Deep at **$565**, Move-In/Out at **$610**,
+(dirt 5, 2 people, no pets, professionally cleaned within the last month) at 1,850 sq ft prices Deluxe Deep at **$700**, Move-In/Out at **$610**,
 and Monthly / Bi-Weekly / Weekly at **$240 / $200 / $180**.
-That's *below* the card's $645 / $720 midpoints, because the card's own tables run higher than its formula (emailed issue #1).
+Move-In/Out is *below* the card's $720 midpoint (Deluxe lands a bit above $645), because the card's own tables run higher than its formula (emailed issue #1).
 
 ---
 

@@ -60,8 +60,8 @@ WRAP_TOP = Alignment(wrap_text=True, vertical="top")
 CENTER = Alignment(horizontal="center", vertical="center", wrap_text=True)
 RIGHT = Alignment(horizontal="right", vertical="center")
 
-SVC_COLS = ["C", "D", "E", "F", "G", "H"]  # SERVICES order in pricing.py
-SVC_NAMES = ["Monthly", "Bi-Weekly", "Weekly", "Initial Deep", "Deluxe Deep", "Move-In/Out"]
+SVC_COLS = ["C", "D", "E", "F", "G"]  # SERVICES order in pricing.py
+SVC_NAMES = ["Monthly", "Bi-Weekly", "Weekly", "Deluxe Deep", "Move-In/Out"]
 
 BD = "Breakdown"
 
@@ -176,7 +176,7 @@ def build_settings(wb) -> Ref:
         ("production_rate", "Cleaning speed (sq ft per labor hour)", "#,##0",
          "Rate card. Faster speed = less time = lower price. This is how frequency changes recurring prices."),
         ("scope_multiplier", "Time multiplier (1.25 = 25% more time)", "0.00",
-         "Assumption: Deluxe = Initial Deep + 25% (baseboards, blinds, inside cabinets, door frames)"),
+         "Assumption: Deluxe takes 25% more time (baseboards, blinds, inside cabinets, door frames)"),
     ], "Price = (sq ft ÷ cleaning speed) × adjustments × hourly rate, rounded up to $5, never below the minimum.")
 
     # line descriptions (text, per service)
@@ -186,8 +186,7 @@ def build_settings(wb) -> Ref:
     descs = ["Recurring maintenance clean, once a month",
              "Recurring maintenance clean, every 2 weeks",
              "Recurring maintenance clean, every week",
-             "Full top-to-bottom reset clean; first visit before recurring service",
-             "Initial deep clean plus baseboards, blinds, inside cabinets and door frames",
+             "Top-to-bottom deep clean including baseboards, blinds, inside cabinets and door frames",
              "Top-to-bottom clean of an empty or nearly empty home"]
     for col, d in zip(SVC_COLS, descs):
         put(ws, f"{col}{r}", d, EDIT, f=font(9), align=WRAP)
@@ -319,7 +318,7 @@ def build_settings(wb) -> Ref:
         ("extra_bath_hours", "Extra time per extra bathroom (hours)", "0.00",
          "Assumption: bathrooms beyond 1 per 750 sq ft add time"),
         ("dirt_sensitivity", "How much dirt code counts (1 = full, 0.5 = half)", "0.00",
-         "Assumption: recurring homes are already reset by the initial deep clean"),
+         "Assumption: recurring homes are already reset by the first deep clean"),
         ("household_factors_apply", "People & pets count? (1 = yes, 0 = no)", "0", "Assumption: Move-In/Out = empty home"),
         ("last_clean_applies", "Last-clean date counts? (1 = yes, 0 = no)", "0", "Assumption: one-time cleans only"),
         ("one_time", "One-time job? (1 = yes) — gets the trip minimum", "0", ""),
@@ -354,8 +353,8 @@ def key_default(key, i):  # placeholder for non-pricing per-service rows
 
 
 def srange(ref: Ref, key: str) -> str:
-    """A per-service Settings row across the six service columns."""
-    return f"Settings!$C${ref.row[key]}:$H${ref.row[key]}"
+    """A per-service Settings row across the five service columns."""
+    return f"Settings!$C${ref.row[key]}:$G${ref.row[key]}"
 
 
 def svc(ref: Ref, key: str, col: str) -> str:
@@ -608,7 +607,7 @@ def build_quote(wb, ref: Ref):
     q("oven", 40, "Inside oven", GREEN_T, "Check the Jobber request. Yes / No", default="No", manual=True)
     q("windows", 41, "Interior windows (how many)", GREEN_T, "Check the Jobber request. 0 = none", "0", default=0,
       manual=True)
-    q("promo", 42, "Promo $ off Initial Deep Clean", GREEN_T, "Fills in from Meta ads. Type 0 to remove.", MONEY,
+    q("promo", 42, "Promo $ off Deluxe Deep Clean", GREEN_T, "Fills in from Meta ads. Type 0 to remove.", MONEY,
       auto=P["promo"])
 
     # ---- step 5: custom / partial-home quote
@@ -652,14 +651,14 @@ def build_quote(wb, ref: Ref):
     # ---- prices panel: Low / Recommended / High + the team's own price
     band(ws, "G5:M5", "YOUR PRICES  ·  use the range + your judgment", PURPLE, 12, 24)
     for col, t in zip("GHIJKLM", ["Service", "Low", "Recommended", "High", "✍ Your price",
-                                  "Time on site", "Put in quote?"]):
-        put(ws, f"{col}6", t, ANSWER if col == "K" else PURPLE_T, font(9, True, SLATE), align=CENTER)
+                                  "Time on site", "✍ In quote?"]):
+        put(ws, f"{col}6", t, ANSWER if col in "KM" else PURPLE_T, font(9, True, SLATE), align=CENTER)
     put(ws, "G7", "One-time cleans", PURPLE_T, font(10, True, PURPLE))
     ws.merge_cells("G7:M7")
     put(ws, "G11", "Recurring — price per visit", GREEN_T, font(10, True, GREEN))
     ws.merge_cells("G11:M11")
-    panel = [(8, "Initial Deep Clean", "F", PURPLE_T), (9, "Deluxe Deep Clean", "G", PURPLE_T),
-             (10, "Move-In / Move-Out", "H", PURPLE_T), (12, "Weekly", "E", GREEN_T),
+    panel = [(8, "Deluxe Deep Clean", "F", PURPLE_T), (9, "Move-In / Move-Out", "G", PURPLE_T),
+             (12, "Weekly", "E", GREEN_T),
              (13, "Every 2 weeks", "D", GREEN_T), (14, "Monthly", "C", GREEN_T)]
     dv_yn = DataValidation(type="list", formula1='"Yes,No"', allow_blank=False)
     ws.add_data_validation(dv_yn)
@@ -683,10 +682,14 @@ def build_quote(wb, ref: Ref):
         put(ws, f"K{rr}", None, ANSWER, font(12, True), MONEY, border=ANSWER_BOX, align=RIGHT)
         dv_price.add(f"K{rr}")
         put(ws, f"L{rr}", f'=IF({ok},{BD}!{c}{CALC["onsite"]},"—")', None, font(10), '0.0" hrs"', align=RIGHT)
-        put(ws, f"M{rr}", "Yes", ANSWER, font(10, True), border=ANSWER_BOX, align=CENTER)
+        put(ws, f"M{rr}", "No", ANSWER, font(10, True), border=ANSWER_BOX, align=CENTER)
         dv_yn.add(f"M{rr}")
         ws.row_dimensions[rr].height = 24
         PRICE_ROWS[rr] = c
+    ws.merge_cells("G10:M10")
+    put(ws, "G10", "👉 Only the services set to Yes in the last column go into the quote message and Jobber line items. "
+                   "Switch on just what the client asked for.", border=None, f=font(8, True, ORANGE), align=WRAP)
+    ws.row_dimensions[10].height = 24
     # custom quote row
     cok = b("custom_ok")
     put(ws, "G15", f'="Custom: "&IF({b("custom_areas")}="","areas in step ⑤",{b("custom_areas")})'
@@ -698,7 +701,7 @@ def build_quote(wb, ref: Ref):
     put(ws, "K15", None, ANSWER, font(12, True), MONEY, border=ANSWER_BOX, align=RIGHT)
     dv_price.add("K15")
     put(ws, "L15", f'=IF({cok},{b("custom_onsite")},"—")', GOLD_T, font(10), '0.0" hrs"', align=RIGHT)
-    put(ws, "M15", "Yes", ANSWER, font(10, True), border=ANSWER_BOX, align=CENTER)
+    put(ws, "M15", "No", ANSWER, font(10, True), border=ANSWER_BOX, align=CENTER)
     dv_yn.add("M15")
     ws.row_dimensions[15].height = 30
     PRICE_ROWS[15] = "custom"
@@ -712,7 +715,7 @@ def build_quote(wb, ref: Ref):
     put(ws, "G17", f'="Low = "&TEXT({ref["range_low_pct"]},"0%")&" below, High = "&TEXT({ref["range_high_pct"]},"0%")'
                    f'&" above Recommended (change on Settings). Type your price in the yellow box after looking at '
                    f'the photos; blank = Recommended. The quote uses your price. Time on site = team of "'
-                   f'&{ref["team_size"]}&". Initial Deep includes the promo."', border=None,
+                   f'&{ref["team_size"]}&". Deluxe Deep includes the promo."', border=None,
         f=font(8, italic=True, color=SLATE), align=WRAP)
     ws.row_dimensions[17].height = 30
 
@@ -727,11 +730,10 @@ def build_quote(wb, ref: Ref):
     def final(r):  # the team's price if typed, else Recommended
         return f'IF(K{r}<>"",K{r},I{r})'
 
-    one_time = (f'IF(OR(M8="Yes",M9="Yes",M10="Yes"),"ONE-TIME CLEANS"&{NL}'
-                f'&IF(M8="Yes","• Initial Deep Clean: "&{money(final(8))}&IF({b("promo")}>0," (includes $"&{b("promo")}&" off promo)","")&{NL},"")'
-                f'&IF(M9="Yes","• Deluxe Deep Clean: "&{money(final(9))}&{NL},"")'
-                f'&IF(M10="Yes","• Move-In / Move-Out Clean: "&{money(final(10))}&{NL},"")&{NL},"")')
-    recurring = (f'IF(OR(M12="Yes",M13="Yes",M14="Yes"),"RECURRING MAINTENANCE (per visit, after an initial deep clean)"&{NL}'
+    one_time = (f'IF(OR(M8="Yes",M9="Yes"),"ONE-TIME CLEANS"&{NL}'
+                f'&IF(M8="Yes","• Deluxe Deep Clean: "&{money(final(8))}&IF({b("promo")}>0," (includes $"&{b("promo")}&" off promo)","")&{NL},"")'
+                f'&IF(M9="Yes","• Move-In / Move-Out Clean: "&{money(final(9))}&{NL},"")&{NL},"")')
+    recurring = (f'IF(OR(M12="Yes",M13="Yes",M14="Yes"),"RECURRING MAINTENANCE (per visit, after a first deep clean)"&{NL}'
                  f'&IF(M12="Yes","• Weekly: "&{money(final(12))}&{NL},"")'
                  f'&IF(M13="Yes","• Every 2 weeks: "&{money(final(13))}&{NL},"")'
                  f'&IF(M14="Yes","• Monthly: "&{money(final(14))}&{NL},"")&{NL},"")')
@@ -751,9 +753,11 @@ def build_quote(wb, ref: Ref):
             f'&IF({b("street")}<>""," at "&{b("street")},"")&", here are your estimated prices:"&{NL}&{NL}'
             f'&IF({full},{one_time}&{recurring},"")&{custom}&{addons}&{ref["closing"]}')
     decline = f'"Hi "&{b("first_name")}&","&{NL}&{NL}&{ref["decline"]}'
+    picked = 'COUNTIF(M8:M15,"Yes")=0'
     ws.merge_cells("G19:M36")
     put(ws, "G19", f'=IF({b("dnr")},{decline},IF(NOT({b("ok")}),"The quote message appears here once the status bar is '
-                   f'green.",{body}))', WHITE, font(10), align=WRAP_TOP,
+                   f'green.",IF({picked},"👉 Pick what to quote: set ✍ In quote? to Yes (column M, up top) for each '
+                   f'service the client asked for.",{body})))', WHITE, font(10), align=WRAP_TOP,
         border=Border(left=med, right=med, top=med, bottom=med))
 
     # ---- Jobber line items
@@ -761,9 +765,9 @@ def build_quote(wb, ref: Ref):
     for col, t in zip("GHM", ["Line item", "Description", "Price"]):
         put(ws, f"{col}39", t, PURPLE_T, font(9, True, SLATE), align=CENTER)
     ws.merge_cells("H39:L39")
-    lines = [(40, 8, "Initial Deep Clean", "F"), (41, 9, "Deluxe Deep Clean", "G"),
-             (42, 10, "Move-In / Move-Out Clean", "H"), (43, 12, "Weekly Maintenance Clean", "E"),
-             (44, 13, "Bi-Weekly Maintenance Clean", "D"), (45, 14, "Monthly Maintenance Clean", "C")]
+    lines = [(40, 8, "Deluxe Deep Clean", "F"), (41, 9, "Move-In / Move-Out Clean", "G"),
+             (42, 12, "Weekly Maintenance Clean", "E"),
+             (43, 13, "Bi-Weekly Maintenance Clean", "D"), (44, 14, "Monthly Maintenance Clean", "C")]
     for rr, pr, name, c in lines:
         cond = f'AND({ok},M{pr}="Yes")'
         # line price before promo, so "line - promo line" = the price quoted
@@ -773,10 +777,10 @@ def build_quote(wb, ref: Ref):
         put(ws, f"H{rr}", f'=IF({cond},{svc(ref, "desc", c)},"")', f=font(8), align=WRAP)
         put(ws, f"M{rr}", f'=IF({cond},{before_promo},"")', f=font(10, True), fmt=MONEY)
         ws.row_dimensions[rr].height = 26
-    extra = [(46, f'{a["fridge"]}>0', "Inside Refrigerator", '"Interior refrigerator cleaning"', a["fridge"]),
-             (47, f'{a["oven"]}>0', "Inside Oven", '"Interior oven cleaning"', a["oven"]),
-             (48, f'{a["windows"]}>0', "Interior Windows", f'{b("windows")}&" interior windows"', a["windows"]),
-             (49, f'AND(M8="Yes",{b("promo")}>0)', "Promo discount", '"Initial Deep Clean promotion"',
+    extra = [(45, f'{a["fridge"]}>0', "Inside Refrigerator", '"Interior refrigerator cleaning"', a["fridge"]),
+             (46, f'{a["oven"]}>0', "Inside Oven", '"Interior oven cleaning"', a["oven"]),
+             (47, f'{a["windows"]}>0', "Interior Windows", f'{b("windows")}&" interior windows"', a["windows"]),
+             (48, f'AND(M8="Yes",{b("promo")}>0)', "Promo discount", '"Deluxe Deep Clean promotion"',
               f'-{b("promo")}')]
     for rr, cond, name, desc, price in extra:
         cond = f"AND({b('ok')},{cond})"
@@ -787,12 +791,12 @@ def build_quote(wb, ref: Ref):
 
     # custom quote line item
     cond = f'AND({cok},M15="Yes")'
-    put(ws, "G50", f'=IF({cond},"Custom Clean ("&{b("custom_areas")}&")","")', f=font(10), align=WRAP)
-    ws.merge_cells("H50:L50")
-    put(ws, "H50", f'=IF({cond},Quote!{Q["custom_type"]}&" clean · "&TEXT({b("custom_sqft")},"#,##0")&" sq ft"'
+    put(ws, "G49", f'=IF({cond},"Custom Clean ("&{b("custom_areas")}&")","")', f=font(10), align=WRAP)
+    ws.merge_cells("H49:L49")
+    put(ws, "H49", f'=IF({cond},Quote!{Q["custom_type"]}&" clean · "&TEXT({b("custom_sqft")},"#,##0")&" sq ft"'
                    f'&IF({b("custom_extra")}>0," + "&{b("custom_extra")}&" extra hrs",""),"")', f=font(8), align=WRAP)
-    put(ws, "M50", f'=IF({cond},{final(15)},"")', f=font(10, True), fmt=MONEY)
-    ws.row_dimensions[50].height = 26
+    put(ws, "M49", f'=IF({cond},{final(15)},"")', f=font(10, True), fmt=MONEY)
+    ws.row_dimensions[49].height = 26
 
     # ---- validation
     def dv(kind, cells, op=None, f1=None, f2=None, prompt=None, err=None):
@@ -943,7 +947,7 @@ def build_breakdown(wb, ref: Ref):
         "fridge": ("Inside refrigerator", f'=IF(Quote!{Q["fridge"]}="Yes","Yes","No")', None),
         "oven": ("Inside oven", f'=IF(Quote!{Q["oven"]}="Yes","Yes","No")', None),
         "windows": ("Interior windows", f'=N(Quote!{Q["windows"]})', "0"),
-        "promo": ("Promo $ off Initial Deep", qa("promo", "0"), MONEY),
+        "promo": ("Promo $ off Deluxe Deep", qa("promo", "0"), MONEY),
     }
     band(ws, "B4:C4", "WHAT THE PRICE USES", BLUE, 11, 20)
     for n in USED_ROWS:
@@ -957,7 +961,7 @@ def build_breakdown(wb, ref: Ref):
 
     # ---- calculation table
     h = CALC_HEADER[0]
-    band(ws, f"B{h-1}:H{h-1}", "STEP BY STEP, FOR EACH SERVICE", PURPLE, 11, 20)
+    band(ws, f"B{h-1}:G{h-1}", "STEP BY STEP, FOR EACH SERVICE", PURPLE, 11, 20)
     put(ws, f"B{h}", "Step", PURPLE_T, font(bold=True))
     for col, name in zip(SVC_COLS, SVC_NAMES):
         put(ws, f"{col}{h}", name, PURPLE_T, font(bold=True), align=CENTER)
@@ -993,7 +997,7 @@ def build_breakdown(wb, ref: Ref):
          MONEY),
         ("high", "High end of range",
          lambda c: f"=CEILING({c}{R['svc']}*(1+{st['range_high_pct']}),{st['price_rounding']})", MONEY),
-        ("promo", "− Promo (Initial Deep only)", lambda c: f"=-{u('promo')}" if c == "F" else "=0", MONEY),
+        ("promo", "− Promo (Deluxe Deep only)", lambda c: f"=-{u('promo')}" if c == "F" else "=0", MONEY),
         ("addons", "+ Add-ons (per visit)", lambda c: f"={ADDON['total']}", MONEY),
         ("total", "TOTAL with add-ons", lambda c: f'=IF({u("ok")},{c}{R["svc"]}+{c}{R["promo"]}+{c}{R["addons"]},"—")',
          MONEY),
@@ -1005,7 +1009,7 @@ def build_breakdown(wb, ref: Ref):
         ("diff", "This price vs. rate card",
          lambda c: f'=IF(AND({u("ok")},ISNUMBER({c}{R["card"]})),{c}{R["svc"]}-{c}{R["card"]},"—")', MONEY),
     ]
-    card_col = {"C": "E", "D": "G", "E": "I", "F": "K", "G": None, "H": "M"}
+    card_col = {"C": "E", "D": "G", "E": "I", "F": "K", "G": "M"}
     for key, label, fn, fmt in calc:
         rr = R[key]
         strong = key in ("hours", "svc", "total")
@@ -1069,7 +1073,7 @@ def build_breakdown(wb, ref: Ref):
                      f'&IF(AND({u("city")}<>"",ISNA(MATCH({u("city")},{st["area"]},0))),"City is outside the service area — confirm before quoting. ","")'
                      f'&IF(AND(OR(Quote!{Q["photo_dirt"]}<>"",N(Quote!{Q["photo_pct"]})<>0),Quote!{Q["photo_why"]}=""),"Photos changed the price — add the reason. ","")'
                      f'&IF(OR({u("beds")}="",{u("baths")}=""),"Bedrooms or bathrooms missing. ","")'
-                     f'&IF(AND({u("ok")},OR({",".join(f"AND(Quote!K{r}<>{chr(34)*2},OR(Quote!K{r}<Quote!H{r},Quote!K{r}>Quote!J{r}))" for r in (8, 9, 10, 12, 13, 14, 15))})),'
+                     f'&IF(AND({u("ok")},OR({",".join(f"AND(Quote!K{r}<>{chr(34)*2},OR(Quote!K{r}<Quote!H{r},Quote!K{r}>Quote!J{r}))" for r in (8, 9, 12, 13, 14, 15))})),'
                      f'"A price you typed is outside the suggested range — double-check it. ","")', None),
         "months": ("Months since last professional clean",
                    f'=IF({u("last_clean")}="",{st["months_if_unknown"]},MAX(0,(TODAY()-{u("last_clean")})/30.4375))', "0.0"),
@@ -1135,7 +1139,7 @@ def build_breakdown(wb, ref: Ref):
 
 
 # ================================================================ LISTS (hidden helper tab)
-CUSTOM_TYPES = [("Deep", 4), ("Move-out", 6), ("Weekly", 3), ("Bi-weekly", 2), ("Monthly", 1)]
+CUSTOM_TYPES = [("Deep", 4), ("Move-out", 5), ("Weekly", 3), ("Bi-weekly", 2), ("Monthly", 1)]
 
 
 def build_lists(wb):
@@ -1160,7 +1164,7 @@ def build_lists(wb):
 
 
 # ================================================================ QUOTE HISTORY + APPS SCRIPT
-PANEL_NAMES = [(8, "Initial Deep"), (9, "Deluxe Deep"), (10, "Move-In/Out"), (12, "Weekly"),
+PANEL_NAMES = [(8, "Deluxe Deep"), (9, "Move-In/Out"), (12, "Weekly"),
                (13, "Bi-Weekly"), (14, "Monthly"), (15, "Custom")]
 
 
@@ -1212,9 +1216,9 @@ def write_apps_script(path: Path) -> None:
     clear += [Q[f"custom_{w}_{i}"] for i in range(1, 7) for w in ("area", "sqft", "extra")]
     clear += [f"K{r}" for r, _ in PANEL_NAMES]
     reset = {Q["fridge"]: "No", Q["oven"]: "No", Q["windows"]: 0}
-    reset.update({f"M{r}": "Yes" for r, _ in PANEL_NAMES})
+    reset.update({f"M{r}": "No" for r, _ in PANEL_NAMES})
     row_found = BD_REF["row_found"].split("!")[1].replace("$", "")
-    panel = [[r, n] for r, n in [(8, "Initial Deep Clean"), (9, "Deluxe Deep Clean"), (10, "Move-In/Move-Out"),
+    panel = [[r, n] for r, n in [(8, "Deluxe Deep Clean"), (9, "Move-In/Move-Out"),
                                  (12, "Weekly"), (13, "Bi-Weekly"), (14, "Monthly"), (15, "Custom")]]
     js = f"""// Lemon and Lavender Cleaning Co. — Quote tools for the LL Residential Estimator.
 // GENERATED by build_estimator.py so the cell addresses always match the Sheet. Don't hand-edit addresses.
@@ -1371,7 +1375,7 @@ def build_howto(wb):
          "in the yellow 'Your price' box (blank = Recommended). Stay inside the range unless you have a reason."),
         (GOLD, "⑤", "Client only wants certain areas (e.g. the basement)? Use step ⑤ CUSTOM QUOTE: pick the type of "
          "clean, list each area with its sq ft, and add extra hours if needed. It shows as 'Custom' in YOUR PRICES."),
-        (PURPLE, "📋", "Set 'Put in quote?' to No for services the client doesn't want. Copy the quote message into "
+        (PURPLE, "📋", "Set ✍ In quote? to Yes for each service the client asked for (everything starts at No). Copy the quote message into "
          "Jobber and add the line items. Both use your price."),
         (GREEN, "💾", "Menu: Lemon and Lavender ▸ Save quote. It saves everything to the Quote History tab and fills in "
          "Status, Service Quoted, Price Quoted, Quoted By and Date on the Requests tab."),

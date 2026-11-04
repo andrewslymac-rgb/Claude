@@ -23,28 +23,27 @@ import math
 from dataclasses import dataclass, field
 from datetime import date
 
-SERVICES = ["monthly", "biweekly", "weekly", "initial_deep", "deluxe_deep", "move"]
+SERVICES = ["monthly", "biweekly", "weekly", "deluxe_deep", "move"]
 
 SERVICE_LABELS = {
     "monthly": "Monthly Maintenance",
     "biweekly": "Bi-Weekly Maintenance",
     "weekly": "Weekly Maintenance",
-    "initial_deep": "Initial Deep Clean",
     "deluxe_deep": "Deluxe Deep Clean",
     "move": "Move-In / Move-Out Clean",
 }
 
 DEFAULT_SETTINGS: dict = {
     # Per-service parameters (order matches SERVICES).
-    "production_rate": [650, 775, 850, 300, 300, 275],  # rate card
-    "scope_multiplier": [1, 1, 1, 1, 1.25, 1],  # Deluxe = +25% (assumption)
-    "billable_rate": [80, 80, 80, 90, 90, 90],  # Andrew, Nov 2026
-    "minimum_price": [150, 110, 110, 400, 400, 450],  # rate card methodology list
-    "extra_bath_hours": [0.25, 0.25, 0.25, 0.5, 0.5, 0.5],
-    "dirt_sensitivity": [0.5, 0.5, 0.5, 1, 1, 1],
-    "household_factors_apply": [1, 1, 1, 1, 1, 0],  # move = empty home
-    "last_clean_applies": [0, 0, 0, 1, 1, 1],
-    "one_time": [0, 0, 0, 1, 1, 1],
+    "production_rate": [650, 775, 850, 300, 275],  # rate card
+    "scope_multiplier": [1, 1, 1, 1.25, 1],  # Deluxe = +25% (assumption)
+    "billable_rate": [80, 80, 80, 90, 90],  # Andrew, Nov 2026
+    "minimum_price": [150, 110, 110, 400, 450],  # rate card methodology list
+    "extra_bath_hours": [0.25, 0.25, 0.25, 0.5, 0.5],
+    "dirt_sensitivity": [0.5, 0.5, 0.5, 1, 1],
+    "household_factors_apply": [1, 1, 1, 1, 0],  # move = empty home
+    "last_clean_applies": [0, 0, 0, 1, 1],
+    "one_time": [0, 0, 0, 1, 1],
     # General.
     "trip_minimum_one_time": 250,
     "custom_minimum_one_time": 250,  # custom / partial-home one-time jobs
@@ -115,7 +114,7 @@ class EstimateInput:
     fridge: bool = False
     oven: bool = False
     windows: int = 0
-    promo_off_initial_deep: float = 0.0
+    promo_off_deluxe: float = 0.0
     city: str = ""
     # Custom / partial-home quote: one type of clean, areas as (sq ft, extra hours).
     custom_type: str | None = None  # "Deep" | "Move-out" | "Weekly" | "Bi-weekly" | "Monthly"
@@ -148,7 +147,7 @@ class Estimate:
 
 
 # Custom quote type -> index into SERVICES
-CUSTOM_TYPES = {"Monthly": 0, "Bi-weekly": 1, "Weekly": 2, "Deep": 3, "Move-out": 5}
+CUSTOM_TYPES = {"Monthly": 0, "Bi-weekly": 1, "Weekly": 2, "Deep": 3, "Move-out": 4}
 
 
 def _has_custom(inp: "EstimateInput") -> bool:
@@ -255,7 +254,7 @@ def estimate(inp: EstimateInput, s: dict = DEFAULT_SETTINGS) -> Estimate:
         price = ceil_to(hours * s["billable_rate"][i] * (1 + inp.photo_adjust_pct), s["price_rounding"])
         minimum = max(s["minimum_price"][i], s["trip_minimum_one_time"] if s["one_time"][i] else 0)
         service_price = max(price, minimum)
-        promo = -inp.promo_off_initial_deep if svc == "initial_deep" else 0
+        promo = -inp.promo_off_deluxe if svc == "deluxe_deep" else 0
         low = max(minimum, floor_to(service_price * (1 - s["range_low_pct"]), s["price_rounding"]))
         high = ceil_to(service_price * (1 + s["range_high_pct"]), s["price_rounding"])
         out[svc] = ServiceEstimate(svc, hours, hours / s["team_size"], service_price,
