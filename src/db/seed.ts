@@ -25,14 +25,14 @@ const STARTERS: Starter[] = [
     slug: "lemon-and-lavender",
     icon: "🍋",
     color: "#8b5cf6",
-    links: [{ label: "Jobber", url: "https://secure.getjobber.com", emoji: "🧹" }, { label: "Quo (phones)", url: "https://my.quo.com", emoji: "📞" }, ...COMMON_LINKS],
+    links: [{ label: "Jobber", url: "https://secure.getjobber.com", emoji: "🧹" }, { label: "Slack", url: "https://slack.com/app_redirect?channel=general", emoji: "💬" }, { label: "Quo (phones)", url: "https://my.quo.com", emoji: "📞" }, ...COMMON_LINKS],
   },
   {
     name: "Adapt Pest Pros",
     slug: "adapt-pest-pros",
     icon: "🐜",
     color: "#16a34a",
-    links: [{ label: "GorillaDesk", url: "https://app.gorilladesk.com", emoji: "🦍" }, { label: "Quo (phones)", url: "https://my.quo.com", emoji: "📞" }, ...COMMON_LINKS],
+    links: [{ label: "GorillaDesk", url: "https://app.gorilladesk.com", emoji: "🦍" }, { label: "Slack", url: "https://slack.com/app_redirect?channel=general", emoji: "💬" }, { label: "Quo (phones)", url: "https://my.quo.com", emoji: "📞" }, ...COMMON_LINKS],
   },
   {
     name: "Clever Vending",
@@ -52,7 +52,7 @@ const START_HERE = {
   title: "Start here",
   icon: "👋",
   content: [
-    p("Welcome to HQ — the home base for everything we do. Here's all you need to know:"),
+    p("Welcome to Orbit — the home base for everything we do. Here's all you need to know:"),
     h("Finding things"),
     li("The left sidebar lists every page. Click the arrow next to a page to see the pages inside it."),
     li("Press Ctrl + K (⌘ + K on Mac) to search everything."),
@@ -64,7 +64,7 @@ const START_HERE = {
     h("Made a mistake?"),
     p('Click "History" at the top right of any page to see and restore earlier versions.'),
   ],
-  text: "Welcome to HQ. Use the sidebar to find pages, Ctrl+K to search, type / for formatting, and History to restore older versions.",
+  text: "Welcome to Orbit. Use the sidebar to find pages, Ctrl+K to search, type / for formatting, and History to restore older versions.",
 };
 
 const SOP_FOLDER = {

@@ -18,7 +18,7 @@ export default async function Login({ searchParams }: { searchParams: Promise<{ 
     <main className="flex min-h-screen items-center justify-center bg-side px-6">
       <div className="w-full max-w-sm rounded-2xl border border-line bg-white p-8 shadow-sm">
         <div className="text-3xl">🏢</div>
-        <h1 className="mt-3 text-xl font-semibold">Sign in to HQ</h1>
+        <h1 className="mt-3 text-xl font-semibold">Sign in to Orbit</h1>
         <p className="mt-1 text-sm text-ink-soft">Use your work Google account.</p>
 
         {error && <p className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{MESSAGES[error] ?? error}</p>}

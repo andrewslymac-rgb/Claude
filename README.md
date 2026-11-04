@@ -1,4 +1,4 @@
-# HQ: company headquarters
+# Orbit: company headquarters
 
 One home base for Lemon and Lavender Cleaning Co., Adapt Pest Pros and Clever Vending: Notion-style pages, a customizable dashboard, SOPs, people and permissions. Coming next: recurring tasks, Google Drive SOP sync, and an AI/MCP connection for Claude.
 
@@ -55,7 +55,7 @@ To test what a team member sees: in Settings, add another email as a Viewer or E
 3. Click **+ New → Database → PostgreSQL** in the same project.
 4. In your app service, go to **Variables** and add:
    - `DATABASE_URL` = `${{Postgres.DATABASE_URL}}` (Railway offers this as a reference)
-   - `APP_URL` = your app's address, e.g. `https://hq.yourdomain.com` (see step 5)
+   - `APP_URL` = your app's address, e.g. `https://hq.orbit.com` (see step 5)
    - `OWNER_EMAIL` = your email
    - `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` (next section)
 5. **Settings → Networking → Generate Domain** (or add your own domain).
@@ -65,7 +65,7 @@ Dev login is automatically off in production.
 
 ## Set up Google sign-in (about 5 minutes)
 
-1. Go to https://console.cloud.google.com, create a project called "HQ".
+1. Go to https://console.cloud.google.com, create a project called "Orbit".
 2. **APIs & Services → OAuth consent screen**: choose **Internal** if you use Google Workspace (only your company accounts can sign in, no Google review needed), otherwise **External**. Add the app name and your email.
 3. **APIs & Services → Credentials → Create credentials → OAuth client ID** → type **Web application**.
    - Authorized redirect URI: `https://YOUR-APP-ADDRESS/api/auth/google/callback`

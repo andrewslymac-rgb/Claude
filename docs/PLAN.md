@@ -1,6 +1,6 @@
-# HQ: architecture and build plan
+# Orbit: architecture and build plan
 
-HQ is the company operating system for Lemon and Lavender Cleaning Co., Adapt Pest Pros, Clever Vending and future ventures. It is a Notion-style workspace with a customizable dashboard, Google Drive SOP sync, recurring tasks, and an AI-facing API and MCP server.
+Orbit is the company operating system for Lemon and Lavender Cleaning Co., Adapt Pest Pros, Clever Vending and future ventures. It is a Notion-style workspace with a customizable dashboard, Google Drive SOP sync, recurring tasks, and an AI-facing API and MCP server.
 
 **Rule for every design decision:** if a non-technical team member couldn't use it without training, it's wrong. Simple defaults first; customization second.
 
@@ -65,19 +65,19 @@ Roles are **per workspace**: a cleaner can be an Editor in Lemon and Lavender an
 
 ## 3. Google Drive sync: how it works
 
-**Recommendation: one-way sync, Drive → HQ, for a designated "SOPs" folder per workspace, using push notifications plus a safety-net poll.**
+**Recommendation: one-way sync, Drive → Orbit, for a designated "SOPs" folder per workspace, using push notifications plus a safety-net poll.**
 
 1. **Connect once per workspace.** An Admin picks a Drive folder (ideally in a Shared Drive) in Settings → Connections.
 2. **Access.** We use a Google **service account** (a robot Google user). You share the SOP folder with its email, the same way you'd share with a person, as "Viewer". No Google app verification is needed, and access doesn't break when an employee leaves.
 3. **Initial import.** Every Google Doc in the folder (and subfolders) is exported as HTML, converted to editor blocks, and saved as a page under "SOPs & Policies", marked as an SOP with a "Drive" badge. Subfolders become parent pages.
-4. **Staying current, part 1 (instant): push notifications.** We register a Drive `changes.watch` channel. When anything in the folder changes, Google pings `/api/drive/webhook` within seconds, and HQ fetches just the changed files. Channels expire after about a week, so a daily job renews them.
+4. **Staying current, part 1 (instant): push notifications.** We register a Drive `changes.watch` channel. When anything in the folder changes, Google pings `/api/drive/webhook` within seconds, and Orbit fetches just the changed files. Channels expire after about a week, so a daily job renews them.
 5. **Staying current, part 2 (safety net): polling.** Every 10 minutes a background job asks Drive "what changed since last time?" (`changes.list` with a saved page token). This catches anything a missed webhook dropped. It's cheap: one API call when nothing changed.
 6. **Each update is a new version** in page history, labeled "Google Drive sync", so you can see exactly what changed and when.
-7. **Deletes/moves:** a Doc removed from the folder moves its HQ page to Trash (recoverable), never hard-deleted.
+7. **Deletes/moves:** a Doc removed from the folder moves its Orbit page to Trash (recoverable), never hard-deleted.
 
-**Why one-way and not two-way:** Google Docs and block editors format things differently. Converting back and forth on every edit causes subtle formatting damage and "who wins" conflicts when two people edit at once. With one-way sync there is exactly one place to edit an SOP (the Google Doc), and HQ always shows the latest. Drive-synced pages are read-only in HQ with an "Edit in Google Docs" button. Pages created in HQ itself stay fully editable in HQ.
+**Why one-way and not two-way:** Google Docs and block editors format things differently. Converting back and forth on every edit causes subtle formatting damage and "who wins" conflicts when two people edit at once. With one-way sync there is exactly one place to edit an SOP (the Google Doc), and Orbit always shows the latest. Drive-synced pages are read-only in Orbit with an "Edit in Google Docs" button. Pages created in Orbit itself stay fully editable in Orbit.
 
-Option for later: a "Publish to Drive" button that exports an HQ page as a new Google Doc (one-time copy), if you want to move content the other way.
+Option for later: a "Publish to Drive" button that exports an Orbit page as a new Google Doc (one-time copy), if you want to move content the other way.
 
 ---
 
@@ -104,7 +104,7 @@ MCP tools (same capabilities over REST at `/api/v1`):
 6. **Limits.** Rate limits per token (e.g. 60 writes/hour) and a maximum page size per write, to stop a runaway agent.
 7. **Audit log.** Every API call (read and write) is logged with token, tool, page and time.
 
-**Connecting Claude:** for Claude Code and Cowork, the MCP URL plus the token as a header works directly. claude.ai custom connectors need OAuth, so Milestone 4 includes a small OAuth flow where you click "Allow" in HQ and pick the workspace and scopes. That flow produces the same scoped tokens behind the scenes.
+**Connecting Claude:** for Claude Code and Cowork, the MCP URL plus the token as a header works directly. claude.ai custom connectors need OAuth, so Milestone 4 includes a small OAuth flow where you click "Allow" in Orbit and pick the workspace and scopes. That flow produces the same scoped tokens behind the scenes.
 
 ---
 
