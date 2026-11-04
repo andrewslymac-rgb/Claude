@@ -1127,7 +1127,9 @@ def build_lists(wb):
         n = k + 1
         ws[f"B{n}"] = f'=IF({last}+1-{k}>=2,{last}+1-{k},"")'
         a = f"INDEX(Requests!$A:$A,B{n})"
-        ws[f"A{n}"] = (f'=IF(B{n}="","",INDEX(Requests!$E:$E,B{n})&" · "&LEFT({a}&"",FIND(",",{a}&",")-1))')
+        # Received may be text ("11/1/2026, 2:35:31 PM") or a real date if someone typed one in.
+        ws[f"A{n}"] = (f'=IF(B{n}="","",INDEX(Requests!$E:$E,B{n})&" · "&IF(ISNUMBER({a}),TEXT({a},"m/d/yyyy"),'
+                       f'LEFT({a}&"",FIND(",",{a}&",")-1)))')
     for i, (name, idx) in enumerate(CUSTOM_TYPES, start=2):
         ws[f"D{i}"], ws[f"E{i}"] = name, idx
     ws.column_dimensions["A"].width = 40

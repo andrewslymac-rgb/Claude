@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import shutil
 import subprocess
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 
 import pytest
 from openpyxl import load_workbook
@@ -108,7 +108,7 @@ SCENARIOS = {
 
 # Two more requests after the sample row, one a repeat client, to test the newest-first dropdown.
 EXTRA_REQUESTS = [
-    ["11/3/2026, 8:00:00 AM", "REQ-2", "https://x/2", "external", "Deborah Field"],
+    [datetime(2026, 11, 3, 8, 0), "REQ-2", "https://x/2", "external", "Deborah Field"],  # a real date cell
     ["11/4/2026, 7:30:00 PM", "REQ-3", "https://x/3", "external", "Jane Sample"],
 ]
 
