@@ -47,8 +47,8 @@ export function VersionHistory({
   const latest = versions?.[0]?.id;
 
   return (
-    <div className="fixed inset-0 z-50 flex bg-black/20" onMouseDown={onClose}>
-      <div className="m-4 flex flex-1 overflow-hidden rounded-xl border border-line bg-white shadow-2xl" onMouseDown={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex bg-black/60" onMouseDown={onClose}>
+      <div className="m-4 flex flex-1 overflow-hidden rounded-xl border border-line bg-card shadow-2xl" onMouseDown={(e) => e.stopPropagation()}>
         <div className="flex-1 overflow-y-auto px-10 py-8">
           {preview ? (
             <>
@@ -69,7 +69,7 @@ export function VersionHistory({
           <ul className="flex-1 overflow-y-auto px-2">
             {versions?.map((v) => (
               <li key={v.id}>
-                <button onClick={() => setSelected(v.id)} className={`w-full rounded-lg px-3 py-2 text-left text-sm ${selected === v.id ? "bg-white shadow-sm" : "hover:bg-hover"}`}>
+                <button onClick={() => setSelected(v.id)} className={`w-full rounded-lg px-3 py-2 text-left text-sm ${selected === v.id ? "bg-card shadow-sm" : "hover:bg-hover"}`}>
                   <div className="font-medium">
                     {fmt(v.updatedAt)} {v.id === latest && <span className="ml-1 text-xs text-ink-faint">current</span>}
                   </div>
@@ -92,7 +92,7 @@ export function VersionHistory({
                     onRestored(await restoreVersionAction(slug, pageId, selected));
                   })
                 }
-                className="w-full rounded-lg bg-ink px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+                className="w-full rounded-lg bg-accent px-4 py-2 text-sm font-medium text-paper disabled:opacity-50"
               >
                 {pending ? "Restoring…" : "Restore this version"}
               </button>

@@ -26,7 +26,7 @@ export default function Editor({ initial, editable, onChange, focusRef }: { init
       <BlockNoteView
         editor={editor}
         editable={editable}
-        theme="light"
+        theme="dark"
         onChange={() => {
           const doc = editor.document;
           cb.current?.({ content: doc, contentText: editor.blocksToMarkdownLossy(doc) });

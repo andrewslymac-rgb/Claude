@@ -46,14 +46,14 @@ export function MembersPanel({ slug, myRole, myId, canManage, members, pending, 
                 </option>
               ))}
             </select>
-            <button disabled={busy} className="rounded-lg bg-ink px-4 py-2 text-sm font-medium text-white disabled:opacity-50">
+            <button disabled={busy} className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-paper disabled:opacity-50">
               Add
             </button>
           </div>
           <p className="mt-2 text-xs text-ink-faint">{roles[role].help}. They sign in with Google using this email.</p>
         </form>
       )}
-      {msg && <p className={`rounded-lg px-3 py-2 text-sm ${msg.ok ? "bg-green-50 text-green-800" : "bg-red-50 text-red-700"}`}>{msg.text}</p>}
+      {msg && <p className={`rounded-lg px-3 py-2 text-sm ${msg.ok ? "bg-ok-soft text-ok" : "bg-danger-soft text-danger"}`}>{msg.text}</p>}
 
       <ul className="divide-y divide-line rounded-xl border border-line">
         {members.map((m) => {
@@ -76,7 +76,7 @@ export function MembersPanel({ slug, myRole, myId, canManage, members, pending, 
                       </option>
                     ))}
                   </select>
-                  <button disabled={busy} onClick={() => confirm(`Remove ${m.name ?? m.email} from this workspace?`) && run(() => removeMemberAction(slug, m.userId))} className="rounded px-2 py-1 text-sm text-red-600 hover:bg-red-50">
+                  <button disabled={busy} onClick={() => confirm(`Remove ${m.name ?? m.email} from this workspace?`) && run(() => removeMemberAction(slug, m.userId))} className="rounded px-2 py-1 text-sm text-danger hover:bg-danger-soft">
                     Remove
                   </button>
                 </>

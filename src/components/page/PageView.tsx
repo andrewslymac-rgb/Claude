@@ -80,7 +80,7 @@ export function PageView({ slug, page, crumbs, subpages, canEdit }: { slug: stri
   return (
     <div className="relative min-h-full">
       {/* Top bar */}
-      <div className="sticky top-0 z-20 flex h-11 items-center gap-2 bg-white/90 px-4 text-sm backdrop-blur">
+      <div className="sticky top-0 z-20 flex h-11 items-center gap-2 bg-paper/90 px-4 text-sm backdrop-blur">
         <nav className="flex min-w-0 flex-1 items-center gap-1 text-ink-soft">
           {crumbs.map((c) => (
             <span key={c.id} className="flex min-w-0 items-center gap-1">
@@ -95,7 +95,7 @@ export function PageView({ slug, page, crumbs, subpages, canEdit }: { slug: stri
           </span>
         </nav>
         <SaveIndicator state={save} />
-        {isSop && <span className="rounded bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800">SOP</span>}
+        {isSop && <span className="rounded bg-warn-soft px-2 py-0.5 text-xs font-semibold text-warn">SOP</span>}
         <button onClick={() => setHistory(true)} className="flex items-center gap-1 rounded-md px-2 py-1 text-ink-soft hover:bg-hover">
           <History size={15} /> History
         </button>
@@ -105,7 +105,7 @@ export function PageView({ slug, page, crumbs, subpages, canEdit }: { slug: stri
               <MoreHorizontal size={18} />
             </button>
             {menu && (
-              <div className="absolute right-0 top-8 w-56 rounded-lg border border-line bg-white p-1 shadow-lg" onMouseLeave={() => setMenu(false)}>
+              <div className="absolute right-0 top-8 w-56 rounded-lg border border-line bg-card p-1 shadow-lg" onMouseLeave={() => setMenu(false)}>
                 <button
                   className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left hover:bg-hover"
                   onClick={() => {
@@ -117,7 +117,7 @@ export function PageView({ slug, page, crumbs, subpages, canEdit }: { slug: stri
                   <BookMarked size={15} /> {isSop ? "Unmark as SOP" : "Mark as SOP / policy"}
                 </button>
                 <button
-                  className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-red-600 hover:bg-red-50"
+                  className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-danger hover:bg-danger-soft"
                   onClick={() =>
                     start(async () => {
                       await flush();
@@ -184,7 +184,7 @@ export function PageView({ slug, page, crumbs, subpages, canEdit }: { slug: stri
               el.style.height = `${el.scrollHeight}px`;
             }
           }}
-          className="mb-4 w-full resize-none overflow-hidden bg-transparent text-[40px] font-bold leading-tight tracking-tight outline-none placeholder:text-line"
+          className="mb-4 w-full resize-none overflow-hidden bg-transparent text-[40px] font-bold leading-tight tracking-tight outline-none placeholder:text-ink-faint"
           autoFocus={canEdit && !page.title}
         />
 
@@ -225,12 +225,12 @@ export function PageView({ slug, page, crumbs, subpages, canEdit }: { slug: stri
 }
 
 function Banner({ children }: { children: React.ReactNode }) {
-  return <div className="mx-auto mt-2 max-w-[760px] rounded-lg bg-amber-50 px-4 py-2 text-sm text-amber-900">{children}</div>;
+  return <div className="mx-auto mt-2 max-w-[760px] rounded-lg bg-warn-soft px-4 py-2 text-sm text-warn">{children}</div>;
 }
 
 function SaveIndicator({ state }: { state: SaveState }) {
   if (state === "saving") return <span className="flex items-center gap-1 text-xs text-ink-faint"><Loader2 size={12} className="animate-spin" /> Saving</span>;
   if (state === "saved") return <span className="flex items-center gap-1 text-xs text-ink-faint"><Check size={12} /> Saved</span>;
-  if (state === "error") return <span className="flex items-center gap-1 text-xs text-red-600"><AlertCircle size={12} /> Not saved — retrying</span>;
+  if (state === "error") return <span className="flex items-center gap-1 text-xs text-danger"><AlertCircle size={12} /> Not saved — retrying</span>;
   return null;
 }

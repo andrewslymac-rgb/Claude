@@ -30,8 +30,8 @@ export function SearchPalette({ slug, onClose }: { slug: string; onClose: () => 
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/20 pt-[15vh]" onMouseDown={onClose}>
-      <div className="w-full max-w-xl overflow-hidden rounded-xl border border-line bg-white shadow-2xl" onMouseDown={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/60 pt-[15vh]" onMouseDown={onClose}>
+      <div className="w-full max-w-xl overflow-hidden rounded-xl border border-line bg-card shadow-2xl" onMouseDown={(e) => e.stopPropagation()}>
         <div className="flex items-center gap-2 border-b border-line px-4">
           <Search size={18} className="text-ink-faint" />
           <input
@@ -56,7 +56,7 @@ export function SearchPalette({ slug, onClose }: { slug: string; onClose: () => 
               <button onMouseEnter={() => setSel(i)} onClick={() => open(h)} className={`w-full rounded-lg px-3 py-2 text-left ${i === sel ? "bg-hover" : ""}`}>
                 <div className="flex items-center gap-2 text-sm font-medium">
                   <span>{h.icon ?? "📄"}</span> {h.title || "Untitled"}
-                  {h.isSop && <span className="rounded bg-amber-100 px-1.5 text-[10px] font-semibold text-amber-800">SOP</span>}
+                  {h.isSop && <span className="rounded bg-warn-soft px-1.5 text-[10px] font-semibold text-warn">SOP</span>}
                 </div>
                 {h.snippet && <div className="mt-0.5 truncate pl-6 text-xs text-ink-faint">…{h.snippet}…</div>}
               </button>
