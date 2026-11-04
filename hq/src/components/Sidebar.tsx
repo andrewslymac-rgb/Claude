@@ -1,0 +1,309 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { ChevronDown, ChevronRight, Home, LogOut, MoreHorizontal, Plus, Search, Settings, Trash2, CheckSquare, BookOpen } from "lucide-react";
+import { archivePageAction, createPageAction, movePageAction, signOutAction } from "@/app/actions";
+import { SearchPalette } from "./SearchPalette";
+import { NewWorkspaceDialog } from "./NewWorkspaceForm";
+
+type Ws = { slug: string; name: string; icon: string; color: string };
+type Node = { id: string; parentId: string | null; title: string; icon: string | null; position: number; isSop: boolean; source: string };
+
+export function Sidebar(props: { workspace: Ws; workspaces: Ws[]; tree: Node[]; user: { name: string; email: string; isAppAdmin: boolean }; canEdit: boolean; canManage: boolean }) {
+  const { workspace, tree, canEdit } = props;
+  const router = useRouter();
+  const pathname = usePathname();
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [pending, start] = useTransition();
+  const base = `/w/${workspace.slug}`;
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setSearchOpen(true);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  const newPage = (parentId: string | null) =>
+    start(async () => {
+      const id = await createPageAction(workspace.slug, parentId);
+      router.push(`${base}/p/${id}`);
+    });
+
+  return (
+    <aside className="flex w-64 shrink-0 flex-col border-r border-line bg-side text-[14px]">
+      <WorkspaceSwitcher current={workspace} all={props.workspaces} canCreate={props.user.isAppAdmin} />
+
+      <nav className="space-y-0.5 px-2 pb-2">
+        <NavItem href={base} icon={<Home size={16} />} label="Home" active={pathname === base} />
+        <button onClick={() => setSearchOpen(true)} className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-ink-soft hover:bg-hover">
+          <Search size={16} /> Search
+          <kbd className="ml-auto rounded border border-line bg-white px-1 text-[10px] text-ink-faint">Ctrl K</kbd>
+        </button>
+        <div className="flex items-center gap-2 rounded-md px-2 py-1.5 text-ink-faint" title="Coming in Milestone 2">
+          <CheckSquare size={16} /> Tasks <span className="ml-auto text-[10px] uppercase tracking-wide">soon</span>
+        </div>
+      </nav>
+
+      <div className="flex items-center justify-between px-4 pb-1 pt-3 text-xs font-medium text-ink-faint">
+        <span className="flex items-center gap-1">
+          <BookOpen size={12} /> Pages
+        </span>
+        {canEdit && (
+          <button onClick={() => newPage(null)} disabled={pending} className="rounded p-0.5 hover:bg-hover hover:text-ink" title="New page">
+            <Plus size={14} />
+          </button>
+        )}
+      </div>
+      <div className="flex-1 overflow-y-auto px-2 pb-4 scrollbar-thin">
+        <PageTree slug={workspace.slug} nodes={tree} canEdit={canEdit} onNew={newPage} />
+        {canEdit && (
+          <button onClick={() => newPage(null)} disabled={pending} className="mt-1 flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-ink-faint hover:bg-hover hover:text-ink">
+            <Plus size={16} /> New page
+          </button>
+        )}
+      </div>
+
+      <div className="space-y-0.5 border-t border-line px-2 py-2">
+        <NavItem href={`${base}/trash`} icon={<Trash2 size={16} />} label="Trash" active={pathname === `${base}/trash`} />
+        <NavItem href={`${base}/settings`} icon={<Settings size={16} />} label={props.canManage ? "Settings & people" : "Settings"} active={pathname === `${base}/settings`} />
+        <form action={signOutAction}>
+          <button className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-ink-soft hover:bg-hover" title={props.user.email}>
+            <LogOut size={16} /> <span className="truncate">Sign out ({props.user.name})</span>
+          </button>
+        </form>
+      </div>
+
+      {searchOpen && <SearchPalette slug={workspace.slug} onClose={() => setSearchOpen(false)} />}
+    </aside>
+  );
+}
+
+function NavItem({ href, icon, label, active }: { href: string; icon: React.ReactNode; label: string; active?: boolean }) {
+  return (
+    <Link href={href} className={`flex items-center gap-2 rounded-md px-2 py-1.5 ${active ? "bg-hover font-medium text-ink" : "text-ink-soft hover:bg-hover"}`}>
+      {icon} {label}
+    </Link>
+  );
+}
+
+function WorkspaceSwitcher({ current, all, canCreate }: { current: Ws; all: Ws[]; canCreate: boolean }) {
+  const [open, setOpen] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const close = (e: MouseEvent) => ref.current && !ref.current.contains(e.target as Element) && setOpen(false);
+    document.addEventListener("mousedown", close);
+    return () => document.removeEventListener("mousedown", close);
+  }, []);
+
+  return (
+    <div ref={ref} className="relative p-2">
+      <button onClick={() => setOpen((o) => !o)} className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-left hover:bg-hover">
+        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-base" style={{ background: `${current.color}22` }}>
+          {current.icon}
+        </span>
+        <span className="flex-1 truncate font-semibold">{current.name}</span>
+        <ChevronDown size={14} className="text-ink-faint" />
+      </button>
+      {open && (
+        <div className="absolute left-2 right-2 z-30 mt-1 rounded-lg border border-line bg-white p-1 shadow-lg">
+          <div className="px-2 py-1 text-xs text-ink-faint">Switch company</div>
+          {all.map((w) => (
+            <Link key={w.slug} href={`/w/${w.slug}`} onClick={() => setOpen(false)} className={`flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-hover ${w.slug === current.slug ? "bg-hover" : ""}`}>
+              <span className="flex h-6 w-6 items-center justify-center rounded text-sm" style={{ background: `${w.color}22` }}>
+                {w.icon}
+              </span>
+              <span className="truncate">{w.name}</span>
+            </Link>
+          ))}
+          {canCreate && (
+            <button
+              onClick={() => {
+                setOpen(false);
+                setCreating(true);
+              }}
+              className="mt-1 flex w-full items-center gap-2 rounded-md border-t border-line px-2 py-1.5 text-ink-soft hover:bg-hover"
+            >
+              <Plus size={14} /> New workspace
+            </button>
+          )}
+        </div>
+      )}
+      {creating && <NewWorkspaceDialog onClose={() => setCreating(false)} />}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Page tree with drag and drop: drop on the middle of a page to nest it inside,
+// near the top or bottom edge to place it before or after.
+// ---------------------------------------------------------------------------
+
+type DropZone = { id: string; zone: "before" | "inside" | "after" } | null;
+const EXPANDED_KEY = "hq.expanded";
+
+function PageTree({ slug, nodes, canEdit, onNew }: { slug: string; nodes: Node[]; canEdit: boolean; onNew: (parentId: string | null) => void }) {
+  const pathname = usePathname();
+  const [, start] = useTransition();
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [drag, setDrag] = useState<string | null>(null);
+  const [drop, setDrop] = useState<DropZone>(null);
+  const [menu, setMenu] = useState<string | null>(null);
+
+  useEffect(() => {
+    try {
+      setExpanded(JSON.parse(localStorage.getItem(EXPANDED_KEY) ?? "{}"));
+    } catch {}
+  }, []);
+  const toggle = (id: string, value?: boolean) =>
+    setExpanded((e) => {
+      const next = { ...e, [id]: value ?? !e[id] };
+      try {
+        localStorage.setItem(EXPANDED_KEY, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+
+  const children = useMemo(() => {
+    const m = new Map<string | null, Node[]>();
+    for (const n of nodes) m.set(n.parentId, [...(m.get(n.parentId) ?? []), n]);
+    for (const list of m.values()) list.sort((a, b) => a.position - b.position);
+    return m;
+  }, [nodes]);
+
+  // Auto-expand ancestors of the open page.
+  const activeId = pathname.split("/p/")[1];
+  useEffect(() => {
+    if (!activeId) return;
+    const byId = new Map(nodes.map((n) => [n.id, n]));
+    let cur = byId.get(activeId)?.parentId;
+    while (cur) {
+      if (!expanded[cur]) toggle(cur, true);
+      cur = byId.get(cur)?.parentId ?? null;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeId]);
+
+  const isDescendant = (maybeChild: string, ancestor: string): boolean => {
+    const byId = new Map(nodes.map((n) => [n.id, n]));
+    let cur = byId.get(maybeChild)?.parentId;
+    while (cur) {
+      if (cur === ancestor) return true;
+      cur = byId.get(cur)?.parentId;
+    }
+    return false;
+  };
+
+  const commitDrop = () => {
+    if (!drag || !drop || drag === drop.id || isDescendant(drop.id, drag)) return reset();
+    const target = nodes.find((n) => n.id === drop.id)!;
+    let parentId: string | null;
+    let position: number;
+    if (drop.zone === "inside") {
+      parentId = target.id;
+      const kids = children.get(target.id) ?? [];
+      position = (kids.at(-1)?.position ?? 0) + 1;
+      toggle(target.id, true);
+    } else {
+      parentId = target.parentId;
+      const sibs = (children.get(parentId) ?? []).filter((s) => s.id !== drag);
+      const i = sibs.findIndex((s) => s.id === target.id);
+      const neighbor = drop.zone === "before" ? sibs[i - 1] : sibs[i + 1];
+      position = neighbor ? (target.position + neighbor.position) / 2 : target.position + (drop.zone === "before" ? -1 : 1);
+    }
+    const id = drag;
+    start(() => movePageAction(slug, id, parentId, position));
+    reset();
+  };
+  const reset = () => {
+    setDrag(null);
+    setDrop(null);
+  };
+
+  const render = (parentId: string | null, depth: number): React.ReactNode =>
+    (children.get(parentId) ?? []).map((n) => {
+      const kids = children.get(n.id) ?? [];
+      const open = expanded[n.id];
+      const active = activeId === n.id;
+      const dz = drop?.id === n.id ? drop.zone : null;
+      return (
+        <div key={n.id}>
+          <div
+            draggable={canEdit}
+            onDragStart={(e) => {
+              setDrag(n.id);
+              e.dataTransfer.effectAllowed = "move";
+            }}
+            onDragEnd={reset}
+            onDragOver={(e) => {
+              if (!drag || drag === n.id) return;
+              e.preventDefault();
+              const r = e.currentTarget.getBoundingClientRect();
+              const y = (e.clientY - r.top) / r.height;
+              setDrop({ id: n.id, zone: y < 0.28 ? "before" : y > 0.72 ? "after" : "inside" });
+            }}
+            onDrop={(e) => {
+              e.preventDefault();
+              commitDrop();
+            }}
+            className={`group relative flex items-center rounded-md pr-1 ${active ? "bg-hover font-medium text-ink" : "text-ink-soft hover:bg-hover"} ${dz === "inside" ? "ring-2 ring-accent/50" : ""} ${drag === n.id ? "opacity-40" : ""}`}
+            style={{ paddingLeft: 4 + depth * 14 }}
+          >
+            {dz === "before" && <div className="absolute -top-px left-2 right-2 h-0.5 rounded bg-accent" />}
+            {dz === "after" && <div className="absolute -bottom-px left-2 right-2 h-0.5 rounded bg-accent" />}
+            <button onClick={() => toggle(n.id)} className="rounded p-0.5 text-ink-faint hover:bg-line" aria-label={open ? "Collapse" : "Expand"}>
+              {open ? <ChevronDown size={14} /> : <ChevronRight size={14} className={kids.length ? "" : "opacity-40"} />}
+            </button>
+            <Link href={`/w/${slug}/p/${n.id}`} className="flex min-w-0 flex-1 items-center gap-1.5 py-1.5 pl-0.5">
+              <span className="w-5 shrink-0 text-center">{n.icon ?? "📄"}</span>
+              <span className="truncate">{n.title || "Untitled"}</span>
+              {n.source === "gdrive" && <span title="Synced from Google Drive" className="text-[10px] text-ink-faint">Drive</span>}
+            </Link>
+            {canEdit && (
+              <div className="relative flex opacity-0 group-hover:opacity-100">
+                <button onClick={() => setMenu(menu === n.id ? null : n.id)} className="rounded p-0.5 text-ink-faint hover:bg-line hover:text-ink" title="More">
+                  <MoreHorizontal size={14} />
+                </button>
+                <button
+                  onClick={() => {
+                    toggle(n.id, true);
+                    onNew(n.id);
+                  }}
+                  className="rounded p-0.5 text-ink-faint hover:bg-line hover:text-ink"
+                  title="Add a page inside"
+                >
+                  <Plus size={14} />
+                </button>
+                {menu === n.id && (
+                  <div className="absolute right-0 top-6 z-30 w-44 rounded-lg border border-line bg-white p-1 text-ink shadow-lg" onMouseLeave={() => setMenu(null)}>
+                    <button className="w-full rounded px-2 py-1.5 text-left hover:bg-hover" onClick={() => (setMenu(null), onNew(n.id))}>
+                      Add page inside
+                    </button>
+                    <button
+                      className="w-full rounded px-2 py-1.5 text-left text-red-600 hover:bg-red-50"
+                      onClick={() => {
+                        setMenu(null);
+                        start(() => archivePageAction(slug, n.id));
+                      }}
+                    >
+                      Move to Trash
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+          {open && (kids.length ? render(n.id, depth + 1) : <div className="py-1 text-xs text-ink-faint" style={{ paddingLeft: 30 + depth * 14 }}>No pages inside</div>)}
+        </div>
+      );
+    });
+
+  return <div onDragLeave={(e) => e.currentTarget === e.target && setDrop(null)}>{render(null, 0)}</div>;
+}
