@@ -1,33 +1,57 @@
 @import "tailwindcss";
 
+/* Orbit theme: deep navy with a periwinkle accent. */
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --color-ink: #1f1f1d;
-  --color-ink-soft: #5f5e5b;
-  --color-ink-faint: #9b9a97;
-  --color-paper: #ffffff;
-  --color-side: #f7f7f5;
-  --color-line: #ebebea;
-  --color-hover: #efefed;
-  --color-accent: var(--ws-accent, #6366f1);
+  --color-ink: #f3f5fb; /* primary text */
+  --color-ink-soft: #a9b3cf; /* secondary text */
+  --color-ink-faint: #6f7a9c; /* hints, placeholders */
+  --color-paper: #0f1526; /* page background */
+  --color-side: #121a2e; /* sidebar */
+  --color-card: #1c2742; /* tiles, menus, dialogs */
+  --color-line: #2a3656; /* borders */
+  --color-hover: #243151; /* hover rows */
+  --color-accent: #8f9ff5;
+  --color-accent-soft: #8f9ff533;
+  --color-danger: #ff8a8a;
+  --color-danger-soft: #ff6b6b22;
+  --color-ok: #7fd9a5;
+  --color-ok-soft: #3dd68c22;
+  --color-warn: #f7c66b;
+  --color-warn-soft: #f7c66b22;
 }
 
 html,
 body {
   background: var(--color-paper);
   color: var(--color-ink);
+  color-scheme: dark;
   -webkit-font-smoothing: antialiased;
 }
 
-/* Keep BlockNote's text aligned with our page title. */
+/* Blend BlockNote (dark theme) into the page. */
+.hq-editor .bn-container {
+  --bn-colors-editor-background: transparent;
+  --bn-colors-editor-text: var(--color-ink);
+  --bn-colors-menu-background: var(--color-card);
+  --bn-colors-menu-text: var(--color-ink);
+  --bn-colors-hovered-background: var(--color-hover);
+  --bn-colors-selected-background: var(--color-accent);
+  --bn-colors-side-menu: var(--color-ink-faint);
+  --bn-colors-border: var(--color-line);
+  --bn-colors-tooltip-background: var(--color-card);
+}
 .hq-editor .bn-editor {
   background: transparent;
   font-family: var(--font-sans);
 }
-.hq-editor .bn-container {
-  --bn-colors-editor-background: transparent;
-}
 
 .scrollbar-thin {
   scrollbar-width: thin;
+  scrollbar-color: var(--color-line) transparent;
+}
+
+/* Subtle glow behind the hub hero, like the mockup. */
+.orbit-hero {
+  background: radial-gradient(120% 140% at 0% 0%, #233055 0%, var(--color-card) 55%);
 }

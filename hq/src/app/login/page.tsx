@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { devLoginEnabled, getCurrentUser, googleEnabled } from "@/lib/auth/session";
+import { OrbitWordmark } from "@/components/OrbitLogo";
 
 const MESSAGES: Record<string, string> = {
   expired: "That sign-in link expired. Please try again.",
@@ -16,17 +17,17 @@ export default async function Login({ searchParams }: { searchParams: Promise<{ 
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-side px-6">
-      <div className="w-full max-w-sm rounded-2xl border border-line bg-white p-8 shadow-sm">
-        <div className="text-3xl">🏢</div>
+      <div className="w-full max-w-sm rounded-2xl border border-line bg-card p-8 shadow-sm">
+        <OrbitWordmark size={30} />
         <h1 className="mt-3 text-xl font-semibold">Sign in to Orbit</h1>
         <p className="mt-1 text-sm text-ink-soft">Use your work Google account.</p>
 
-        {error && <p className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{MESSAGES[error] ?? error}</p>}
+        {error && <p className="mt-4 rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger">{MESSAGES[error] ?? error}</p>}
 
         {google && (
           <a
             href="/api/auth/google"
-            className="mt-6 flex w-full items-center justify-center gap-3 rounded-lg border border-line bg-white px-4 py-2.5 text-sm font-medium hover:bg-hover"
+            className="mt-6 flex w-full items-center justify-center gap-3 rounded-lg border border-line bg-card px-4 py-2.5 text-sm font-medium hover:bg-hover"
           >
             <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden>
               <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z" />
@@ -45,7 +46,7 @@ export default async function Login({ searchParams }: { searchParams: Promise<{ 
               Email (dev login)
             </label>
             <input id="email" name="email" type="email" required placeholder="you@company.com" className="w-full rounded-lg border border-line px-3 py-2 text-sm outline-none focus:border-ink-faint" />
-            <button className="w-full rounded-lg bg-ink px-4 py-2.5 text-sm font-medium text-white hover:opacity-90">Sign in</button>
+            <button className="w-full rounded-lg bg-accent px-4 py-2.5 text-sm font-medium text-paper hover:opacity-90">Sign in</button>
             <p className="text-xs text-ink-faint">Dev login is for testing on your own computer and is switched off in production.</p>
           </form>
         )}

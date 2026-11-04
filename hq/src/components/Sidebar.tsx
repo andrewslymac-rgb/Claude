@@ -7,6 +7,7 @@ import { ChevronDown, ChevronRight, Home, LogOut, MoreHorizontal, Plus, Search, 
 import { archivePageAction, createPageAction, movePageAction, signOutAction } from "@/app/actions";
 import { SearchPalette } from "./SearchPalette";
 import { NewWorkspaceDialog } from "./NewWorkspaceForm";
+import { OrbitLogo } from "./OrbitLogo";
 
 type Ws = { slug: string; name: string; icon: string; color: string };
 type Node = { id: string; parentId: string | null; title: string; icon: string | null; position: number; isSop: boolean; source: string };
@@ -38,13 +39,17 @@ export function Sidebar(props: { workspace: Ws; workspaces: Ws[]; tree: Node[]; 
 
   return (
     <aside className="flex w-64 shrink-0 flex-col border-r border-line bg-side text-[14px]">
+      <Link href="/" className="flex items-center gap-2 px-4 pt-4 text-accent hover:opacity-80" title="All companies">
+        <OrbitLogo size={22} />
+        <span className="text-lg font-bold tracking-tight text-ink">orbit</span>
+      </Link>
       <WorkspaceSwitcher current={workspace} all={props.workspaces} canCreate={props.user.isAppAdmin} />
 
       <nav className="space-y-0.5 px-2 pb-2">
         <NavItem href={base} icon={<Home size={16} />} label="Home" active={pathname === base} />
         <button onClick={() => setSearchOpen(true)} className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-ink-soft hover:bg-hover">
           <Search size={16} /> Search
-          <kbd className="ml-auto rounded border border-line bg-white px-1 text-[10px] text-ink-faint">Ctrl K</kbd>
+          <kbd className="ml-auto rounded border border-line bg-card px-1 text-[10px] text-ink-faint">Ctrl K</kbd>
         </button>
         <div className="flex items-center gap-2 rounded-md px-2 py-1.5 text-ink-faint" title="Coming in Milestone 2">
           <CheckSquare size={16} /> Tasks <span className="ml-auto text-[10px] uppercase tracking-wide">soon</span>
@@ -113,8 +118,8 @@ function WorkspaceSwitcher({ current, all, canCreate }: { current: Ws; all: Ws[]
         <ChevronDown size={14} className="text-ink-faint" />
       </button>
       {open && (
-        <div className="absolute left-2 right-2 z-30 mt-1 rounded-lg border border-line bg-white p-1 shadow-lg">
-          <div className="px-2 py-1 text-xs text-ink-faint">Switch company</div>
+        <div className="absolute left-2 right-2 z-30 mt-1 rounded-lg border border-line bg-card p-1 shadow-lg">
+          <Link href="/" onClick={() => setOpen(false)} className="block rounded-md px-2 py-1.5 text-xs text-ink-faint hover:bg-hover">← All companies</Link>
           {all.map((w) => (
             <Link key={w.slug} href={`/w/${w.slug}`} onClick={() => setOpen(false)} className={`flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-hover ${w.slug === current.slug ? "bg-hover" : ""}`}>
               <span className="flex h-6 w-6 items-center justify-center rounded text-sm" style={{ background: `${w.color}22` }}>
@@ -282,12 +287,12 @@ function PageTree({ slug, nodes, canEdit, onNew }: { slug: string; nodes: Node[]
                   <Plus size={14} />
                 </button>
                 {menu === n.id && (
-                  <div className="absolute right-0 top-6 z-30 w-44 rounded-lg border border-line bg-white p-1 text-ink shadow-lg" onMouseLeave={() => setMenu(null)}>
+                  <div className="absolute right-0 top-6 z-30 w-44 rounded-lg border border-line bg-card p-1 text-ink shadow-lg" onMouseLeave={() => setMenu(null)}>
                     <button className="w-full rounded px-2 py-1.5 text-left hover:bg-hover" onClick={() => (setMenu(null), onNew(n.id))}>
                       Add page inside
                     </button>
                     <button
-                      className="w-full rounded px-2 py-1.5 text-left text-red-600 hover:bg-red-50"
+                      className="w-full rounded px-2 py-1.5 text-left text-danger hover:bg-danger-soft"
                       onClick={() => {
                         setMenu(null);
                         start(() => archivePageAction(slug, n.id));

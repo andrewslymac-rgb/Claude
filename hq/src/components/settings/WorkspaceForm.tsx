@@ -28,9 +28,9 @@ export function WorkspaceForm({ slug, name: n0, icon: i0, color: c0 }: { slug: s
       </div>
       <div className="flex items-center gap-2">
         {COLORS.map((c) => (
-          <button type="button" key={c} onClick={() => setColor(c)} className={`h-7 w-7 rounded-full ${color === c ? "ring-2 ring-offset-2" : ""}`} style={{ background: c, ["--tw-ring-color" as string]: c }} aria-label={`Color ${c}`} />
+          <button type="button" key={c} onClick={() => setColor(c)} className={`h-7 w-7 rounded-full ${color === c ? "ring-2 ring-offset-2 ring-offset-card" : ""}`} style={{ background: c, ["--tw-ring-color" as string]: c }} aria-label={`Color ${c}`} />
         ))}
-        <button disabled={busy} className="ml-auto rounded-lg bg-ink px-4 py-2 text-sm font-medium text-white disabled:opacity-50">
+        <button disabled={busy} className="ml-auto rounded-lg bg-accent px-4 py-2 text-sm font-medium text-paper disabled:opacity-50">
           Save
         </button>
       </div>

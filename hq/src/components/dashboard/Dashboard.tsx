@@ -42,7 +42,7 @@ export function Dashboard({ slug, widgets: initial, canCustomize, catalog, allPa
               <Plus size={14} /> Add widget
             </button>
           )}
-          <button onClick={() => setEditing((e) => !e)} className={`rounded-lg px-3 py-1.5 text-sm ${editing ? "bg-ink text-white" : "border border-line text-ink-soft hover:bg-hover"}`}>
+          <button onClick={() => setEditing((e) => !e)} className={`rounded-lg px-3 py-1.5 text-sm ${editing ? "bg-accent text-paper" : "border border-line text-ink-soft hover:bg-hover"}`}>
             {editing ? "Done" : "Customize"}
           </button>
         </div>
@@ -128,7 +128,7 @@ function Tile({ w, slug, editing, onConfigure, onResize, onRemove }: { w: Widget
     <section
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={`rounded-xl border bg-white p-5 ${w.width === 2 ? "md:col-span-2" : ""} ${isDragging ? "z-10 shadow-xl" : ""} ${editing ? "border-dashed border-ink-faint" : "border-line"}`}
+      className={`rounded-xl border bg-card p-5 ${w.width === 2 ? "md:col-span-2" : ""} ${isDragging ? "z-10 shadow-xl" : ""} ${editing ? "border-dashed border-ink-faint" : "border-line"}`}
     >
       <header className="mb-3 flex items-center gap-2">
         {editing && (
@@ -147,7 +147,7 @@ function Tile({ w, slug, editing, onConfigure, onResize, onRemove }: { w: Widget
             <button onClick={onResize} className="hidden rounded p-1 hover:bg-hover hover:text-ink md:block" title={w.width === 2 ? "Make narrow" : "Make wide"}>
               {w.width === 2 ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
             </button>
-            <button onClick={onRemove} className="rounded p-1 hover:bg-red-50 hover:text-red-600" title="Remove">
+            <button onClick={onRemove} className="rounded p-1 hover:bg-danger-soft hover:text-danger" title="Remove">
               <Trash2 size={14} />
             </button>
           </div>
@@ -211,8 +211,8 @@ const Empty = ({ children }: { children: React.ReactNode }) => <p className="tex
 
 function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 p-4" onMouseDown={onClose}>
-      <div className="max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-xl border border-line bg-white p-6 shadow-2xl" onMouseDown={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onMouseDown={onClose}>
+      <div className="max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-xl border border-line bg-card p-6 shadow-2xl" onMouseDown={(e) => e.stopPropagation()}>
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-semibold">{title}</h2>
           <button onClick={onClose} className="rounded p-1 hover:bg-hover" aria-label="Close">
@@ -257,7 +257,7 @@ function WidgetSettings({ w, allPages, onClose, onSave }: { w: WidgetData; allPa
               <input value={l.emoji ?? ""} onChange={(e) => setLinks(links.map((x, j) => (j === i ? { ...x, emoji: e.target.value } : x)))} placeholder="🔗" className="w-12 rounded-lg border border-line px-2 py-2 text-center" />
               <input value={l.label} onChange={(e) => setLinks(links.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)))} placeholder="Name" className="w-32 rounded-lg border border-line px-3 py-2" />
               <input value={l.url} onChange={(e) => setLinks(links.map((x, j) => (j === i ? { ...x, url: e.target.value } : x)))} placeholder="https://…" className="min-w-0 flex-1 rounded-lg border border-line px-3 py-2" />
-              <button onClick={() => setLinks(links.filter((_, j) => j !== i))} className="rounded p-2 text-ink-faint hover:bg-red-50 hover:text-red-600" aria-label="Remove link">
+              <button onClick={() => setLinks(links.filter((_, j) => j !== i))} className="rounded p-2 text-ink-faint hover:bg-danger-soft hover:text-danger" aria-label="Remove link">
                 <Trash2 size={14} />
               </button>
             </div>
@@ -279,12 +279,12 @@ function WidgetSettings({ w, allPages, onClose, onSave }: { w: WidgetData; allPa
         </div>
       )}
 
-      {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
+      {error && <p className="mt-3 text-sm text-danger">{error}</p>}
       <div className="mt-6 flex justify-end gap-2">
         <button onClick={onClose} className="rounded-lg px-4 py-2 text-sm hover:bg-hover">
           Cancel
         </button>
-        <button onClick={save} className="rounded-lg bg-ink px-4 py-2 text-sm font-medium text-white">
+        <button onClick={save} className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-paper">
           Save
         </button>
       </div>
