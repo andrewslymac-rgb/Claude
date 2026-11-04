@@ -66,6 +66,12 @@ SCENARIOS = {
          "other": 0, "last_clean": "never"},
         EstimateInput(sqft=1800, bedrooms=3, bathrooms=2, dirt_code=5, occupants=2, today=TODAY),
     ),
+    "team_price_outside_range": (
+        {"K12": 999},
+        EstimateInput(sqft=1850, bedrooms=3, bathrooms=2.5, dirt_code=6, photo_dirt_code=7,
+                      photo_reason="x", occupants=4, dogs=1, cats=1, last_pro_clean=date(2026, 3, 1),
+                      fridge=True, windows=12, promo_off_initial_deep=50, city="Milwaukie", today=TODAY),
+    ),
     "missing_sqft": (
         {**CLEAR, "dirt": 5},
         EstimateInput(sqft=None, dirt_code=5, today=TODAY),
@@ -98,23 +104,26 @@ def test_sheet_matches_python(wbs, name):
     status = q["B2"].value
     if py.status == "do_not_service":
         assert "DO NOT SERVICE" in status
-        assert all(q[f"H{r}"].value == "—" for r in PANEL)
+        assert all(q[f"I{r}"].value == "—" for r in PANEL)
         assert "not able to take on this cleaning" in q["G19"].value
         return
     if py.status == "invalid":
         assert status.startswith("⚠")
         for e in py.errors:  # same message, word for word
             assert e.split(" ")[0] in status
-        assert all(q[f"H{r}"].value == "—" for r in PANEL)
+        assert all(q[f"I{r}"].value == "—" for r in PANEL)
         return
     assert "Ready to quote" in status, status
     for r, (svc, col) in PANEL.items():
         se = py.services[svc]
-        assert q[f"H{r}"].value == pytest.approx(se.service_price + se.promo), (svc, "price")
+        assert q[f"I{r}"].value == pytest.approx(se.service_price + se.promo), (svc, "price")
+        assert q[f"H{r}"].value == pytest.approx(se.low + se.promo), (svc, "low")
+        assert q[f"J{r}"].value == pytest.approx(se.high + se.promo), (svc, "high")
         assert bd[f"{col}{B.CALC['hours']}"].value == pytest.approx(se.labor_hours), (svc, "hours")
-        assert q[f"I{r}"].value == pytest.approx(se.onsite_hours), (svc, "on-site")
-    assert q["H15"].value == pytest.approx(sum(py.addon_prices.values()))
-    assert (q["B3"].value != "No warnings") == bool(py.warnings), (q["B3"].value, py.warnings)
+        assert q[f"L{r}"].value == pytest.approx(se.onsite_hours), (svc, "on-site")
+    assert q["I15"].value == pytest.approx(sum(py.addon_prices.values()))
+    if name != "team_price_outside_range":  # that warning comes from the team's typed price, not pricing.py
+        assert (q["B3"].value != "No warnings") == bool(py.warnings), (q["B3"].value, py.warnings)
 
 
 def test_no_formula_errors_on_any_tab(wbs):
@@ -131,12 +140,13 @@ def test_no_formula_errors_on_any_tab(wbs):
 
 def test_frequency_changes_recurring_time(wbs):
     q = wbs["phone_call_average_home"]["Quote"]
-    assert q["I14"].value > q["I13"].value > q["I12"].value  # monthly > every 2 weeks > weekly
+    assert q["L14"].value > q["L13"].value > q["L12"].value  # monthly > every 2 weeks > weekly
 
 
 def test_minimums_flagged(wbs):
     q = wbs["tiny_clean_home_hits_minimums"]["Quote"]
-    assert "(minimum)" in q["G10"].value and q["H10"].value == 450
+    assert "(minimum)" in q["G10"].value and q["I10"].value == 450
+    assert q["H10"].value == 450  # low end never goes below the minimum
 
 
 def test_big_home_warnings(wbs):
@@ -167,3 +177,15 @@ def test_manual_rows_point_to_jobber(wbs):
     q = wbs["worked_example"]["Quote"]
     for cell in ("D18", "D19", "D20", "D21", "D22", "D36", "D37", "D38"):
         assert q[cell].value == "👉 Check Jobber request", cell
+
+
+def test_team_price_used_and_flagged(wbs):
+    q = wbs["team_price_outside_range"]["Quote"]
+    assert "outside the suggested range" in q["B3"].value
+    assert "Weekly: $999" in q["G19"].value
+    assert q["M43"].value == 999  # Jobber line item uses the team's price
+
+
+def test_line_items_match_quoted_price_after_promo(wbs):
+    q = wbs["worked_example"]["Quote"]
+    assert q["M40"].value + q["M49"].value == q["I8"].value  # Initial Deep line - promo = price quoted

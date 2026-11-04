@@ -47,6 +47,8 @@ DEFAULT_SETTINGS: dict = {
     "one_time": [0, 0, 0, 1, 1, 1],
     # General.
     "trip_minimum_one_time": 250,
+    "range_low_pct": 0.10,   # Low = Recommended - 10%, never below the minimum
+    "range_high_pct": 0.15,  # High = Recommended + 15%
     "hours_rounding": 0.25,
     "price_rounding": 5,
     "sqft_per_included_bath": 750,
@@ -74,6 +76,10 @@ DEFAULT_SETTINGS: dict = {
     "service_area": ["Portland", "Happy Valley", "Oregon City", "Milwaukie",
                      "Clackamas", "Lake Oswego", "West Linn", "Gresham"],
 }
+
+
+def floor_to(x: float, step: float) -> float:
+    return math.floor(round(x / step, 9)) * step
 
 
 def ceil_to(x: float, step: float) -> float:
@@ -112,6 +118,8 @@ class ServiceEstimate:
     onsite_hours: float
     service_price: float
     minimum_applied: bool
+    low: float
+    high: float
     promo: float
     addons: float
     total: float
@@ -193,7 +201,9 @@ def estimate(inp: EstimateInput, s: dict = DEFAULT_SETTINGS) -> Estimate:
         minimum = max(s["minimum_price"][i], s["trip_minimum_one_time"] if s["one_time"][i] else 0)
         service_price = max(price, minimum)
         promo = -inp.promo_off_initial_deep if svc == "initial_deep" else 0
+        low = max(minimum, floor_to(service_price * (1 - s["range_low_pct"]), s["price_rounding"]))
+        high = ceil_to(service_price * (1 + s["range_high_pct"]), s["price_rounding"])
         out[svc] = ServiceEstimate(svc, hours, hours / s["team_size"], service_price,
-                                   minimum > price, promo, addons_total,
+                                   minimum > price, low, high, promo, addons_total,
                                    service_price + promo + addons_total)
     return Estimate("ready", errors, warnings, out, addon_prices)

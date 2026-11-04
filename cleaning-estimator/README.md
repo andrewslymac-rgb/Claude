@@ -63,8 +63,12 @@ If you type in a yellow box, your answer wins over the grey one.
    - 🟧 **Not ready**: tells you exactly what's missing.
    - 🟥 **We do not service this home** (dirt code 11): no prices are shown, and the quote box becomes a polite decline message.
    - The line under the bar gives heads-ups: over 4,000 sq ft (walk-through), outside the service area, a photo change with no reason, missing beds/baths.
-6. **Your prices.** Set **Put in quote?** to No for anything the client doesn't want. Copy the
-   **quote message** into Jobber and add the **line items** (as optional items so the client picks one).
+6. **Your prices.** Each service shows **Low · Recommended · High**. Low is 10% below and High is 15%
+   above Recommended (both editable on Settings; Low never drops below the service minimum). Use judgment
+   from the photos and the request, and type the price you'll quote in the yellow **Your price** box.
+   Leave it blank to use Recommended. A warning appears if you type a price outside the range.
+   Set **Put in quote?** to No for anything the client doesn't want. Copy the
+   **quote message** into Jobber and add the **line items** (as optional items so the client picks one). Both use **Your price**.
 7. **Log it** in the yellow columns on Requests.
 8. **Clear the yellow boxes** you typed in before the next quote.
 
