@@ -55,7 +55,7 @@ To test what a team member sees: in Settings, add another email as a Viewer or E
 3. Click **+ New → Database → PostgreSQL** in the same project.
 4. In your app service, go to **Variables** and add:
    - `DATABASE_URL` = `${{Postgres.DATABASE_URL}}` (Railway offers this as a reference)
-   - `APP_URL` = your app's address, e.g. `https://orbithq.co` (see step 5)
+   - `APP_URL` = your app's address, e.g. `https://myorbithq.net` (see step 5)
    - `OWNER_EMAIL` = your email
    - `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` (next section)
 5. **Settings → Networking → Generate Domain** (or add your own domain).
