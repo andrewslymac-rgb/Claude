@@ -47,6 +47,7 @@ DEFAULT_SETTINGS: dict = {
     "one_time": [0, 0, 0, 1, 1, 1],
     # General.
     "trip_minimum_one_time": 250,
+    "custom_minimum_one_time": 250,  # custom / partial-home one-time jobs
     "range_low_pct": 0.10,   # Low = Recommended - 10%, never below the minimum
     "range_high_pct": 0.15,  # High = Recommended + 15%
     "hours_rounding": 0.25,
@@ -108,6 +109,9 @@ class EstimateInput:
     windows: int = 0
     promo_off_initial_deep: float = 0.0
     city: str = ""
+    # Custom / partial-home quote: one type of clean, areas as (sq ft, extra hours).
+    custom_type: str | None = None  # "Deep" | "Move-out" | "Weekly" | "Bi-weekly" | "Monthly"
+    custom_areas: list = field(default_factory=list)
     today: date = field(default_factory=date.today)
 
 
@@ -132,19 +136,31 @@ class Estimate:
     warnings: list[str]
     services: dict[str, ServiceEstimate]
     addon_prices: dict[str, float]
+    custom: ServiceEstimate | None = None
+
+
+# Custom quote type -> index into SERVICES
+CUSTOM_TYPES = {"Monthly": 0, "Bi-weekly": 1, "Weekly": 2, "Deep": 3, "Move-out": 5}
+
+
+def _has_custom(inp: "EstimateInput") -> bool:
+    return sum((a or 0) + (h or 0) for a, h in inp.custom_areas) > 0
 
 
 def validate(inp: EstimateInput, s: dict = DEFAULT_SETTINGS) -> tuple[list[str], list[str]]:
     errors, warnings = [], []
     dirt = inp.photo_dirt_code if inp.photo_dirt_code is not None else inp.dirt_code
     if inp.sqft is None:
-        errors.append("Square footage is required.")
+        if not _has_custom(inp):
+            errors.append("Square footage is required.")
     elif not (s["min_sqft"] <= inp.sqft <= s["max_sqft"]):
         errors.append(f"Square footage must be {s['min_sqft']:,}-{s['max_sqft']:,}.")
     if dirt is None:
         errors.append("Dirt code is required.")
     elif dirt not in range(1, 12):
         errors.append("Dirt code must be a whole number 1-11.")
+    if _has_custom(inp) and inp.custom_type not in CUSTOM_TYPES:
+        errors.append("Pick the type of clean for the custom areas.")
     if min(inp.dogs, inp.cats, inp.other_animals) < 0 or (inp.occupants is not None and inp.occupants < 1):
         errors.append("People and animal counts can't be negative (at least 1 person).")
     if inp.sqft and inp.sqft > s["walkthrough_sqft"]:
@@ -166,7 +182,7 @@ def estimate(inp: EstimateInput, s: dict = DEFAULT_SETTINGS) -> Estimate:
     if errors:
         return Estimate("invalid", errors, warnings, {}, {})
 
-    sqft = inp.sqft
+    sqft = inp.sqft or 0
     baths = inp.bathrooms or 0
     occupants = inp.occupants if inp.occupants is not None else s["occupants_included"]
     if inp.last_pro_clean is None:
@@ -177,7 +193,7 @@ def estimate(inp: EstimateInput, s: dict = DEFAULT_SETTINGS) -> Estimate:
     occ_add = min(s["occupant_cap"], max(0, occupants - s["occupants_included"]) * s["per_extra_occupant"])
     pet_add = min(s["pet_cap"], inp.dogs * s["per_dog"] + inp.cats * s["per_cat"]
                   + inp.other_animals * s["per_other_animal"])
-    extra_baths = max(0, baths - sqft / s["sqft_per_included_bath"])
+    extra_baths = max(0, baths - sqft / s["sqft_per_included_bath"]) if sqft else 0
 
     addon_prices = {
         "fridge": ceil_to((s["fridge_hours"] if inp.fridge else 0) * s["addon_rate"], s["price_rounding"]),
@@ -186,7 +202,32 @@ def estimate(inp: EstimateInput, s: dict = DEFAULT_SETTINGS) -> Estimate:
     }
     addons_total = sum(addon_prices.values())
 
+    def factors(i: int) -> float:
+        dirt_f = 1 + (s["dirt_multiplier"][dirt] - 1) * s["dirt_sensitivity"][i]
+        hh = s["household_factors_apply"][i]
+        lc_f = last_factor if s["last_clean_applies"][i] else 1
+        return dirt_f * (1 + hh * occ_add) * (1 + hh * pet_add) * lc_f
+
+    def priced(svc: str, i: int, hours: float, minimum: float, promo: float) -> ServiceEstimate:
+        price = ceil_to(hours * s["billable_rate"][i] * (1 + inp.photo_adjust_pct), s["price_rounding"])
+        service_price = max(price, minimum)
+        low = max(minimum, floor_to(service_price * (1 - s["range_low_pct"]), s["price_rounding"]))
+        high = ceil_to(service_price * (1 + s["range_high_pct"]), s["price_rounding"])
+        return ServiceEstimate(svc, hours, hours / s["team_size"], service_price, minimum > price, low, high,
+                               promo, addons_total, service_price + promo + addons_total)
+
+    custom = None
+    if _has_custom(inp):
+        i = CUSTOM_TYPES[inp.custom_type]
+        area_sqft = sum(a or 0 for a, _ in inp.custom_areas)
+        extra = sum(h or 0 for _, h in inp.custom_areas)
+        hours = ceil_to((area_sqft / s["production_rate"][i] + extra) * factors(i), s["hours_rounding"])
+        minimum = s["custom_minimum_one_time"] if s["one_time"][i] else s["minimum_price"][i]
+        custom = priced("custom", i, hours, minimum, 0)
+
     out = {}
+    if not inp.sqft:
+        return Estimate("ready", errors, warnings, out, addon_prices, custom)
     for i, svc in enumerate(SERVICES):
         base = sqft / s["production_rate"][i]
         bath_h = extra_baths * s["extra_bath_hours"][i]
@@ -206,4 +247,4 @@ def estimate(inp: EstimateInput, s: dict = DEFAULT_SETTINGS) -> Estimate:
         out[svc] = ServiceEstimate(svc, hours, hours / s["team_size"], service_price,
                                    minimum > price, low, high, promo, addons_total,
                                    service_price + promo + addons_total)
-    return Estimate("ready", errors, warnings, out, addon_prices)
+    return Estimate("ready", errors, warnings, out, addon_prices, custom)

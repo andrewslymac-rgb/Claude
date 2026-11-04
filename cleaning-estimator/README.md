@@ -33,7 +33,9 @@ you paste into Jobber. Zapier fills in new Jobber requests automatically.
 | Tab | Who uses it | What's on it |
 |---|---|---|
 | 🟪 **Quote** | Team, every quote | The only tab the team works in. Status bar at the top, 4 colored steps on the left, prices, quote message and Jobber line items on the right. |
-| 🟨 **Requests** | Zapier fills the purple columns; the team fills the yellow ones | One row per Jobber request. The yellow columns (Status, Service Quoted, Price Quoted, Quoted By, Date Quoted) are your quote log. |
+| 🟨 **Requests** | Zapier adds one row per new Jobber request; the Save quote menu fills the yellow columns | Permanent history of every request. Rows are only ever added, never cleared. |
+| 🟩 **Quote History** | The Save quote menu | One row per saved quote: every input, the dirt code, Low / Recommended / High / Your price for every service, and the full quote message. |
+| (hidden) **Lists** | Nothing to touch | Feeds the newest-first client dropdown and the custom-quote types. |
 | ⬛ **Breakdown** | Anyone curious | Read-only. What the price used, every step of the math for every service, add-ons, and the checks. |
 | 🟦 **Settings** | Andrew only | Every number, in colored tables: ① Prices by service ② Jobber descriptions ③ Dirt code ④ People & pets ⑤ Time since last clean ⑥ Add-ons ⑦ Service area ⑧ Quote wording ⑨ Advanced. Blue cells are the editable ones. |
 | 🟩 **Rate Card** | Reference | Your current rate card. The Breakdown tab shows its midpoints next to each estimate. |
@@ -76,6 +78,41 @@ The Quote tab is shared, so one person quotes at a time. If two people need to q
 one of them duplicates the tab (right-click ▸ Duplicate). This is the main limitation a web app would remove.
 
 ---
+
+## 3b. Custom quotes (only certain areas)
+
+For a client who only wants part of the home cleaned, e.g. just the basement, use **step ⑤ Custom quote**:
+
+1. Pick the **type of clean**: Deep, Move-out, Weekly, Bi-weekly or Monthly.
+2. List each **area** with its **sq ft**. Add **extra hours** for anything square footage misses (inside cabinets, heavy cobwebs, clutter).
+3. Only quoting these areas? Leave **Square feet** in step ② blank. The full-home prices hide, and the custom price shows.
+
+It's priced the same way as everything else: area sq ft ÷ that service's cleaning speed, plus extra hours, × the
+dirt code, people, pets and last-clean factors from steps ②–③, × the hourly rate. It shows as **Custom** in YOUR PRICES
+with Low / Recommended / High and a Your price box. The minimum is **$250** for one-time custom jobs (Settings ▸
+Custom quotes); recurring custom visits use that frequency's per-visit minimum.
+
+## 3c. History: what's saved
+
+- **Requests tab:** permanent. The automation only adds rows. The dropdown lists every request **newest first** as
+  "Name · date", so repeat clients show up separately.
+- **Quote tab:** a calculator. It doesn't keep anything until you **Save quote**.
+- **Lemon and Lavender menu ▸ 💾 Save quote:** adds a row to **Quote History** and fills Status ("Quote sent"),
+  Service Quoted, Price Quoted, Quoted By and Date Quoted on that client's Requests row.
+- **Lemon and Lavender menu ▸ 🧹 Clear Quote tab for the next client:** resets the Quote tab after saving.
+
+### Install the Save quote menu (one time, ~2 minutes)
+1. Open the Sheet, go to **Extensions ▸ Apps Script**.
+2. Delete what's there, paste the whole of [`apps_script/LemonAndLavenderQuotes.gs`](apps_script/LemonAndLavenderQuotes.gs), click **Save** (disk icon).
+3. Go back to the Sheet and reload the page. A **Lemon and Lavender** menu appears next to Help.
+4. The first time anyone uses it, Google asks them to authorize it. Click through (Advanced ▸ Go to project) once.
+
+If an update ever moves cells on the Quote tab, I'll regenerate this file. Paste the new version the same way.
+
+### Updating the estimator without losing history
+Updates replace the Sheet's contents at the same link, which resets the Requests and Quote History tabs. Before
+every update, copy the existing rows off both tabs, then add them back after. The Zapier workflow finds the Requests tab
+by name, so it keeps working through updates.
 
 ## 4. Jobber → Sheet automation (Zapier)
 

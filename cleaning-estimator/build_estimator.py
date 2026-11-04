@@ -253,6 +253,10 @@ def build_settings(wb) -> Ref:
     r += 2
 
     # 6 — add-ons
+    list_table("CUSTOM QUOTES (only certain areas)", GOLD, GOLD_T, [
+        ("custom_minimum_one_time", "Minimum for a one-time custom job", MONEY,
+         "Andrew Nov 2026: the $250 trip minimum. Recurring custom visits use that frequency's minimum."),
+    ])
     list_table("PRICE RANGE SHOWN TO THE TEAM", PURPLE, PURPLE_T, [
         ("range_low_pct", "Low end: this much below Recommended", PCT,
          "Andrew Nov 2026: show a range so the team uses judgment. Low never goes below the service minimum."),
@@ -339,6 +343,11 @@ def key_default(key, i):  # placeholder for non-pricing per-service rows
     return None
 
 
+def srange(ref: Ref, key: str) -> str:
+    """A per-service Settings row across the six service columns."""
+    return f"Settings!$C${ref.row[key]}:$H${ref.row[key]}"
+
+
 def svc(ref: Ref, key: str, col: str) -> str:
     return f"Settings!${col}${ref.row[key]}"
 
@@ -365,7 +374,7 @@ def build_requests(wb):
     ws.row_dimensions[1].height = 34
     ws.freeze_panes = "B2"
     sample = [
-        "2026-11-02 09:15", "SAMPLE-0001", "https://secure.getjobber.com/work_requests/SAMPLE", "Zapier",
+        "11/2/2026, 9:15:00 AM", "SAMPLE-0001", "https://secure.getjobber.com/work_requests/SAMPLE", "Zapier",
         "Jane Sample", "jane@example.com", "(503) 555-0142", "1234 SE Sample St", "Milwaukie", "OR",
         "97222", "Meta — FALL26 Initial Deep Clean Quote",
         "Source: Meta FALL26 lead ad. Offer: $50 off initial deep clean; book by November 15, 2026. "
@@ -539,8 +548,8 @@ def build_quote(wb, ref: Ref):
 
     step(5, "①  PICK THE REQUEST", PURPLE)
     subhead(6, PURPLE_T)
-    q("pick", 7, "Jobber request (client name)", PURPLE_T, "Pick from the list. Phone call? Leave blank.",
-      default="Jane Sample", auto=f'=IF({b("row_found")}="","Not loaded","Loaded ✓")')
+    q("pick", 7, "Jobber request (newest at top)", PURPLE_T, "Pick from the list: newest first. Phone call? Leave blank.",
+      default="Jane Sample · 11/2/2026", auto=f'=IF({b("row_found")}="","Not loaded","Loaded ✓")')
     q("client", 8, "Client name", PURPLE_T, auto=req("E"))
     q("street", 9, "Street address", PURPLE_T, auto=req("H"))
     q("city", 10, "City", PURPLE_T, "Checked against your service area.", auto=req("I"))
@@ -589,6 +598,26 @@ def build_quote(wb, ref: Ref):
     q("promo", 39, "Promo $ off Initial Deep Clean", GREEN_T, "Fills in from Meta ads. Type 0 to remove.", MONEY,
       auto=P["promo"])
 
+    # ---- step 5: custom / partial-home quote
+    step(41, "⑤  CUSTOM QUOTE — only certain areas (optional)", GOLD)
+    q("custom_type", 42, "Type of clean for these areas", GOLD_T,
+      "Deep · Move-out · Weekly · Bi-weekly · Monthly")
+    for col, t in zip("BCDE", ["Area (e.g. Basement)", "Sq ft", "Extra hours (optional)", "Tip"]):
+        put(ws, f"{col}43", t, GOLD_T, font(9, True, SLATE), align=CENTER if col in "CD" else None)
+    for i in range(1, 7):
+        r = 43 + i
+        put(ws, f"B{r}", None, ANSWER, font(11, True), border=ANSWER_BOX)
+        put(ws, f"C{r}", None, ANSWER, font(11, True), "#,##0", border=ANSWER_BOX, align=CENTER)
+        put(ws, f"D{r}", None, ANSWER, font(11, True), "0.00", border=ANSWER_BOX, align=CENTER)
+        put(ws, f"E{r}", "", None, font(9, italic=True, color=SLATE), align=WRAP)
+        Q[f"custom_area_{i}"], Q[f"custom_sqft_{i}"], Q[f"custom_extra_{i}"] = f"B{r}", f"C{r}", f"D{r}"
+    ws["E44"] = "Extra hours = anything sq ft misses (cabinets, heavy cobwebs, clutter)."
+    ws.merge_cells("B50:E50")
+    put(ws, "B50", "Uses the dirt code, pets, people and last cleaning above. Only quoting these areas? Leave "
+        "Square feet in step ② blank. The price shows as \"Custom\" in YOUR PRICES.", None,
+        font(9, italic=True, color=SLATE), border=None, align=WRAP)
+    ws.row_dimensions[50].height = 26
+
     # worked example answers
     for name, v in {"people": 4, "dogs": 1, "cats": 1, "other": 0, "last_clean": date(2026, 3, 1), "dirt": 6,
                     "photo_dirt": 7, "photo_why": "Kitchen grease and pet hair visible in photos",
@@ -625,7 +654,7 @@ def build_quote(wb, ref: Ref):
                               prompt="Optional. Blank = Recommended. Type the price you'll quote.",
                               showInputMessage=True)
     ws.add_data_validation(dv_price)
-    ok = b("ok")
+    ok = b("full_ok")
     for rr, label, c, tint in panel:
         color = PURPLE if tint == PURPLE_T else GREEN
         promo = f"{BD}!{c}{CALC['promo']}"
@@ -644,18 +673,34 @@ def build_quote(wb, ref: Ref):
         dv_yn.add(f"M{rr}")
         ws.row_dimensions[rr].height = 24
         PRICE_ROWS[rr] = c
-    put(ws, "G15", "Add-ons (added per visit)", GOLD_T, font(10, True))
-    put(ws, "H15", None, GOLD_T)
-    put(ws, "I15", f'=IF({ok},{b("addons_total")},"—")', GOLD_T, font(12, True), MONEY, align=RIGHT)
+    # custom quote row
+    cok = b("custom_ok")
+    put(ws, "G15", f'="Custom: "&IF({b("custom_areas")}="","areas in step ⑤",{b("custom_areas")})'
+                   f'&IF(AND({cok},{b("custom_minflag")}="Yes"),"  (minimum)","")', GOLD_T, font(10, True),
+        align=WRAP)
+    put(ws, "H15", f'=IF({cok},{b("custom_low")},"—")', GOLD_T, font(10, color=SLATE), MONEY, align=RIGHT)
+    put(ws, "I15", f'=IF({cok},{b("custom_svc")},"—")', WHITE, font(14, True, GOLD), MONEY, align=RIGHT)
+    put(ws, "J15", f'=IF({cok},{b("custom_high")},"—")', GOLD_T, font(10, color=SLATE), MONEY, align=RIGHT)
+    put(ws, "K15", None, ANSWER, font(12, True), MONEY, border=ANSWER_BOX, align=RIGHT)
+    dv_price.add("K15")
+    put(ws, "L15", f'=IF({cok},{b("custom_onsite")},"—")', GOLD_T, font(10), '0.0" hrs"', align=RIGHT)
+    put(ws, "M15", "Yes", ANSWER, font(10, True), border=ANSWER_BOX, align=CENTER)
+    dv_yn.add("M15")
+    ws.row_dimensions[15].height = 30
+    PRICE_ROWS[15] = "custom"
+
+    put(ws, "G16", "Add-ons (added per visit)", GOLD_T, font(10, True))
+    put(ws, "H16", None, GOLD_T)
+    put(ws, "I16", f'=IF({b("ok")},{b("addons_total")},"—")', GOLD_T, font(12, True), MONEY, align=RIGHT)
     for col in "JKLM":
-        put(ws, f"{col}15", None, GOLD_T)
-    ws.merge_cells("G16:M16")
-    put(ws, "G16", f'="Low = "&TEXT({ref["range_low_pct"]},"0%")&" below, High = "&TEXT({ref["range_high_pct"]},"0%")'
+        put(ws, f"{col}16", None, GOLD_T)
+    ws.merge_cells("G17:M17")
+    put(ws, "G17", f'="Low = "&TEXT({ref["range_low_pct"]},"0%")&" below, High = "&TEXT({ref["range_high_pct"]},"0%")'
                    f'&" above Recommended (change on Settings). Type your price in the yellow box after looking at '
                    f'the photos; blank = Recommended. The quote uses your price. Time on site = team of "'
                    f'&{ref["team_size"]}&". Initial Deep includes the promo."', border=None,
         f=font(8, italic=True, color=SLATE), align=WRAP)
-    ws.row_dimensions[16].height = 34
+    ws.row_dimensions[17].height = 30
 
     # ---- quote text
     band(ws, "G18:M18", "COPY INTO JOBBER — quote message", PURPLE, 11, 22)
@@ -681,14 +726,19 @@ def build_quote(wb, ref: Ref):
               f'&IF({a["fridge"]}>0,"• Inside refrigerator: "&{money(a["fridge"])}&{NL},"")'
               f'&IF({a["oven"]}>0,"• Inside oven: "&{money(a["oven"])}&{NL},"")'
               f'&IF({a["windows"]}>0,"• Interior windows ("&{b("windows")}&"): "&{money(a["windows"])}&{NL},"")&{NL},"")')
-    body = (f'"Hi "&{b("first_name")}&","&{NL}&{NL}&"Thanks for reaching out to Lemon and Lavender Cleaning Co.! '
-            f'Based on your "&TEXT({b("sqft")},"#,##0")&" sq ft home"'
-            f'&IF(AND({b("beds")}<>"",{b("baths")}<>"")," ("&{b("beds")}&" bed / "&{b("baths")}&" bath)","")'
+    custom = (f'IF(AND({cok},M15="Yes"),"CUSTOM CLEAN: "&{b("custom_areas")}&" ("&LOWER(Quote!{Q["custom_type"]})'
+              f'&IF({b("custom_recurring")}," cleaning, per visit"," cleaning")&")"&{NL}'
+              f'&"• Price: "&{money(final(15))}&{NL}&{NL},"")')
+    full = b("full_ok")
+    body = (f'"Hi "&{b("first_name")}&","&{NL}&{NL}&"Thanks for reaching out to Lemon and Lavender Cleaning Co.! "'
+            f'&IF(ISNUMBER({b("sqft")}),"Based on your "&TEXT({b("sqft")},"#,##0")&" sq ft home"'
+            f'&IF(AND({b("beds")}<>"",{b("baths")}<>"")," ("&{b("beds")}&" bed / "&{b("baths")}&" bath)",""),'
+            f'"Based on the areas you\'d like cleaned")'
             f'&IF({b("street")}<>""," at "&{b("street")},"")&", here are your estimated prices:"&{NL}&{NL}'
-            f'&{one_time}&{recurring}&{addons}&{ref["closing"]}')
+            f'&IF({full},{one_time}&{recurring},"")&{custom}&{addons}&{ref["closing"]}')
     decline = f'"Hi "&{b("first_name")}&","&{NL}&{NL}&{ref["decline"]}'
     ws.merge_cells("G19:M36")
-    put(ws, "G19", f'=IF({b("dnr")},{decline},IF(NOT({ok}),"The quote message appears here once the status bar is '
+    put(ws, "G19", f'=IF({b("dnr")},{decline},IF(NOT({b("ok")}),"The quote message appears here once the status bar is '
                    f'green.",{body}))', WHITE, font(10), align=WRAP_TOP,
         border=Border(left=med, right=med, top=med, bottom=med))
 
@@ -715,11 +765,20 @@ def build_quote(wb, ref: Ref):
              (49, f'AND(M8="Yes",{b("promo")}>0)', "Promo discount", '"Initial Deep Clean promotion"',
               f'-{b("promo")}')]
     for rr, cond, name, desc, price in extra:
-        cond = f"AND({ok},{cond})"
+        cond = f"AND({b('ok')},{cond})"
         put(ws, f"G{rr}", f'=IF({cond},"{name}","")', f=font(10))
         ws.merge_cells(f"H{rr}:L{rr}")
         put(ws, f"H{rr}", f'=IF({cond},{desc},"")', f=font(8), align=WRAP)
         put(ws, f"M{rr}", f'=IF({cond},{price},"")', f=font(10, True), fmt=MONEY)
+
+    # custom quote line item
+    cond = f'AND({cok},M15="Yes")'
+    put(ws, "G50", f'=IF({cond},"Custom Clean ("&{b("custom_areas")}&")","")', f=font(10), align=WRAP)
+    ws.merge_cells("H50:L50")
+    put(ws, "H50", f'=IF({cond},Quote!{Q["custom_type"]}&" clean · "&TEXT({b("custom_sqft")},"#,##0")&" sq ft"'
+                   f'&IF({b("custom_extra")}>0," + "&{b("custom_extra")}&" extra hrs",""),"")', f=font(8), align=WRAP)
+    put(ws, "M50", f'=IF({cond},{final(15)},"")', f=font(10, True), fmt=MONEY)
+    ws.row_dimensions[50].height = 26
 
     # ---- validation
     def dv(kind, cells, op=None, f1=None, f2=None, prompt=None, err=None):
@@ -729,7 +788,10 @@ def build_quote(wb, ref: Ref):
         ws.add_data_validation(v)
         v.add(cells)
 
-    dv("list", Q["pick"], f1="Requests!$E$2:$E$2000")
+    dv("list", Q["pick"], f1="Lists!$A$2:$A$501")
+    dv("list", Q["custom_type"], f1="Lists!$D$2:$D$6")
+    dv("decimal", f'{Q["custom_sqft_1"]}:{Q["custom_sqft_6"]}', "between", "0", "10000", err="Square feet: 0–10,000.")
+    dv("decimal", f'{Q["custom_extra_1"]}:{Q["custom_extra_6"]}', "between", "0", "40", err="Extra hours: 0–40.")
     dv("decimal", Q["sqft"], "between", "300", "10000", err="Square feet must be 300–10,000.")
     dv("whole", Q["beds"], "between", "0", "15", err="Bedrooms: a whole number 0–15.")
     dv("decimal", Q["baths"], "between", "0", "15", err="Bathrooms: 0–15 (0.5 for a half bath).")
@@ -783,7 +845,10 @@ def plan_breakdown():
             "last_clean", "dirt_entered", "photo_dirt", "dirt_used", "photo_pct", "photo_why", "photos",
             "fridge", "oven", "windows", "promo"]
     behind = ["row_found", "notes", "errors", "dnr", "ok", "warnings", "months", "extra_baths", "occ_add",
-              "pet_add", "dirt_mult", "last_factor", "photo_factor", "first_name", "addons_total"]
+              "pet_add", "dirt_mult", "last_factor", "photo_factor", "first_name", "addons_total",
+              "full_ok", "custom_idx", "custom_sqft", "custom_extra", "custom_areas", "custom_ok", "custom_recurring",
+              "custom_hours", "custom_onsite", "custom_round", "custom_min", "custom_svc", "custom_minflag",
+              "custom_low", "custom_high"]
     r = 5
     for n in used:
         BD_REF[n] = f"{BD}!$C${r}"
@@ -956,19 +1021,27 @@ def build_breakdown(wb, ref: Ref):
     # ---- behind the scenes
     h = BEHIND_HEADER[0]
     band(ws, f"B{h}:I{h}", "BEHIND THE SCENES (checks and lookups)", SLATE, 11, 20)
+
+    def crow(step):  # one calc row across the six service columns
+        return f"{BD}!$C${CALC[step]}:$H${CALC[step]}"
+
     T = u("notes")
     behind = {
-        "row_found": ("Requests row loaded",
-                      f'=IF(Quote!{Q["pick"]}="","",IFERROR(MATCH(Quote!{Q["pick"]},Requests!$E:$E,0),""))', None),
+        "row_found": ("Requests row loaded (from the newest-first list on the Lists tab)",
+                      f'=IF(Quote!{Q["pick"]}="","",IFERROR(INDEX(Lists!$B$2:$B$501,'
+                      f'MATCH(Quote!{Q["pick"]},Lists!$A$2:$A$501,0)),""))', None),
         "notes": ("Request details text", f'=IF({u("row_found")}="","",INDEX(Requests!$M:$M,{u("row_found")})&"")', None),
         "errors": ("Problems that block the quote",
-                   f'=IF({u("sqft")}="","Square feet is required. ",IF(NOT(ISNUMBER({u("sqft")})),"Square feet must be a number. ",'
+                   f'=IF({u("sqft")}="",IF({u("custom_sqft")}+{u("custom_extra")}>0,"","Square feet is required (or fill in '
+                   f'custom areas in step ⑤). "),IF(NOT(ISNUMBER({u("sqft")})),"Square feet must be a number. ",'
                    f'IF(OR({u("sqft")}<{st["min_sqft"]},{u("sqft")}>{st["max_sqft"]}),"Square feet must be "&TEXT({st["min_sqft"]},"#,##0")'
                    f'&"–"&TEXT({st["max_sqft"]},"#,##0")&". ","")))'
                    f'&IF({u("dirt_used")}="","Dirt code is required. ",IF(NOT(ISNUMBER({u("dirt_used")})),"Dirt code must be a whole number 1–11. ",'
                    f'IF(OR({u("dirt_used")}<1,{u("dirt_used")}>11,{u("dirt_used")}<>INT({u("dirt_used")})),"Dirt code must be a whole number 1–11. ","")))'
                    f'&IF(OR(N({u("people")})<1,N({u("dogs")})<0,N({u("cats")})<0,N({u("other")})<0),'
-                   f'"People and animal counts can\'t be negative (at least 1 person). ","")', None),
+                   f'"People and animal counts can\'t be negative (at least 1 person). ","")'
+                   f'&IF(AND({u("custom_sqft")}+{u("custom_extra")}>0,NOT(ISNUMBER({u("custom_idx")}))),'
+                   f'"Pick the type of clean for the custom areas. ","")', None),
         "dnr": ("Do not service (dirt code 11)?", f'=AND(ISNUMBER({u("dirt_used")}),{u("dirt_used")}=11)', None),
         "ok": ("OK to price?", f'=AND({u("errors")}="",NOT({u("dnr")}))', None),
         "warnings": ("Warnings",
@@ -977,7 +1050,7 @@ def build_breakdown(wb, ref: Ref):
                      f'&IF(AND({u("city")}<>"",ISNA(MATCH({u("city")},{st["area"]},0))),"City is outside the service area — confirm before quoting. ","")'
                      f'&IF(AND(OR(Quote!{Q["photo_dirt"]}<>"",N(Quote!{Q["photo_pct"]})<>0),Quote!{Q["photo_why"]}=""),"Photos changed the price — add the reason. ","")'
                      f'&IF(OR({u("beds")}="",{u("baths")}=""),"Bedrooms or bathrooms missing. ","")'
-                     f'&IF(AND({u("ok")},OR({",".join(f"AND(Quote!K{r}<>{chr(34)*2},OR(Quote!K{r}<Quote!H{r},Quote!K{r}>Quote!J{r}))" for r in (8, 9, 10, 12, 13, 14))})),'
+                     f'&IF(AND({u("ok")},OR({",".join(f"AND(Quote!K{r}<>{chr(34)*2},OR(Quote!K{r}<Quote!H{r},Quote!K{r}>Quote!J{r}))" for r in (8, 9, 10, 12, 13, 14, 15))})),'
                      f'"A price you typed is outside the suggested range — double-check it. ","")', None),
         "months": ("Months since last professional clean",
                    f'=IF({u("last_clean")}="",{st["months_if_unknown"]},MAX(0,(TODAY()-{u("last_clean")})/30.4375))', "0.0"),
@@ -994,6 +1067,40 @@ def build_breakdown(wb, ref: Ref):
         "first_name": ("Client first name (for the greeting)",
                        f'=IF({u("client")}="","there",LEFT({u("client")},FIND(" ",{u("client")}&" ")-1))', None),
         "addons_total": ("Add-ons total", f"={ADDON['total']}", MONEY),
+        # ---- full home vs. custom areas
+        "full_ok": ("Full-home prices OK? (needs square feet)", f'=AND({u("ok")},ISNUMBER({u("sqft")}))', None),
+        "custom_idx": ("Custom: service column for the chosen type",
+                       f'=IFERROR(INDEX(Lists!$E$2:$E$6,MATCH(Quote!{Q["custom_type"]},Lists!$D$2:$D$6,0)),"")', None),
+        "custom_sqft": ("Custom: total sq ft of areas",
+                        f'=SUM(Quote!{Q["custom_sqft_1"]}:{Q["custom_sqft_6"]})', "#,##0"),
+        "custom_extra": ("Custom: total extra hours",
+                         f'=SUM(Quote!{Q["custom_extra_1"]}:{Q["custom_extra_6"]})', "0.00"),
+        "custom_areas": ("Custom: area names",
+                         "=MID(" + "&".join(f'IF(Quote!{Q[f"custom_area_{i}"]}<>"",", "&Quote!{Q[f"custom_area_{i}"]},"")'
+                                            for i in range(1, 7)) + ",3,300)", None),
+        "custom_ok": ("Custom quote OK to price?",
+                      f'=AND({u("ok")},{u("custom_sqft")}+{u("custom_extra")}>0,ISNUMBER({u("custom_idx")}))', None),
+        "custom_recurring": ("Custom: recurring type?",
+                             f'=AND({u("custom_ok")},IFERROR(INDEX({srange(ref, "one_time")},{u("custom_idx")})=0,FALSE))', None),
+        "custom_hours": ("Custom: labor hours (rounded up)",
+                         f'=IF({u("custom_ok")},CEILING(({u("custom_sqft")}/INDEX({crow("rate")},{u("custom_idx")})'
+                         f'+{u("custom_extra")})*INDEX({crow("dirt")},{u("custom_idx")})*INDEX({crow("occ")},{u("custom_idx")})'
+                         f'*INDEX({crow("pet")},{u("custom_idx")})*INDEX({crow("last")},{u("custom_idx")}),{st["hours_rounding"]}),0)',
+                         HRS),
+        "custom_onsite": ("Custom: time on site for the team", f'={u("custom_hours")}/{st["team_size"]}', HRS),
+        "custom_round": ("Custom: hours × rate × photo change, rounded up to $5",
+                         f'=IF({u("custom_ok")},CEILING(MAX(0,{u("custom_hours")}*INDEX({crow("brate")},{u("custom_idx")})'
+                         f'*{u("photo_factor")}),{st["price_rounding"]}),0)', MONEY),
+        "custom_min": ("Custom: minimum",
+                       f'=IF({u("custom_ok")},IF({u("custom_recurring")},INDEX({srange(ref, "minimum_price")},{u("custom_idx")}),'
+                       f'{st["custom_minimum_one_time"]}),0)', MONEY),
+        "custom_svc": ("Custom: Recommended price", f'=MAX({u("custom_round")},{u("custom_min")})', MONEY),
+        "custom_minflag": ("Custom: minimum used?", f'=IF({u("custom_min")}>{u("custom_round")},"Yes","No")', None),
+        "custom_low": ("Custom: Low",
+                       f'=MAX({u("custom_min")},FLOOR({u("custom_svc")}*(1-{st["range_low_pct"]}),{st["price_rounding"]}))',
+                       MONEY),
+        "custom_high": ("Custom: High",
+                        f'=CEILING({u("custom_svc")}*(1+{st["range_high_pct"]}),{st["price_rounding"]})', MONEY),
     }
     for n in BEHIND_ROWS:
         label, formula, fmt = behind[n]
@@ -1002,6 +1109,172 @@ def build_breakdown(wb, ref: Ref):
         ws.merge_cells(f"C{rr}:I{rr}")
         put(ws, f"C{rr}", formula, AUTO, font(10), fmt, align=Alignment(horizontal="left", wrap_text=True))
     ws.freeze_panes = "C3"
+
+
+# ================================================================ LISTS (hidden helper tab)
+CUSTOM_TYPES = [("Deep", 4), ("Move-out", 6), ("Weekly", 3), ("Bi-weekly", 2), ("Monthly", 1)]
+
+
+def build_lists(wb):
+    """Newest-first client list for the Quote dropdown + custom-quote types."""
+    ws = wb.create_sheet("Lists")
+    for col, t in zip("ABDE", ["Dropdown label (newest request first)", "Requests row", "Custom quote type",
+                               "Service column"]):
+        ws[f"{col}1"] = t
+        ws[f"{col}1"].font = font(bold=True)
+    last = "COUNTA(Requests!$B:$B)"  # header + one row per request (Zapier always fills the Request ID)
+    for k in range(1, 501):
+        n = k + 1
+        ws[f"B{n}"] = f'=IF({last}+1-{k}>=2,{last}+1-{k},"")'
+        a = f"INDEX(Requests!$A:$A,B{n})"
+        ws[f"A{n}"] = (f'=IF(B{n}="","",INDEX(Requests!$E:$E,B{n})&" · "&LEFT({a}&"",FIND(",",{a}&",")-1))')
+    for i, (name, idx) in enumerate(CUSTOM_TYPES, start=2):
+        ws[f"D{i}"], ws[f"E{i}"] = name, idx
+    ws.column_dimensions["A"].width = 40
+    ws.sheet_state = "hidden"
+
+
+# ================================================================ QUOTE HISTORY + APPS SCRIPT
+PANEL_NAMES = [(8, "Initial Deep"), (9, "Deluxe Deep"), (10, "Move-In/Out"), (12, "Weekly"),
+               (13, "Bi-Weekly"), (14, "Monthly"), (15, "Custom")]
+
+
+def history_fields() -> list:
+    """(header, kind, sheet, a1) for every Quote History column."""
+    def bd(name):
+        sheet, cell = BD_REF[name].split("!")
+        return (sheet, cell.replace("$", ""))
+    f = [("Saved at", "now", "", ""), ("Quoted by", "user", "", ""),
+         ("Client", "cell", *bd("client")), ("Jobber Request ID", "req_id", "", ""),
+         ("Jobber Link", "req_link", "", ""), ("Street", "cell", *bd("street")), ("City", "cell", *bd("city")),
+         ("Sq ft", "cell", *bd("sqft")), ("Bedrooms", "cell", *bd("beds")), ("Bathrooms", "cell", *bd("baths")),
+         ("People", "cell", *bd("people")), ("Dogs", "cell", *bd("dogs")), ("Cats", "cell", *bd("cats")),
+         ("Other animals", "cell", *bd("other")),
+         ("Last professional cleaning", "cell", "Quote", Q["last_clean"]),
+         ("Dirt code used", "cell", *bd("dirt_used")), ("Photo price change", "cell", "Quote", Q["photo_pct"]),
+         ("Photo reason", "cell", "Quote", Q["photo_why"]), ("Fridge", "cell", *bd("fridge")),
+         ("Oven", "cell", *bd("oven")), ("Windows", "cell", *bd("windows")), ("Promo $", "cell", *bd("promo")),
+         ("Custom type", "cell", "Quote", Q["custom_type"]), ("Custom areas", "cell", *bd("custom_areas")),
+         ("Custom sq ft", "cell", *bd("custom_sqft")), ("Custom extra hrs", "cell", *bd("custom_extra"))]
+    for r, name in PANEL_NAMES:
+        for col, what in zip("HIJKM", ["Low", "Recommended", "High", "Your price", "In quote?"]):
+            f.append((f"{name} {what}", "cell", "Quote", f"{col}{r}"))
+    f += [("Add-ons total", "cell", "Quote", "I16"), ("Quote message", "cell", "Quote", "G19")]
+    return f
+
+
+def build_history(wb):
+    ws = wb.create_sheet("Quote History")
+    for i, (h, *_rest) in enumerate(history_fields(), start=1):
+        col = get_column_letter(i)
+        put(ws, f"{col}1", h, PURPLE if i <= 3 else PURPLE_T, font(9, True, WHITE if i <= 3 else "000000"),
+            align=CENTER)
+        ws.column_dimensions[col].width = 14
+    ws.column_dimensions["A"].width = 18
+    ws.column_dimensions["C"].width = 22
+    ws.row_dimensions[1].height = 36
+    ws.freeze_panes = "D2"
+
+
+def write_apps_script(path: Path) -> None:
+    import json
+    clear = [Q[k] for k in ["pick", "client", "street", "city", "sqft", "beds", "baths", "people", "dogs", "cats",
+                            "other", "last_clean", "service", "dirt", "photos", "photo_dirt", "photo_pct",
+                            "photo_why", "promo", "custom_type"]]
+    clear += [Q[f"custom_{w}_{i}"] for i in range(1, 7) for w in ("area", "sqft", "extra")]
+    clear += [f"K{r}" for r, _ in PANEL_NAMES]
+    reset = {Q["fridge"]: "No", Q["oven"]: "No", Q["windows"]: 0}
+    reset.update({f"M{r}": "Yes" for r, _ in PANEL_NAMES})
+    row_found = BD_REF["row_found"].split("!")[1].replace("$", "")
+    panel = [[r, n] for r, n in [(8, "Initial Deep Clean"), (9, "Deluxe Deep Clean"), (10, "Move-In/Move-Out"),
+                                 (12, "Weekly"), (13, "Bi-Weekly"), (14, "Monthly"), (15, "Custom")]]
+    js = f"""// Lemon and Lavender Cleaning Co. — Quote tools for the LL Residential Estimator.
+// GENERATED by build_estimator.py so the cell addresses always match the Sheet. Don't hand-edit addresses.
+// Install: in the Sheet, Extensions > Apps Script, replace everything with this file, Save, then reload the Sheet.
+// A "Lemon and Lavender" menu appears with: Save quote, and Clear Quote tab for the next client.
+
+const FIELDS = {json.dumps([list(f) for f in history_fields()], ensure_ascii=False)};
+const PRICE_ROWS = {json.dumps(panel)};
+const ROW_FOUND = ["Breakdown", "{row_found}"];
+const CLEAR_CELLS = {json.dumps(clear)};
+const RESET = {json.dumps(reset)};
+
+function onOpen() {{
+  SpreadsheetApp.getUi()
+    .createMenu('Lemon and Lavender')
+    .addItem('💾 Save quote', 'saveQuote')
+    .addItem('🧹 Clear Quote tab for the next client', 'clearQuote')
+    .addToUi();
+}}
+
+function saveQuote() {{
+  const ss = SpreadsheetApp.getActive();
+  const ui = SpreadsheetApp.getUi();
+  const quote = ss.getSheetByName('Quote');
+  const status = quote.getRange('B2').getDisplayValue();
+  if (status.indexOf('Ready to quote') === -1) {{
+    ui.alert('Not saved', 'The status bar must say "Ready to quote" first.\\n\\n' + status, ui.ButtonSet.OK);
+    return;
+  }}
+  let who = Session.getActiveUser().getEmail();
+  if (!who) {{
+    const answer = ui.prompt('Save quote', 'Your name or initials:', ui.ButtonSet.OK_CANCEL);
+    if (answer.getSelectedButton() !== ui.Button.OK) return;
+    who = answer.getResponseText().trim();
+  }}
+  const read = (sheet, a1) => ss.getSheetByName(sheet).getRange(a1).getDisplayValue();
+  const requests = ss.getSheetByName('Requests');
+  const reqRow = Number(read(ROW_FOUND[0], ROW_FOUND[1])) || 0;
+  const now = new Date();
+  const tz = ss.getSpreadsheetTimeZone();
+
+  const record = FIELDS.map(([header, kind, sheet, a1]) => {{
+    if (kind === 'now') return Utilities.formatDate(now, tz, 'M/d/yyyy h:mm a');
+    if (kind === 'user') return who;
+    if (kind === 'req_id') return reqRow ? requests.getRange(reqRow, 2).getDisplayValue() : '';
+    if (kind === 'req_link') return reqRow ? requests.getRange(reqRow, 3).getDisplayValue() : '';
+    return read(sheet, a1);
+  }});
+  ss.getSheetByName('Quote History').appendRow(record);
+
+  // What went into the quote: services marked "Yes" that have a price.
+  const quoted = [];
+  PRICE_ROWS.forEach(([r, name]) => {{
+    const recommended = quote.getRange('I' + r).getDisplayValue();
+    if (quote.getRange('M' + r).getDisplayValue() !== 'Yes' || recommended === '—' || recommended === '') return;
+    const yours = quote.getRange('K' + r).getDisplayValue();
+    quoted.push([name, yours || recommended]);
+  }});
+
+  if (reqRow) {{
+    // Requests columns O..S: Status, Service Quoted, Price Quoted, Quoted By, Date Quoted
+    requests.getRange(reqRow, 15, 1, 5).setValues([[
+      'Quote sent',
+      quoted.map((q) => q[0]).join(', '),
+      quoted.map((q) => q[0] + ' ' + q[1]).join(' · '),
+      who,
+      Utilities.formatDate(now, tz, 'M/d/yyyy'),
+    ]]);
+  }}
+  ui.alert('Quote saved', 'Saved to the Quote History tab' +
+    (reqRow ? ' and logged on the Requests tab.' : '. No Jobber request was picked, so the Requests tab was not updated.'),
+    ui.ButtonSet.OK);
+}}
+
+function clearQuote() {{
+  const ui = SpreadsheetApp.getUi();
+  const answer = ui.alert('Clear the Quote tab?',
+    'Did you save this quote first? This clears everything typed on the Quote tab.', ui.ButtonSet.YES_NO);
+  if (answer !== ui.Button.YES) return;
+  const quote = SpreadsheetApp.getActive().getSheetByName('Quote');
+  CLEAR_CELLS.forEach((a1) => quote.getRange(a1).clearContent());
+  Object.keys(RESET).forEach((a1) => quote.getRange(a1).setValue(RESET[a1]));
+  quote.activate();
+  quote.getRange('{Q["pick"]}').activate();
+}}
+"""
+    path.parent.mkdir(exist_ok=True)
+    path.write_text(js)
 
 
 # ================================================================ HOW TO
@@ -1027,10 +1300,14 @@ def build_howto(wb):
          "code 11: we don't service it, copy the decline message instead. Amber = something's missing."),
         (PURPLE, "💲", "Each service shows Low · Recommended · High. Use your judgment: type the price you'll quote "
          "in the yellow 'Your price' box (blank = Recommended). Stay inside the range unless you have a reason."),
+        (GOLD, "⑤", "Client only wants certain areas (e.g. the basement)? Use step ⑤ CUSTOM QUOTE: pick the type of "
+         "clean, list each area with its sq ft, and add extra hours if needed. It shows as 'Custom' in YOUR PRICES."),
         (PURPLE, "📋", "Set 'Put in quote?' to No for services the client doesn't want. Copy the quote message into "
          "Jobber and add the line items. Both use your price."),
-        (GOLD, "📝", "On the Requests tab, fill in the yellow columns: Status, Service Quoted, Price Quoted, Quoted By, Date."),
-        (SLATE, "🧹", "Before the next quote, delete what you typed in the orange and yellow boxes."),
+        (GREEN, "💾", "Menu: Lemon and Lavender ▸ Save quote. It saves everything to the Quote History tab and fills in "
+         "Status, Service Quoted, Price Quoted, Quoted By and Date on the Requests tab."),
+        (GOLD, "📝", "Later, update Status on the Requests tab when the client books (Won) or passes (Lost)."),
+        (SLATE, "🧹", "Menu: Lemon and Lavender ▸ Clear Quote tab for the next client (after saving)."),
     ]
     r = 3
     for color, icon, text in steps:
@@ -1054,7 +1331,7 @@ def build_howto(wb):
 
 
 # ================================================================ BUILD
-def build(path: Path = OUT, answers: dict | None = None) -> None:
+def build(path: Path = OUT, answers: dict | None = None, extra_requests: list | None = None) -> None:
     """answers = {"sqft": 2000, "pick": None, ...} overrides Quote answer cells (for tests)."""
     Q.clear()
     MANUAL_FIELDS.clear()
@@ -1071,18 +1348,28 @@ def build(path: Path = OUT, answers: dict | None = None) -> None:
     build_breakdown(wb, ref)
     build_rate_card(wb)
     build_howto(wb)
-    wb._sheets = [wb[n] for n in ["Quote", "Requests", "Breakdown", "Settings", "Rate Card", "How To Use"]]
+    build_history(wb)
+    build_lists(wb)
+    wb._sheets = [wb[n] for n in ["Quote", "Requests", "Quote History", "Breakdown", "Settings", "Rate Card",
+                                  "How To Use", "Lists"]]
     tab_colors = {"Quote": PURPLE, "Requests": GOLD, "Breakdown": SLATE, "Settings": BLUE,
-                  "Rate Card": GREEN, "How To Use": ORANGE}
+                  "Rate Card": GREEN, "How To Use": ORANGE, "Quote History": GREEN, "Lists": SLATE}
     for name, color in tab_colors.items():
         wb[name].sheet_properties.tabColor = color
     wb.active = 0
     ws = wb["Quote"]
+    rq = wb["Requests"]
+    for i, row in enumerate(extra_requests or [], start=3):  # tests: more Requests rows after the sample
+        for j, v in enumerate(row, start=1):
+            rq.cell(row=i, column=j, value=v)
     for name, v in (answers or {}).items():
         ws[Q.get(name, name)] = v  # a field name, or a raw cell like "K12"
     wb.save(path)
 
 
+SCRIPT_OUT = Path(__file__).parent / "apps_script" / "LemonAndLavenderQuotes.gs"
+
 if __name__ == "__main__":
     build()
-    print(f"Wrote {OUT}")
+    write_apps_script(SCRIPT_OUT)
+    print(f"Wrote {OUT}\nWrote {SCRIPT_OUT}")
