@@ -60,11 +60,15 @@ DEFAULT_SETTINGS: dict = {
     "per_cat": 0.02,
     "per_other_animal": 0.01,
     "pet_cap": 0.20,
-    # Rooms: a small % per room beyond what the base assumes (Andrew Nov 2026: 3% each).
-    "living_included": 1, "per_extra_living": 0.03,
-    "kitchens_included": 1, "per_extra_kitchen": 0.03,
-    "bonus_included": 0, "per_extra_bonus": 0.03,
-    "room_cap": 0.15,
+    # Room check (Room-by-Room Cleaning Timeframe Sheet). Rooms never change Recommended;
+    # they can stretch Low / High by up to these extra % of Recommended (Andrew Nov 2026: 15% each way).
+    "range_stretch_low": 0.15, "range_stretch_high": 0.15,
+    # Counts used when a field is blank.
+    "living_included": 1, "kitchens_included": 1, "bonus_included": 0,
+    "dining_count": 1, "laundry_count": 1, "hall_count": 1, "entry_count": 1,
+    "room_low_end_max_dirt": 5,   # dirt 1-5 = low end of each room's time, 6+ = high end
+    "room_dirt_extra_hours": {8: 1.0, 9: 1.5, 10: 2.0},  # guide: dirt 8-10 = high end + an hour or two
+    "room_freq_extra_hours": [1.0, 0.5, 0, 0, 0],  # guide: +1 hr monthly, +30 min biweekly (order = SERVICES)
     "walkthrough_sqft": 4000,
     "min_sqft": 300,
     "max_sqft": 10000,
@@ -81,6 +85,55 @@ DEFAULT_SETTINGS: dict = {
     "service_area": ["Portland", "Happy Valley", "Oregon City", "Milwaukie",
                      "Clackamas", "Lake Oswego", "West Linn", "Gresham"],
 }
+
+
+# Room-by-Room Cleaning Timeframe Sheet (minutes per technician): (key, room, deluxe lo, hi, move lo, hi,
+# maintenance lo, hi, notes). Mirrors the Room Times tab; update both when the guide changes.
+ROOM_TIMES = [
+    ("kitchen", "Kitchen", 65, 90, 90, 120, 30, 40,
+     "Move-in/out adds inside fridge, oven, microwave, cabinets and drawers. Add 15–20 min if the oven is heavily "
+     "soiled or self-clean isn't an option."),
+    ("full_bath", "Full Bathroom", 50, 70, 60, 75, 20, 35,
+     "Add 10–15 min for heavy hard-water buildup on glass doors. Double-vanity or jetted-tub baths run high end."),
+    ("half_bath", "Half Bath / Powder Room", 15, 20, 30, 40, 8, 12,
+     "No shower/tub. Move-in/out adds inside vanity cabinet."),
+    ("primary", "Primary / Master Bedroom", 30, 40, 30, 40, 10, 15, "Walk-in closets add 5–10 min."),
+    ("guest", "Secondary / Guest Bedroom", 20, 25, 20, 30, 8, 10, "Kids' rooms with toys/clutter run high end."),
+    ("living", "Living Room / Family Room", 45, 65, 30, 45, 15, 20, "Add time for pet hair on upholstery."),
+    ("dining", "Dining Room", 25, 35, 20, 30, 8, 12, "Light fixtures/chandeliers add 5–10 min."),
+    ("laundry", "Laundry Room", 20, 25, 20, 30, 5, 10, "Move-in/out adds inside cabinets and washer/dryer wipe."),
+    ("hall", "Hallways & Stairs", 20, 30, 25, 35, 8, 12, "Count each full flight of stairs separately."),
+    ("entry", "Entryway / Foyer", 10, 15, 10, 15, 3, 5, "Oct–Apr adds a few minutes for mud/debris."),
+    ("bonus", "Home Office / Bonus Room / Basement", 20, 25, 20, 30, 8, 12,
+     "Bonus rooms with play/gym equipment run high end. Basements use these times until the guide lists them."),
+]
+ROOM_COLS = {3: (2, 3), 4: (4, 5)}  # service index -> (lo, hi) position in a ROOM_TIMES row; others = maintenance
+
+
+def room_counts(inp: "EstimateInput", s: dict = DEFAULT_SETTINGS) -> dict | None:
+    """How many of each room the room check counts. None when beds or baths are missing."""
+    if inp.bedrooms is None or inp.bathrooms is None:
+        return None
+    b = inp.bathrooms
+    pick = lambda v, k: s[k] if v is None else v  # noqa: E731
+    return {"kitchen": pick(inp.kitchens, "kitchens_included"), "full_bath": math.floor(b),
+            "half_bath": 1 if b - math.floor(b) >= 0.5 else 0, "primary": 1 if inp.bedrooms >= 1 else 0,
+            "guest": max(0, inp.bedrooms - 1), "living": pick(inp.living_rooms, "living_included"),
+            "dining": s["dining_count"], "laundry": s["laundry_count"], "hall": s["hall_count"],
+            "entry": s["entry_count"], "bonus": pick(inp.bonus_rooms, "bonus_included")}
+
+
+def room_check_hours(i: int, counts: dict, dirt: int, s: dict = DEFAULT_SETTINGS) -> float:
+    """Labor hours from the room-by-room guide for service index i."""
+    if i in ROOM_COLS:
+        lo, hi = ROOM_COLS[i]
+        col = lo if dirt <= s["room_low_end_max_dirt"] else hi
+        minutes = sum(counts[r[0]] * r[col] for r in ROOM_TIMES)
+        extra = max([h for d, h in s["room_dirt_extra_hours"].items() if dirt >= d], default=0)
+    else:
+        minutes = sum(counts[r[0]] * (r[6] + r[7]) / 2 for r in ROOM_TIMES)
+        extra = 0
+    return ceil_to(minutes / 60 + extra + s["room_freq_extra_hours"][i], s["hours_rounding"])
 
 
 def floor_to(x: float, step: float) -> float:
@@ -200,12 +253,7 @@ def estimate(inp: EstimateInput, s: dict = DEFAULT_SETTINGS) -> Estimate:
     occ_add = min(s["occupant_cap"], max(0, occupants - s["occupants_included"]) * s["per_extra_occupant"])
     pet_add = min(s["pet_cap"], inp.dogs * s["per_dog"] + inp.cats * s["per_cat"]
                   + inp.other_animals * s["per_other_animal"])
-    living = s["living_included"] if inp.living_rooms is None else inp.living_rooms
-    kitchens = s["kitchens_included"] if inp.kitchens is None else inp.kitchens
-    bonus = s["bonus_included"] if inp.bonus_rooms is None else inp.bonus_rooms
-    room_add = min(s["room_cap"], max(0, living - s["living_included"]) * s["per_extra_living"]
-                   + max(0, kitchens - s["kitchens_included"]) * s["per_extra_kitchen"]
-                   + max(0, bonus - s["bonus_included"]) * s["per_extra_bonus"])
+    counts = room_counts(inp, s)
     extra_baths = max(0, baths - sqft / s["sqft_per_included_bath"]) if sqft else 0
 
     addon_prices = {
@@ -249,7 +297,7 @@ def estimate(inp: EstimateInput, s: dict = DEFAULT_SETTINGS) -> Estimate:
         occ_f = 1 + hh * occ_add
         pet_f = 1 + hh * pet_add
         lc_f = last_factor if s["last_clean_applies"][i] else 1
-        hours = ceil_to((base + bath_h) * s["scope_multiplier"][i] * dirt_f * occ_f * pet_f * (1 + room_add) * lc_f,
+        hours = ceil_to((base + bath_h) * s["scope_multiplier"][i] * dirt_f * occ_f * pet_f * lc_f,
                         s["hours_rounding"])
         price = ceil_to(hours * s["billable_rate"][i] * (1 + inp.photo_adjust_pct), s["price_rounding"])
         minimum = max(s["minimum_price"][i], s["trip_minimum_one_time"] if s["one_time"][i] else 0)
@@ -257,6 +305,13 @@ def estimate(inp: EstimateInput, s: dict = DEFAULT_SETTINGS) -> Estimate:
         promo = -inp.promo_off_deluxe if svc == "deluxe_deep" else 0
         low = max(minimum, floor_to(service_price * (1 - s["range_low_pct"]), s["price_rounding"]))
         high = ceil_to(service_price * (1 + s["range_high_pct"]), s["price_rounding"])
+        if counts is not None:  # room check stretches the range, capped; Recommended never moves
+            room_price = ceil_to(room_check_hours(i, counts, dirt, s) * s["billable_rate"][i]
+                                 * (1 + inp.photo_adjust_pct), s["price_rounding"])
+            low_cap = floor_to(service_price * (1 - s["range_low_pct"] - s["range_stretch_low"]), s["price_rounding"])
+            high_cap = ceil_to(service_price * (1 + s["range_high_pct"] + s["range_stretch_high"]), s["price_rounding"])
+            low = max(minimum, min(low, max(room_price, low_cap)))
+            high = max(high, min(room_price, high_cap))
         out[svc] = ServiceEstimate(svc, hours, hours / s["team_size"], service_price,
                                    minimum > price, low, high, promo, addons_total,
                                    service_price + promo + addons_total)

@@ -26,7 +26,12 @@ from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.datavalidation import DataValidation
 
 sys.path.insert(0, str(Path(__file__).parent))
-from pricing import DEFAULT_SETTINGS as S  # noqa: E402
+from pricing import DEFAULT_SETTINGS as S, ROOM_COLS, ROOM_TIMES  # noqa: E402
+
+# Settings values shown one per cell (the room-check dict/list settings split out)
+SX = {**S, "room_extra_8": S["room_dirt_extra_hours"][8], "room_extra_9": S["room_dirt_extra_hours"][9],
+      "room_extra_10": S["room_dirt_extra_hours"][10], "room_extra_monthly": S["room_freq_extra_hours"][0],
+      "room_extra_biweekly": S["room_freq_extra_hours"][1]}
 
 OUT = Path(__file__).parent / "LL_Residential_Estimator.xlsx"
 
@@ -162,7 +167,7 @@ def build_settings(wb) -> Ref:
         r += 1
         for key, label, fmt, src in rows:
             put(ws, f"B{r}", label, align=WRAP)
-            put(ws, f"C{r}", S[key], EDIT, fmt=fmt, align=CENTER)
+            put(ws, f"C{r}", SX[key], EDIT, fmt=fmt, align=CENTER)
             ws.merge_cells(f"D{r}:I{r}")
             put(ws, f"D{r}", src, f=font(9, italic=True, color=SLATE), align=WRAP)
             ref.cell[key] = f"Settings!$C${r}"
@@ -235,15 +240,25 @@ def build_settings(wb) -> Ref:
         ("per_other_animal", "Extra time per other animal", PCT, "Assumption"),
         ("pet_cap", "Most extra time for pets", PCT, "Assumption"),
     ])
-    list_table("ROOMS — small extra time per extra room (square feet still drives the price)", GREEN, GREEN_T, [
-        ("living_included", "Living / family rooms included in the base", "0", "Andrew Nov 2026"),
-        ("per_extra_living", "Extra time per additional living / family room", PCT,
-         "Andrew Nov 2026: 3%. Tune from the Room Times tab as your timing sheet firms up."),
-        ("kitchens_included", "Kitchens included in the base", "0", "Andrew Nov 2026"),
-        ("per_extra_kitchen", "Extra time per additional kitchen", PCT, "Andrew Nov 2026: 3%"),
-        ("bonus_included", "Bonus rooms & basements included in the base", "0", "Andrew Nov 2026"),
-        ("per_extra_bonus", "Extra time per bonus room or basement", PCT, "Andrew Nov 2026: 3%"),
-        ("room_cap", "Most extra time for rooms", PCT, "Keeps rooms from outweighing square feet"),
+    list_table("ROOM CHECK — room-by-room times stretch Low / High (they never change Recommended)", GREEN, GREEN_T, [
+        ("range_stretch_low", "Rooms can lower Low by up to (extra % of Recommended)", PCT,
+         "Andrew Nov 2026: 15%. Low only drops when the room check comes in under the sq ft range."),
+        ("range_stretch_high", "Rooms can raise High by up to (extra % of Recommended)", PCT,
+         "Andrew Nov 2026: 15%. High only rises when the room check comes in over the sq ft range."),
+        ("living_included", "Living / family rooms when left blank", "0", "Room counts come from the Quote tab"),
+        ("kitchens_included", "Kitchens when left blank", "0", ""),
+        ("bonus_included", "Bonus rooms & basements when left blank", "0", ""),
+        ("dining_count", "Dining rooms assumed", "0", "Not on the request form, so assumed"),
+        ("laundry_count", "Laundry rooms assumed", "0", ""),
+        ("hall_count", "Hallways / stairs assumed", "0", ""),
+        ("entry_count", "Entryways assumed", "0", ""),
+        ("room_low_end_max_dirt", "Dirt code up to this = low end of each room's time", "0",
+         "Timing guide: dirt 1–5 low end, 6–7 high end"),
+        ("room_extra_8", "Dirt 8: extra hours on top of the high end", "0.00", "Timing guide: 8–10 = high end + an hour or two"),
+        ("room_extra_9", "Dirt 9: extra hours", "0.00", ""),
+        ("room_extra_10", "Dirt 10: extra hours", "0.00", ""),
+        ("room_extra_biweekly", "Bi-weekly: extra hours on maintenance times", "0.00", "Timing guide: +30 min biweekly"),
+        ("room_extra_monthly", "Monthly: extra hours on maintenance times", "0.00", "Timing guide: +1 hour monthly"),
     ])
     band(ws, f"B{r}:I{r}", "5  TIME SINCE LAST PROFESSIONAL CLEAN (one-time cleans)", GREEN)
     r += 1
@@ -577,9 +592,9 @@ def build_quote(wb, ref: Ref):
     q("other", 21, "Other animals", BLUE_T, "Type 0 if none.", "0", manual=True)
     q("last_clean", 22, "Last professional cleaning", BLUE_T, "A date (3/1/2026) or type: never",
       "mm/dd/yyyy", manual=True)
-    q("living", 24, "Living / family rooms", BLUE_T, "Blank = 1. Each one beyond 1 adds 3% time.", "0", manual=True)
-    q("kitchens", 25, "Kitchens", BLUE_T, "Blank = 1. Each one beyond 1 adds 3% time.", "0", manual=True)
-    q("bonus", 26, "Bonus rooms & basements", BLUE_T, "Blank = 0. Each one adds 3% time.", "0", manual=True)
+    q("living", 24, "Living / family rooms", BLUE_T, "Blank = 1. Used for the room check (Low / High).", "0", manual=True)
+    q("kitchens", 25, "Kitchens", BLUE_T, "Blank = 1. Used for the room check (Low / High).", "0", manual=True)
+    q("bonus", 26, "Bonus rooms & basements", BLUE_T, "Blank = 0. Used for the room check (Low / High).", "0", manual=True)
     q("service", 23, "Service they asked about", BLUE_T, "Info only. Every service gets priced.",
       auto=P["service"])
 
@@ -715,7 +730,7 @@ def build_quote(wb, ref: Ref):
     put(ws, "G17", f'="Low = "&TEXT({ref["range_low_pct"]},"0%")&" below, High = "&TEXT({ref["range_high_pct"]},"0%")'
                    f'&" above Recommended (change on Settings). Type your price in the yellow box after looking at '
                    f'the photos; blank = Recommended. The quote uses your price. Time on site = team of "'
-                   f'&{ref["team_size"]}&". Deluxe Deep includes the promo."', border=None,
+                   f'&{ref["team_size"]}&". Deluxe Deep includes the promo. Room counts (Room Times tab) can stretch Low / High a bit more."', border=None,
         f=font(8, italic=True, color=SLATE), align=WRAP)
     ws.row_dimensions[17].height = 30
 
@@ -864,7 +879,7 @@ def plan_breakdown():
             "last_clean", "dirt_entered", "photo_dirt", "dirt_used", "photo_pct", "photo_why", "photos",
             "fridge", "oven", "windows", "promo"]
     behind = ["row_found", "notes", "errors", "dnr", "ok", "warnings", "months", "extra_baths", "occ_add",
-              "pet_add", "room_add", "dirt_mult", "last_factor", "photo_factor", "first_name", "addons_total",
+              "pet_add", "room_ok", "dirt_mult", "last_factor", "photo_factor", "first_name", "addons_total",
               "full_ok", "custom_idx", "custom_sqft", "custom_extra", "custom_areas", "custom_ok", "custom_recurring",
               "custom_hours", "custom_onsite", "custom_round", "custom_min", "custom_svc", "custom_minflag",
               "custom_low", "custom_high"]
@@ -875,8 +890,8 @@ def plan_breakdown():
     USED_ROWS[:] = used
     r += 2  # gap + calc band
     calc_first = r + 1  # header row = r, first step = r+1
-    steps = ["rate", "base", "bath", "scope", "dirt", "occ", "pet", "rooms", "last", "hours", "onsite", "brate", "labor",
-             "photo", "round", "min", "svc", "minflag", "low", "high", "promo", "addons", "total", "freq", "eff", "card", "diff"]
+    steps = ["rate", "base", "bath", "scope", "dirt", "occ", "pet", "last", "hours", "onsite", "brate", "labor",
+             "photo", "round", "min", "svc", "minflag", "sqlow", "sqhigh", "roomhrs", "roomprice", "low", "high", "promo", "addons", "total", "freq", "eff", "card", "diff"]
     CALC_HEADER[0] = r
     for i, s in enumerate(steps):
         CALC[s] = calc_first + i
@@ -967,6 +982,27 @@ def build_breakdown(wb, ref: Ref):
         put(ws, f"{col}{h}", name, PURPLE_T, font(bold=True), align=CENTER)
     st = ref.cell
     R = CALC
+    rt = "'Room Times'!"
+    cnt = f"{rt}$I$5:$I${4 + len(ROOM_TIMES)}"
+
+    def rcol(pos):  # Room Times column for a ROOM_TIMES tuple position (2..7 -> C..H)
+        L = "CDEFGH"[pos - 2]
+        return f"{rt}${L}$5:${L}${4 + len(ROOM_TIMES)}"
+
+    def room_hours(c):
+        i = SVC_COLS.index(c)
+        dirt = u("dirt_used")
+        if i in ROOM_COLS:
+            lo, hi = ROOM_COLS[i]
+            mins = (f"IF({dirt}<={st['room_low_end_max_dirt']},SUMPRODUCT({cnt},{rcol(lo)}),"
+                    f"SUMPRODUCT({cnt},{rcol(hi)}))")
+            extra = (f"IF({dirt}>=10,{st['room_extra_10']},IF({dirt}>=9,{st['room_extra_9']},"
+                     f"IF({dirt}>=8,{st['room_extra_8']},0)))")
+        else:
+            mins = f"(SUMPRODUCT({cnt},{rcol(6)})+SUMPRODUCT({cnt},{rcol(7)}))/2"
+            extra = {0: st["room_extra_monthly"], 1: st["room_extra_biweekly"]}.get(i, "0")
+        return f'=IF({u("room_ok")},CEILING({mins}/60+{extra},{st["hours_rounding"]}),"n/a")'
+
     calc = [
         ("rate", "Cleaning speed (sq ft per labor hour)", lambda c: f"={svc(ref, 'production_rate', c)}", "#,##0"),
         ("base", "Base hours = sq ft ÷ speed", lambda c: f"=IFERROR({u('sqft')}/{c}{R['rate']},0)", HRS),
@@ -975,12 +1011,11 @@ def build_breakdown(wb, ref: Ref):
         ("dirt", "× Dirt code", lambda c: f"=1+({u('dirt_mult')}-1)*{svc(ref, 'dirt_sensitivity', c)}", "0.000"),
         ("occ", "× People", lambda c: f"=1+{svc(ref, 'household_factors_apply', c)}*{u('occ_add')}", "0.000"),
         ("pet", "× Pets", lambda c: f"=1+{svc(ref, 'household_factors_apply', c)}*{u('pet_add')}", "0.000"),
-        ("rooms", "× Rooms (living, kitchens, bonus/basements)", lambda c: f"=1+{u('room_add')}", "0.000"),
         ("last", "× Time since last clean",
          lambda c: f"=IF({svc(ref, 'last_clean_applies', c)}=1,{u('last_factor')},1)", "0.000"),
         ("hours", "→ Labor hours (rounded up)",
          lambda c: (f"=CEILING(({c}{R['base']}+{c}{R['bath']})*{c}{R['scope']}*{c}{R['dirt']}*{c}{R['occ']}"
-                    f"*{c}{R['pet']}*{c}{R['rooms']}*{c}{R['last']},{st['hours_rounding']})"), HRS),
+                    f"*{c}{R['pet']}*{c}{R['last']},{st['hours_rounding']})"), HRS),
         ("onsite", "Time on site for the team", lambda c: f"={c}{R['hours']}/{st['team_size']}", HRS),
         ("brate", "× Hourly rate", lambda c: f"={svc(ref, 'billable_rate', c)}", MONEY),
         ("labor", "→ Labor price", lambda c: f"={c}{R['hours']}*{c}{R['brate']}", MONEY2),
@@ -992,11 +1027,24 @@ def build_breakdown(wb, ref: Ref):
                     f"{st['trip_minimum_one_time']},0))"), MONEY),
         ("svc", "→ Service price (the higher of the two)", lambda c: f"=MAX({c}{R['round']},{c}{R['min']})", MONEY),
         ("minflag", "Minimum used?", lambda c: f'=IF({c}{R["min"]}>{c}{R["round"]},"Yes","No")', None),
-        ("low", "Low end of range (never below the minimum)",
+        ("sqlow", "Low end from sq ft (never below the minimum)",
          lambda c: (f"=MAX({c}{R['min']},FLOOR({c}{R['svc']}*(1-{st['range_low_pct']}),{st['price_rounding']}))"),
          MONEY),
-        ("high", "High end of range",
+        ("sqhigh", "High end from sq ft",
          lambda c: f"=CEILING({c}{R['svc']}*(1+{st['range_high_pct']}),{st['price_rounding']})", MONEY),
+        ("roomhrs", "Room check: labor hours from the Room Times tab", room_hours, HRS),
+        ("roomprice", "Room check price (same rate and photo change)",
+         lambda c: (f'=IF(ISNUMBER({c}{R["roomhrs"]}),CEILING({c}{R["roomhrs"]}*{c}{R["brate"]}*{u("photo_factor")},'
+                    f'{st["price_rounding"]}),"n/a")'), MONEY),
+        ("low", "→ LOW: sq ft low, pulled down toward the room check (max "
+                "extra % on Settings)",
+         lambda c: (f'=IF(ISNUMBER({c}{R["roomprice"]}),MAX({c}{R["min"]},MIN({c}{R["sqlow"]},MAX({c}{R["roomprice"]},'
+                    f'FLOOR({c}{R["svc"]}*(1-{st["range_low_pct"]}-{st["range_stretch_low"]}),{st["price_rounding"]})))),'
+                    f'{c}{R["sqlow"]})'), MONEY),
+        ("high", "→ HIGH: sq ft high, pushed up toward the room check (max extra % on Settings)",
+         lambda c: (f'=IF(ISNUMBER({c}{R["roomprice"]}),MAX({c}{R["sqhigh"]},MIN({c}{R["roomprice"]},'
+                    f'CEILING({c}{R["svc"]}*(1+{st["range_high_pct"]}+{st["range_stretch_high"]}),{st["price_rounding"]}))),'
+                    f'{c}{R["sqhigh"]})'), MONEY),
         ("promo", "− Promo (Deluxe Deep only)", lambda c: f"=-{u('promo')}" if c == "F" else "=0", MONEY),
         ("addons", "+ Add-ons (per visit)", lambda c: f"={ADDON['total']}", MONEY),
         ("total", "TOTAL with add-ons", lambda c: f'=IF({u("ok")},{c}{R["svc"]}+{c}{R["promo"]}+{c}{R["addons"]},"—")',
@@ -1046,7 +1094,7 @@ def build_breakdown(wb, ref: Ref):
     band(ws, f"B{h}:I{h}", "BEHIND THE SCENES (checks and lookups)", SLATE, 11, 20)
 
     def crow(step):  # one calc row across the six service columns
-        return f"{BD}!$C${CALC[step]}:$H${CALC[step]}"
+        return f"{BD}!$C${CALC[step]}:$G${CALC[step]}"
 
     T = u("notes")
     behind = {
@@ -1084,10 +1132,8 @@ def build_breakdown(wb, ref: Ref):
         "pet_add": ("Extra time for pets",
                     f"=MIN({st['pet_cap']},N({u('dogs')})*{st['per_dog']}+N({u('cats')})*{st['per_cat']}"
                     f"+N({u('other')})*{st['per_other_animal']})", PCT),
-        "room_add": ("Extra time for rooms",
-                     f"=MIN({st['room_cap']},MAX(0,N({u('living')})-{st['living_included']})*{st['per_extra_living']}"
-                     f"+MAX(0,N({u('kitchens')})-{st['kitchens_included']})*{st['per_extra_kitchen']}"
-                     f"+MAX(0,N({u('bonus')})-{st['bonus_included']})*{st['per_extra_bonus']})", PCT),
+        "room_ok": ("Room check possible? (needs bedrooms and bathrooms)",
+                    f'=AND(ISNUMBER({u("beds")}),ISNUMBER({u("baths")}))', None),
         "dirt_mult": ("Dirt code time ×", f"=IFERROR(VLOOKUP({u('dirt_used')},{st['dirt_table']},2,FALSE)*1,1)", "0.00"),
         "last_factor": ("Last clean time ×", f"=LOOKUP({u('months')},{st['bands_m']},{st['bands_f']})", "0.00"),
         "photo_factor": ("Photo price ×", f"=1+{u('photo_pct')}", "0.00"),
@@ -1310,44 +1356,56 @@ function clearQuote() {{
 
 
 # ================================================================ ROOM TIMES (reference)
-ROOM_TIMES = [  # room, deluxe, move-in/out, maintenance (minutes per technician), notes
-    ("Kitchen", "65–90", "90–120", "20–30", "Move-in/out adds inside fridge, oven, microwave, cabinets and drawers. "
-     "Add 15–20 min if the oven is heavily soiled."),
-    ("Full Bathroom", "50–70", "60–75", "15–20", "Add 10–15 min for heavy hard-water buildup on glass doors."),
-    ("Half Bath / Powder Room", "30–40", "30–40", "8–12", "Toilet, sink, mirror, floor, baseboards."),
-    ("Primary / Master Bedroom", "30–40", "30–40", "10–15", "Walk-in closets add 5–10 min."),
-    ("Secondary / Guest Bedroom", "20–25", "20–30", "8–10", "Kids' rooms with toys/clutter run high end."),
-    ("Living Room / Family Room", "45–65", "30–45", "15–20", "Add time for pet hair on upholstery."),
-    ("Dining Room", "25–35", "20–30", "8–12", "Light fixtures/chandeliers add 5–10 min."),
-    ("Laundry Room", "20–25", "20–30", "5–10", "Move-in/out adds inside cabinets and washer/dryer wipe."),
-    ("Hallways & Stairs", "20–30", "25–35", "8–12", "Count each full flight of stairs separately."),
-    ("Entryway / Foyer", "10–15", "10–15", "3–5", "Oct–Apr adds a few minutes for mud/debris."),
-    ("Home Office / Bonus Room", "20–25", "20–30", "8–12", "Bonus rooms with play/gym equipment run high end."),
-    ("Basement", "", "", "", "Add your team's times here."),
-]
-
-
-def build_room_times(wb):
+def build_room_times(wb, ref):
     ws = wb.create_sheet("Room Times")
     ws.sheet_view.showGridLines = False
-    for k, v in {"A": 2, "B": 28, "C": 14, "D": 16, "E": 16, "F": 70}.items():
+    for k, v in {"A": 2, "B": 30, "C": 9, "D": 9, "E": 9, "F": 9, "G": 9, "H": 9, "I": 11, "J": 60}.items():
         ws.column_dimensions[k].width = v
-    ws.merge_cells("B1:F1")
-    put(ws, "B1", "ROOM TIMES — reference from 'Room-by-Room Cleaning Timeframe Sheet' (living document)", GREEN,
+    ws.merge_cells("B1:J1")
+    put(ws, "B1", "ROOM TIMES — from the 'Room-by-Room Cleaning Timeframe Sheet' (living document)", GREEN,
         font(13, True, WHITE), border=None, align=Alignment(vertical="center", indent=1))
     ws.row_dimensions[1].height = 28
-    ws.merge_cells("B2:F2")
-    put(ws, "B2", "Minutes per technician. Edit as your team's timing improves. Prices still come from square feet; "
-        "rooms only add a small % (Settings ▸ Rooms). Use these numbers to tune those percentages.", border=None,
-        f=font(9, italic=True, color=SLATE), align=WRAP)
-    ws.row_dimensions[2].height = 28
-    for col, t in zip("BCDEF", ["Room / Area", "Deluxe (min)", "Move-In/Out (min)", "Maintenance (min)", "Notes"]):
-        put(ws, f"{col}4", t, GREEN_T, font(bold=True), align=CENTER)
+    ws.merge_cells("B2:J2")
+    put(ws, "B2", "Minutes per technician. When the timing guide changes, change the blue numbers here and every quote "
+        "updates. Square feet still sets the Recommended price. These times only stretch Low / High "
+        "(how far: Settings ▸ Room check). Dirt 1–5 uses the low time, 6+ the high time; maintenance uses the middle.",
+        border=None, f=font(9, italic=True, color=SLATE), align=WRAP)
+    ws.row_dimensions[2].height = 40
+    for rng, t in [("C3:D3", "Deluxe"), ("E3:F3", "Move-In/Out"), ("G3:H3", "Maintenance")]:
+        ws.merge_cells(rng)
+        put(ws, rng[:2], t, GREEN_T, font(bold=True), align=CENTER)
+    for col, t in zip("BCDEFGHIJ", ["Room / Area", "Low", "High", "Low", "High", "Low", "High",
+                                     "How many (this quote)", "Notes"]):
+        put(ws, f"{col}4", t, GREEN_T, font(9, True), align=CENTER)
+    b = lambda n: BD_REF[n]  # noqa: E731
+    sx = lambda k: ref.cell[k]  # noqa: E731
+    counts = {"kitchen": f"=N({b('kitchens')})", "full_bath": f"=INT(N({b('baths')}))",
+              "half_bath": f"=IF(N({b('baths')})-INT(N({b('baths')}))>=0.5,1,0)",
+              "primary": f"=IF(N({b('beds')})>=1,1,0)", "guest": f"=MAX(0,N({b('beds')})-1)",
+              "living": f"=N({b('living')})", "dining": f"={sx('dining_count')}", "laundry": f"={sx('laundry_count')}",
+              "hall": f"={sx('hall_count')}", "entry": f"={sx('entry_count')}", "bonus": f"=N({b('bonus')})"}
     for i, row in enumerate(ROOM_TIMES, start=5):
-        for col, v in zip("BCDEF", row):
-            put(ws, f"{col}{i}", v, EDIT if col in "CDE" else None, font(10, col == "B"),
-                align=CENTER if col in "CDE" else WRAP)
+        key, label, *mins, note = row
+        put(ws, f"B{i}", label, f=font(10, True), align=WRAP)
+        for col, v in zip("CDEFGH", mins):
+            put(ws, f"{col}{i}", v, EDIT, font(10), "0", align=CENTER)
+        put(ws, f"I{i}", counts[key], AUTO, font(10, True), "0", align=CENTER)
+        put(ws, f"J{i}", note, f=font(9), align=WRAP)
         ws.row_dimensions[i].height = 30
+    last = 4 + len(ROOM_TIMES)
+    put(ws, f"B{last + 1}", "Total minutes for this home", GREEN_T, font(10, True))
+    for col in "CEG":
+        put(ws, f"{col}{last + 1}", f"=SUMPRODUCT($I$5:$I${last},{col}5:{col}{last})", GREEN_T, font(10, True), "0",
+            align=CENTER)
+    for col in "DFH":
+        put(ws, f"{col}{last + 1}", f"=SUMPRODUCT($I$5:$I${last},{col}5:{col}{last})", GREEN_T, font(10, True), "0",
+            align=CENTER)
+    ws.merge_cells(f"B{last + 3}:J{last + 3}")
+    put(ws, f"B{last + 3}", "Bedrooms: 1 primary + the rest guest. Bathrooms: 2.5 = 2 full + 1 half. Dining, laundry, "
+        "hallway and entry counts are set on Settings ▸ Room check. Basements use the bonus room times. "
+        "To add a room type, tell Claude so the formulas pick it up.", border=None,
+        f=font(9, italic=True, color=SLATE), align=WRAP)
+    ws.row_dimensions[last + 3].height = 30
 
 
 # ================================================================ HOW TO
@@ -1422,7 +1480,7 @@ def build(path: Path = OUT, answers: dict | None = None, extra_requests: list | 
     build_rate_card(wb)
     build_howto(wb)
     build_history(wb)
-    build_room_times(wb)
+    build_room_times(wb, ref)
     build_lists(wb)
     wb._sheets = [wb[n] for n in ["Quote", "Requests", "Quote History", "Breakdown", "Settings", "Room Times",
                                   "Rate Card", "How To Use", "Lists"]]

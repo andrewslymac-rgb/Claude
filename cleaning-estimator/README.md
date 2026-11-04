@@ -65,8 +65,9 @@ If you type in a yellow box, your answer wins over the grey one.
    - 🟧 **Not ready**: tells you exactly what's missing.
    - 🟥 **We do not service this home** (dirt code 11): no prices are shown, and the quote box becomes a polite decline message.
    - The line under the bar gives heads-ups: over 4,000 sq ft (walk-through), outside the service area, a photo change with no reason, missing beds/baths.
-6. **Your prices.** Each service shows **Low · Recommended · High**. Low is 10% below and High is 15%
-   above Recommended (both editable on Settings; Low never drops below the service minimum). Use judgment
+6. **Your prices.** Each service shows **Low · Recommended · High**. Low starts 10% below and High 15%
+   above Recommended, then the room check (3a) can stretch each by up to 15% more (all editable on Settings;
+   Low never drops below the service minimum). Use judgment
    from the photos and the request, and type the price you'll quote in the yellow **Your price** box.
    Leave it blank to use Recommended. A warning appears if you type a price outside the range.
    Every service starts at **No** in the **✍ In quote?** column. Set **Yes** for each service the client
@@ -80,17 +81,22 @@ one of them duplicates the tab (right-click ▸ Duplicate). This is the main lim
 
 ---
 
-## 3a. Rooms (small extra time)
+## 3a. Rooms (room check: stretches Low / High)
 
-Step ② asks for **living / family rooms, kitchens, and bonus rooms & basements** (orange: type them from the Jobber
-request). Square feet still drives the price. Rooms only add a little time:
+Square feet sets the **Recommended** price. Rooms never change it. Instead, the sheet runs a second estimate
+from your **Room-by-Room Cleaning Timeframe Sheet** (the **Room Times** tab) and uses it to stretch the range:
 
-- The base assumes **1 living room, 1 kitchen, 0 bonus rooms/basements**.
-- Each room beyond that adds **3% time**, capped at **+15%** total.
-- Example: 2 living rooms + 1 kitchen + 1 basement = 2 extra rooms = +6% time.
-- All of it is on **Settings ▸ Rooms**, with a separate % per room type. The **Room Times** tab holds your
-  Room-by-Room Cleaning Timeframe Sheet (minutes per room, per service) as a living reference to tune those %s.
-- Custom quotes (step ⑤) skip the room factor, since you list those areas yourself.
+- **Counts:** kitchens, living rooms and bonus rooms/basements from step ② (orange); bedrooms = 1 primary + the rest
+  guest; bathrooms 2.5 = 2 full + 1 half; 1 dining room, 1 laundry room, 1 hallway, 1 entry assumed (Settings).
+- **Times:** Deluxe and Move-In/Out use each room's low time for dirt 1–5 and the high time for 6+, plus 1 / 1.5 / 2
+  hours for dirt 8 / 9 / 10 (from the guide). Maintenance uses the middle of each range, +30 min bi-weekly and
+  +1 hour monthly (from the guide).
+- **Room check price** = those hours × the same hourly rate × the photo change.
+- **Low** drops toward the room check when it's under the sq ft range, by at most **15% of Recommended** more.
+  **High** rises toward it when it's over, by at most **15%** more. So the widest possible range is
+  Recommended −25% to +30%. Both limits are on **Settings ▸ Room check**.
+- When the timing guide changes, update the blue numbers on the **Room Times** tab. Quotes update; no formula changes.
+- Custom quotes (step ⑤) skip the room check, since you list those areas yourself.
 
 ## 3b. Custom quotes (only certain areas)
 

@@ -118,6 +118,10 @@ SCENARIOS = {
                       photo_reason="x", occupants=4, dogs=1, cats=1, last_pro_clean=date(2026, 3, 1),
                       fridge=True, windows=12, promo_off_deluxe=50, city="Milwaukie", today=TODAY),
     ),
+    "missing_beds": (
+        {**CLEAR, "sqft": 1500, "beds": None, "baths": None, "dirt": 5},
+        EstimateInput(sqft=1500, dirt_code=5, today=TODAY),
+    ),
     "missing_sqft": (
         {**CLEAR, "dirt": 5},
         EstimateInput(sqft=None, dirt_code=5, today=TODAY),
@@ -285,15 +289,27 @@ def test_custom_missing_type_blocks(wbs):
     assert "Pick the type of clean" in wbs["custom_missing_type"]["Quote"]["B2"].value
 
 
-def test_rooms_add_small_percent(wbs):
-    base = estimate(EstimateInput(sqft=3000, bedrooms=4, bathrooms=3, dirt_code=5, today=TODAY))
-    more = estimate(EstimateInput(sqft=3000, bedrooms=4, bathrooms=3, dirt_code=5, living_rooms=2, kitchens=2,
+def test_rooms_never_move_recommended_only_the_range(wbs):
+    base = estimate(EstimateInput(sqft=1500, bedrooms=4, bathrooms=3, dirt_code=5, today=TODAY))
+    more = estimate(EstimateInput(sqft=1500, bedrooms=4, bathrooms=3, dirt_code=5, living_rooms=2, kitchens=2,
                                   bonus_rooms=2, today=TODAY))
-    # 1 extra living + 1 extra kitchen + 2 bonus = 4 extra rooms = +12% time
-    assert more.services["deluxe_deep"].labor_hours > base.services["deluxe_deep"].labor_hours
-    bd = wbs["extra_rooms"]["Breakdown"]
-    assert bd[f"F{B.CALC['rooms']}"].value == pytest.approx(1.12)
-    assert wbs["rooms_hit_cap"]["Breakdown"][f"F{B.CALC['rooms']}"].value == pytest.approx(1.15)  # capped
+    for svc in base.services:
+        assert more.services[svc].service_price == base.services[svc].service_price, svc
+        assert more.services[svc].high >= base.services[svc].high, svc
+    d = more.services["deluxe_deep"]
+    assert d.high > base.services["deluxe_deep"].high  # extra rooms push the high end up
+    q = wbs["rooms_hit_cap"]["Quote"]
+    rec, high = q["I8"].value, q["J8"].value
+    assert high <= rec * 1.30 + 5  # sq ft high (+15%) plus at most 15% more from rooms
+    rt = wbs["extra_rooms"]["Room Times"]
+    assert [rt[f"I{r}"].value for r in range(5, 16)] == [2, 3, 0, 1, 3, 2, 1, 1, 1, 1, 2]
+
+
+def test_room_check_needs_beds_and_baths(wbs):
+    bd = wbs["missing_beds"]["Breakdown"]
+    assert bd[f"F{B.CALC['roomprice']}"].value == "n/a"
+    assert bd[f"F{B.CALC['low']}"].value == bd[f"F{B.CALC['sqlow']}"].value
+    assert bd[f"F{B.CALC['high']}"].value == bd[f"F{B.CALC['sqhigh']}"].value
 
 
 def test_quote_only_lists_picked_services(wbs):
