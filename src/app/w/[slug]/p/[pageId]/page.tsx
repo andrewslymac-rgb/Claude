@@ -3,6 +3,10 @@ import { requireWorkspacePage } from "@/lib/access";
 import { can } from "@/lib/permissions";
 import { getPage, listTree } from "@/lib/services/pages";
 import { PageView } from "@/components/page/PageView";
+import { listMembers } from "@/lib/services/members";
+import { DOC_AREAS, DOC_AUDIENCES, DOC_TYPES } from "@/db/schema";
+import { db, schema } from "@/db";
+import { eq } from "drizzle-orm";
 
 export default async function PageRoute({ params }: { params: Promise<{ slug: string; pageId: string }> }) {
   const { slug, pageId } = await params;
@@ -20,6 +24,8 @@ export default async function PageRoute({ params }: { params: Promise<{ slug: st
     crumbs.unshift({ id: cur.id, title: cur.title || "Untitled", icon: cur.icon });
     cur = cur.parentId ? byId.get(cur.parentId) : undefined;
   }
+  const { members } = await listMembers(workspace.id);
+  const reviewer = page.lastReviewedById ? (await db.select({ name: schema.users.name }).from(schema.users).where(eq(schema.users.id, page.lastReviewedById)))[0] : null;
   const children = tree.filter((n) => n.parentId === page.id).map((n) => ({ id: n.id, title: n.title || "Untitled", icon: n.icon }));
 
   return (
@@ -39,6 +45,21 @@ export default async function PageRoute({ params }: { params: Promise<{ slug: st
       crumbs={crumbs}
       subpages={children}
       canEdit={can(role, "edit") && page.source === "local" && !page.archivedAt}
+      docInfo={{
+        docType: page.docType,
+        area: page.area,
+        audience: page.audience,
+        docStatus: page.docStatus,
+        ownerId: page.ownerId,
+        reviewCycle: page.reviewCycle,
+        lastReviewedOn: page.lastReviewedOn,
+        lastReviewedBy: reviewer?.name ?? null,
+        sourceLink: page.sourceLink,
+        sensitive: page.sensitive,
+        docVersion: page.docVersion,
+      }}
+      members={members.map((m) => ({ id: m.userId, name: m.name ?? m.email }))}
+      docOptions={{ types: DOC_TYPES, areas: DOC_AREAS, audiences: DOC_AUDIENCES }}
     />
   );
 }

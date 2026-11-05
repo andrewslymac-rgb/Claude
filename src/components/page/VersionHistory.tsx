@@ -76,8 +76,10 @@ export function VersionHistory({
                   <div className="mt-0.5 flex items-center gap-1 text-xs text-ink-soft">
                     {v.actorType === "ai" ? <Bot size={12} /> : v.actorType === "sync" ? <RefreshCw size={12} /> : <User size={12} />}
                     {v.actorType === "ai" ? `AI (${v.actorName ?? "token"})` : v.actorType === "sync" ? "Google Drive sync" : (v.actorName ?? "Someone")}
-                    {v.note && <span className="text-ink-faint">· {v.note}</span>}
                   </div>
+                  {v.note && <div className="mt-1 text-xs text-ink">{v.note}</div>}
+                  {v.why && <div className="text-xs text-ink-soft">Why: {v.why}</div>}
+                  {v.note && v.note !== "Created" && !v.note.startsWith("Restored") && <div className={`mt-0.5 text-[10px] ${v.teamTold ? "text-ok" : "text-warn"}`}>{v.teamTold ? "Team told" : "Team not told yet"}</div>}
                 </button>
               </li>
             ))}
