@@ -4,7 +4,9 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
-import { History, MoreHorizontal, BookMarked, Trash2, Check, Loader2, AlertCircle, ExternalLink } from "lucide-react";
+import { History, MoreHorizontal, BookMarked, Trash2, Check, Loader2, AlertCircle, ExternalLink, FileCheck2, ClipboardList } from "lucide-react";
+import { DocInfo, type DocInfoData } from "./DocInfo";
+import { LogChangeDialog } from "./LogChangeDialog";
 import { archivePageAction, savePageAction, setSopAction } from "@/app/actions";
 import type { EditorChange } from "./Editor";
 import { EmojiPicker } from "./EmojiPicker";
@@ -16,7 +18,9 @@ type PageData = { id: string; title: string; icon: string | null; content: unkno
 type Crumb = { id: string; title: string; icon: string | null };
 type SaveState = "idle" | "saving" | "saved" | "error";
 
-export function PageView({ slug, page, crumbs, subpages, canEdit }: { slug: string; page: PageData; crumbs: Crumb[]; subpages: Crumb[]; canEdit: boolean }) {
+type DocOptions = { types: readonly string[]; areas: readonly string[]; audiences: readonly string[] };
+
+export function PageView({ slug, page, crumbs, subpages, canEdit, docInfo, members, docOptions }: { slug: string; page: PageData; crumbs: Crumb[]; subpages: Crumb[]; canEdit: boolean; docInfo: DocInfoData; members: { id: string; name: string }[]; docOptions: DocOptions }) {
   const router = useRouter();
   const [title, setTitle] = useState(page.title);
   const [icon, setIcon] = useState(page.icon);
@@ -25,6 +29,9 @@ export function PageView({ slug, page, crumbs, subpages, canEdit }: { slug: stri
   const [picker, setPicker] = useState(false);
   const [menu, setMenu] = useState(false);
   const [history, setHistory] = useState(false);
+  const [logChange, setLogChange] = useState(false);
+  const [docSetup, setDocSetup] = useState(false);
+  const isDoc = Boolean(docInfo.docType || docInfo.docStatus || docInfo.reviewCycle);
   const [editorKey, setEditorKey] = useState(0);
   const [content, setContent] = useState(page.content);
   const [, start] = useTransition();
@@ -117,6 +124,24 @@ export function PageView({ slug, page, crumbs, subpages, canEdit }: { slug: stri
                   <BookMarked size={15} /> {isSop ? "Unmark as SOP" : "Mark as SOP / policy"}
                 </button>
                 <button
+                  className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left hover:bg-hover"
+                  onClick={() => {
+                    setMenu(false);
+                    setDocSetup(true);
+                  }}
+                >
+                  <FileCheck2 size={15} /> {isDoc ? "Edit document info" : "Set up as document"}
+                </button>
+                <button
+                  className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left hover:bg-hover"
+                  onClick={() => {
+                    setMenu(false);
+                    setLogChange(true);
+                  }}
+                >
+                  <ClipboardList size={15} /> Log a change
+                </button>
+                <button
                   className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-danger hover:bg-danger-soft"
                   onClick={() =>
                     start(async () => {
@@ -188,6 +213,8 @@ export function PageView({ slug, page, crumbs, subpages, canEdit }: { slug: stri
           autoFocus={canEdit && !page.title}
         />
 
+        {(isDoc || docSetup) && <DocInfo key={docSetup ? "open" : "closed"} slug={slug} pageId={page.id} initial={docInfo} members={members} options={docOptions} canEdit={canEdit} forceOpen={docSetup} onClose={() => setDocSetup(false)} />}
+
         <Editor key={editorKey} initial={content} editable={canEdit} onChange={canEdit ? onEditorChange : undefined} focusRef={focusEditor} />
 
         {subpages.length > 0 && (
@@ -203,6 +230,8 @@ export function PageView({ slug, page, crumbs, subpages, canEdit }: { slug: stri
           </div>
         )}
       </article>
+
+      {logChange && <LogChangeDialog slug={slug} pageId={page.id} currentVersionLabel={docInfo.docVersion} onClose={() => setLogChange(false)} />}
 
       {history && (
         <VersionHistory

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
-import { ChevronDown, ChevronRight, Home, LogOut, MoreHorizontal, Plus, Search, Settings, Trash2, CheckSquare, BookOpen } from "lucide-react";
+import { ChevronDown, ChevronRight, Home, LogOut, MoreHorizontal, Plus, Search, Settings, Trash2, CheckSquare, BookOpen, Library, Flag } from "lucide-react";
 import { archivePageAction, createPageAction, movePageAction, signOutAction } from "@/app/actions";
 import { SearchPalette } from "./SearchPalette";
 import { NewWorkspaceDialog } from "./NewWorkspaceForm";
@@ -12,7 +12,7 @@ import { OrbitLogo } from "./OrbitLogo";
 type Ws = { slug: string; name: string; icon: string; color: string };
 type Node = { id: string; parentId: string | null; title: string; icon: string | null; position: number; isSop: boolean; source: string };
 
-export function Sidebar(props: { workspace: Ws; workspaces: Ws[]; tree: Node[]; user: { name: string; email: string; isAppAdmin: boolean }; canEdit: boolean; canManage: boolean }) {
+export function Sidebar(props: { workspace: Ws; workspaces: Ws[]; tree: Node[]; user: { name: string; email: string; isAppAdmin: boolean }; canEdit: boolean; canManage: boolean; attention?: number; openFlags?: number }) {
   const { workspace, tree, canEdit } = props;
   const router = useRouter();
   const pathname = usePathname();
@@ -51,9 +51,9 @@ export function Sidebar(props: { workspace: Ws; workspaces: Ws[]; tree: Node[]; 
           <Search size={16} /> Search
           <kbd className="ml-auto rounded border border-line bg-card px-1 text-[10px] text-ink-faint">Ctrl K</kbd>
         </button>
-        <div className="flex items-center gap-2 rounded-md px-2 py-1.5 text-ink-faint" title="Coming in Milestone 2">
-          <CheckSquare size={16} /> Tasks <span className="ml-auto text-[10px] uppercase tracking-wide">soon</span>
-        </div>
+        <NavItem href={`${base}/tasks`} icon={<CheckSquare size={16} />} label="Tasks" active={pathname.startsWith(`${base}/tasks`)} badge={props.attention || undefined} />
+        <NavItem href={`${base}/library`} icon={<Library size={16} />} label="Document Library" active={pathname.startsWith(`${base}/library`)} />
+        <NavItem href={`${base}/flags`} icon={<Flag size={16} />} label="Flags" active={pathname.startsWith(`${base}/flags`)} badge={props.openFlags || undefined} />
       </nav>
 
       <div className="flex items-center justify-between px-4 pb-1 pt-3 text-xs font-medium text-ink-faint">
@@ -90,10 +90,11 @@ export function Sidebar(props: { workspace: Ws; workspaces: Ws[]; tree: Node[]; 
   );
 }
 
-function NavItem({ href, icon, label, active }: { href: string; icon: React.ReactNode; label: string; active?: boolean }) {
+function NavItem({ href, icon, label, active, badge }: { href: string; icon: React.ReactNode; label: string; active?: boolean; badge?: number }) {
   return (
     <Link href={href} className={`flex items-center gap-2 rounded-md px-2 py-1.5 ${active ? "bg-hover font-medium text-ink" : "text-ink-soft hover:bg-hover"}`}>
       {icon} {label}
+      {badge ? <span className="ml-auto rounded-full bg-warn-soft px-1.5 text-[11px] font-semibold text-warn">{badge}</span> : null}
     </Link>
   );
 }

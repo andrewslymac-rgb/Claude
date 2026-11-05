@@ -181,6 +181,8 @@ export async function listVersions(pageId: string) {
       actorType: pageVersions.actorType,
       actorName: users.name,
       note: pageVersions.note,
+      why: pageVersions.why,
+      teamTold: pageVersions.teamTold,
       createdAt: pageVersions.createdAt,
       updatedAt: pageVersions.updatedAt,
     })
@@ -217,4 +219,113 @@ export async function searchPages(workspaceId: string, q: string, limit = 20) {
     const snippet = i >= 0 ? contentText.slice(Math.max(0, i - 40), i + term.length + 60).replace(/\s+/g, " ") : "";
     return { ...r, snippet };
   });
+}
+
+// ---------------------------------------------------------------------------
+// Document info (compliance)
+// ---------------------------------------------------------------------------
+
+export type DocInfoPatch = {
+  docType?: string | null;
+  area?: string | null;
+  audience?: string[];
+  docStatus?: Page["docStatus"];
+  ownerId?: string | null;
+  reviewCycle?: Page["reviewCycle"];
+  lastReviewedOn?: string | null;
+  sourceLink?: string | null;
+  sensitive?: boolean;
+  docVersion?: string | null;
+};
+
+export async function updateDocInfo(workspaceId: string, id: string, patch: DocInfoPatch) {
+  await db.update(pages).set(patch).where(and(eq(pages.workspaceId, workspaceId), eq(pages.id, id)));
+}
+
+/** Stamp today as the review date and record who did it. */
+export async function markReviewed(workspaceId: string, id: string, userId: string, today: string) {
+  await db
+    .update(pages)
+    .set({ lastReviewedOn: today, lastReviewedById: userId, docStatus: sql`case when ${pages.docStatus} = 'needs_review' then 'active'::doc_status else coalesce(${pages.docStatus}, 'active'::doc_status) end` })
+    .where(and(eq(pages.workspaceId, workspaceId), eq(pages.id, id)));
+}
+
+/** Add a change-log entry: a new version with what/why, without changing the content. */
+export async function logChange(workspaceId: string, id: string, entry: { note: string; why?: string; teamTold?: boolean; docVersion?: string | null }, actor: Actor) {
+  const page = await getPage(workspaceId, id);
+  if (!page) throw new Error("Page not found");
+  const uid = actorUserId(actor);
+  const version = page.version + 1;
+  await db.transaction(async (tx) => {
+    await tx.insert(pageVersions).values({
+      pageId: id,
+      version,
+      title: page.title,
+      content: page.content,
+      contentText: page.contentText,
+      actorType: actor.type,
+      actorUserId: uid,
+      note: entry.note,
+      why: entry.why ?? null,
+      teamTold: entry.teamTold ?? false,
+    });
+    await tx
+      .update(pages)
+      .set({ version, docVersion: entry.docVersion === undefined ? page.docVersion : entry.docVersion, updatedAt: new Date(), updatedById: uid })
+      .where(eq(pages.id, id));
+  });
+}
+
+export async function setTeamTold(pageId: string, versionId: string, teamTold: boolean) {
+  await db.update(pageVersions).set({ teamTold }).where(and(eq(pageVersions.pageId, pageId), eq(pageVersions.id, versionId)));
+}
+
+/** Every page that has document info set (a type or a status), for the Library. */
+export async function listLibrary(workspaceId: string) {
+  return db
+    .select({
+      id: pages.id,
+      title: pages.title,
+      icon: pages.icon,
+      docType: pages.docType,
+      area: pages.area,
+      audience: pages.audience,
+      docStatus: pages.docStatus,
+      ownerId: pages.ownerId,
+      ownerName: users.name,
+      reviewCycle: pages.reviewCycle,
+      lastReviewedOn: pages.lastReviewedOn,
+      sourceLink: pages.sourceLink,
+      source: pages.source,
+      isSop: pages.isSop,
+      updatedAt: pages.updatedAt,
+    })
+    .from(pages)
+    .leftJoin(users, eq(users.id, pages.ownerId))
+    .where(and(eq(pages.workspaceId, workspaceId), isNull(pages.archivedAt), or(isNotNull(pages.docType), isNotNull(pages.docStatus), eq(pages.isSop, true))))
+    .orderBy(asc(pages.title));
+}
+
+/** Recent change-log entries across the workspace (versions with a note). */
+export async function listChangeLog(workspaceId: string, limit = 50) {
+  return db
+    .select({
+      id: pageVersions.id,
+      pageId: pages.id,
+      pageTitle: pages.title,
+      pageIcon: pages.icon,
+      version: pageVersions.version,
+      note: pageVersions.note,
+      why: pageVersions.why,
+      teamTold: pageVersions.teamTold,
+      actorType: pageVersions.actorType,
+      actorName: users.name,
+      createdAt: pageVersions.createdAt,
+    })
+    .from(pageVersions)
+    .innerJoin(pages, eq(pages.id, pageVersions.pageId))
+    .leftJoin(users, eq(users.id, pageVersions.actorUserId))
+    .where(and(eq(pages.workspaceId, workspaceId), isNotNull(pageVersions.note), sql`${pageVersions.note} <> 'Created'`))
+    .orderBy(desc(pageVersions.createdAt))
+    .limit(limit);
 }

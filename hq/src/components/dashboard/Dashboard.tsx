@@ -9,7 +9,7 @@ import { GripVertical, Pencil, Plus, Trash2, Maximize2, Minimize2, X } from "luc
 import { addWidgetAction, removeWidgetAction, reorderWidgetsAction, updateWidgetAction } from "@/app/actions";
 import type { LinkItem, WidgetConfig, WidgetType } from "@/db/schema";
 
-type Item = { id: string; title: string; icon: string | null; updatedAt?: string; updatedBy?: string | null; source?: string };
+type Item = { id: string; title: string; icon: string | null; updatedAt?: string; updatedBy?: string | null; source?: string; state?: string; nextDueOn?: string | null; review?: string };
 export type WidgetData = { id: string; type: WidgetType; title: string; width: number; config: WidgetConfig; items: Item[] };
 type Catalog = Record<WidgetType, { title: string; description: string; emoji: string; available: boolean }>;
 type PageOpt = { id: string; title: string; icon: string | null };
@@ -185,7 +185,47 @@ function WidgetBody({ w, slug }: { w: WidgetData; slug: string }) {
     );
   }
 
-  if (w.type === "tasks") return <Empty>Tasks arrive in Milestone 2.</Empty>;
+  if (w.type === "tasks") {
+    if (!w.items.length) return <Empty>Nothing overdue or due this week. 🎉</Empty>;
+    const tone: Record<string, string> = { overdue: "bg-danger-soft text-danger", today: "bg-warn-soft text-warn", soon: "bg-accent-soft text-accent" };
+    const label: Record<string, string> = { overdue: "Overdue", today: "Today", soon: "This week" };
+    return (
+      <ul className="-mx-2">
+        {w.items.map((t) => (
+          <li key={t.id}>
+            <Link href={`/w/${slug}/tasks`} className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-hover">
+              <span className="flex-1 truncate">{t.title}</span>
+              <span className={`shrink-0 rounded px-1.5 py-0.5 text-[11px] font-medium ${tone[t.state ?? ""] ?? ""}`}>{label[t.state ?? ""] ?? ""}</span>
+            </Link>
+          </li>
+        ))}
+        <li>
+          <Link href={`/w/${slug}/tasks`} className="block px-2 pt-2 text-xs text-accent hover:underline">
+            All tasks →
+          </Link>
+        </li>
+      </ul>
+    );
+  }
+
+  if (w.type === "reviews") {
+    if (!w.items.length) return <Empty>All document reviews are current.</Empty>;
+    const label: Record<string, string> = { overdue: "Overdue", due_soon: "Due soon", first: "First review" };
+    const tone: Record<string, string> = { overdue: "bg-danger-soft text-danger", due_soon: "bg-accent-soft text-accent", first: "bg-warn-soft text-warn" };
+    return (
+      <ul className="-mx-2">
+        {w.items.map((d) => (
+          <li key={d.id}>
+            <Link href={`/w/${slug}/p/${d.id}`} className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-hover">
+              <span>{d.icon ?? "📄"}</span>
+              <span className="flex-1 truncate">{d.title || "Untitled"}</span>
+              <span className={`shrink-0 rounded px-1.5 py-0.5 text-[11px] font-medium ${tone[d.review ?? ""] ?? ""}`}>{label[d.review ?? ""] ?? ""}</span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    );
+  }
 
   if (!w.items.length) {
     const msg = w.type === "sops" ? 'No SOPs yet. Open a page, click •••, then "Mark as SOP".' : w.type === "pages" ? "No pinned pages. Click Customize → ✏️ to pick some." : "Nothing yet.";

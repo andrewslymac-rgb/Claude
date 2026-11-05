@@ -12,6 +12,9 @@ import * as dash from "@/lib/services/dashboard";
 import * as members from "@/lib/services/members";
 import * as wss from "@/lib/services/workspaces";
 import type { Actor } from "@/lib/services/actor";
+import * as taskSvc from "@/lib/services/tasks";
+import * as flagSvc from "@/lib/services/flags";
+import { todayISO } from "@/lib/recurrence";
 
 const userActor = (userId: string): Actor => ({ type: "user", userId });
 const uuid = z.string().uuid();
@@ -96,7 +99,7 @@ export async function searchAction(slug: string, q: string) {
 
 export async function addWidgetAction(slug: string, type: WidgetType) {
   const { workspace } = await requireAbility(slug, "manage_dashboard");
-  await dash.addWidget(workspace.id, z.enum(["welcome", "links", "pages", "sops", "recent", "tasks"]).parse(type));
+  await dash.addWidget(workspace.id, z.enum(["welcome", "links", "pages", "sops", "recent", "tasks", "reviews"]).parse(type));
   revalidatePath(`/w/${slug}`);
 }
 
@@ -191,4 +194,137 @@ export async function createWorkspaceAction(input: { name: string; icon?: string
 export async function signOutAction() {
   await destroySession();
   redirect("/login");
+}
+
+// ---------------------------------------------------------------- tasks
+
+const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+const taskInput = z.object({
+  title: z.string().trim().min(1).max(200),
+  category: z.string().max(40).nullable().optional(),
+  frequency: z.enum(["once", "daily", "weekly", "monthly", "quarterly", "annual"]),
+  whenText: z.string().max(120).nullable().optional(),
+  instructions: z.string().max(20000).optional(),
+  ownerRole: z.string().max(60).nullable().optional(),
+  sopPageId: uuid.nullable().optional(),
+  dueOn: isoDate.nullable().optional(),
+  assigneeIds: z.array(uuid).max(20).optional(),
+});
+
+export async function createTaskAction(slug: string, input: z.infer<typeof taskInput>) {
+  const { user, workspace } = await requireAbility(slug, "edit");
+  const t = await taskSvc.createTask(workspace.id, taskInput.parse(input), user.id);
+  revalidatePath(`/w/${slug}`, "layout");
+  return t.id;
+}
+
+export async function updateTaskAction(slug: string, id: string, input: Partial<z.infer<typeof taskInput>>) {
+  const { workspace } = await requireAbility(slug, "edit");
+  await taskSvc.updateTask(workspace.id, uuid.parse(id), taskInput.partial().parse(input));
+  revalidatePath(`/w/${slug}`, "layout");
+}
+
+export async function archiveTaskAction(slug: string, id: string) {
+  const { workspace } = await requireAbility(slug, "edit");
+  await taskSvc.archiveTask(workspace.id, uuid.parse(id));
+  revalidatePath(`/w/${slug}`, "layout");
+}
+
+/** Viewers may complete tasks too: ticking off work is not "editing". */
+export async function completeTaskAction(slug: string, id: string, doneOn?: string) {
+  const { user, workspace } = await requireAbility(slug, "read");
+  await taskSvc.completeTask(workspace.id, uuid.parse(id), user.id, doneOn ? isoDate.parse(doneOn) : todayISO());
+  revalidatePath(`/w/${slug}`, "layout");
+}
+
+export async function undoTaskAction(slug: string, id: string) {
+  const { workspace } = await requireAbility(slug, "read");
+  await taskSvc.undoComplete(workspace.id, uuid.parse(id));
+  revalidatePath(`/w/${slug}`, "layout");
+}
+
+export async function listCompletionsAction(slug: string, id: string) {
+  const { workspace } = await requireAbility(slug, "read");
+  return taskSvc.listCompletions(workspace.id, uuid.parse(id));
+}
+
+// ---------------------------------------------------------------- document info & change log
+
+const docInfo = z.object({
+  docType: z.string().max(40).nullable().optional(),
+  area: z.string().max(60).nullable().optional(),
+  audience: z.array(z.string().max(40)).max(10).optional(),
+  docStatus: z.enum(["active", "needs_review", "draft", "outdated", "archived"]).nullable().optional(),
+  ownerId: uuid.nullable().optional(),
+  reviewCycle: z.enum(["quarterly", "semiannual", "annual"]).nullable().optional(),
+  lastReviewedOn: isoDate.nullable().optional(),
+  sourceLink: z.string().url().max(2000).nullable().optional().or(z.literal("").transform(() => null)),
+  sensitive: z.boolean().optional(),
+  docVersion: z.string().max(40).nullable().optional(),
+});
+
+export async function updateDocInfoAction(slug: string, pageId: string, patch: z.infer<typeof docInfo>) {
+  const { workspace } = await requireAbility(slug, "edit");
+  await pages.updateDocInfo(workspace.id, uuid.parse(pageId), docInfo.parse(patch));
+  revalidatePath(`/w/${slug}`, "layout");
+}
+
+export async function markReviewedAction(slug: string, pageId: string) {
+  const { user, workspace } = await requireAbility(slug, "edit");
+  await pages.markReviewed(workspace.id, uuid.parse(pageId), user.id, todayISO());
+  revalidatePath(`/w/${slug}`, "layout");
+  return todayISO();
+}
+
+export async function logChangeAction(slug: string, pageId: string, entry: { note: string; why?: string; teamTold?: boolean; docVersion?: string | null }) {
+  const { user, workspace } = await requireAbility(slug, "edit");
+  const parsed = z.object({ note: z.string().trim().min(1).max(500), why: z.string().max(1000).optional(), teamTold: z.boolean().optional(), docVersion: z.string().max(40).nullable().optional() }).parse(entry);
+  await pages.logChange(workspace.id, uuid.parse(pageId), parsed, userActor(user.id));
+  revalidatePath(`/w/${slug}`, "layout");
+}
+
+export async function setTeamToldAction(slug: string, pageId: string, versionId: string, teamTold: boolean) {
+  const { workspace } = await requireAbility(slug, "edit");
+  const page = await pages.getPage(workspace.id, uuid.parse(pageId));
+  if (!page) throw new Error("Page not found");
+  await pages.setTeamTold(page.id, uuid.parse(versionId), teamTold);
+  revalidatePath(`/w/${slug}`, "layout");
+}
+
+// ---------------------------------------------------------------- flags
+
+const flagInput = z.object({
+  title: z.string().trim().min(1).max(200),
+  type: z.enum(["contradiction", "duplicate", "missing_document", "outdated", "incomplete", "open_decision", "compliance_risk", "naming_mismatch"]),
+  severity: z.enum(["high", "medium", "low"]),
+  status: z.enum(["open", "in_progress", "resolved", "wont_fix"]).optional(),
+  whoDecides: z.string().max(60).nullable().optional(),
+  whatWeFound: z.string().max(5000).optional(),
+  nextStep: z.string().max(2000).optional(),
+  pageId: uuid.nullable().optional(),
+  ownerId: uuid.nullable().optional(),
+});
+
+export async function createFlagAction(slug: string, input: z.infer<typeof flagInput>) {
+  const { user, workspace } = await requireAbility(slug, "edit");
+  await flagSvc.createFlag(workspace.id, flagInput.parse(input), user.id);
+  revalidatePath(`/w/${slug}`, "layout");
+}
+
+export async function updateFlagAction(slug: string, id: string, patch: Partial<z.infer<typeof flagInput>>) {
+  const { workspace } = await requireAbility(slug, "edit");
+  await flagSvc.updateFlag(workspace.id, uuid.parse(id), flagInput.partial().parse(patch));
+  revalidatePath(`/w/${slug}`, "layout");
+}
+
+export async function deleteFlagAction(slug: string, id: string) {
+  const { workspace } = await requireAbility(slug, "edit");
+  await flagSvc.deleteFlag(workspace.id, uuid.parse(id));
+  revalidatePath(`/w/${slug}`, "layout");
+}
+
+export async function listMembersAction(slug: string) {
+  const { workspace } = await requireAbility(slug, "read");
+  const { members: m } = await members.listMembers(workspace.id);
+  return m.map((x) => ({ id: x.userId, name: x.name ?? x.email }));
 }

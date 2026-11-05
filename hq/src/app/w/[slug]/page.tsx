@@ -3,6 +3,9 @@ import { can } from "@/lib/permissions";
 import { listWidgets, WIDGET_CATALOG } from "@/lib/services/dashboard";
 import { getPagesByIds, listRecent, listSops, listTree } from "@/lib/services/pages";
 import { Dashboard, type WidgetData } from "@/components/dashboard/Dashboard";
+import { listTasks, tasksForUser } from "@/lib/services/tasks";
+import { listLibrary } from "@/lib/services/pages";
+import { reviewState } from "@/lib/recurrence";
 
 export default async function Home({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -20,6 +23,15 @@ export default async function Home({ params }: { params: Promise<{ slug: string 
           return { ...base, items: (await listSops(workspace.id, w.config.limit ?? 8)).map((p) => ({ ...p, updatedAt: p.updatedAt.toISOString() })) };
         case "pages":
           return { ...base, items: await getPagesByIds(workspace.id, w.config.pageIds ?? []) };
+        case "tasks": {
+          const twoDaysAgo = new Date(Date.now() - 2 * 864e5).toLocaleDateString("en-CA", { timeZone: "America/Los_Angeles" });
+          const mine = tasksForUser(await listTasks(workspace.id), user.id).filter((t) => t.state === "overdue" || t.state === "today" || (t.state === "soon" && !(t.lastDoneOn && t.lastDoneOn >= twoDaysAgo)));
+          return { ...base, items: mine.slice(0, w.config.limit ?? 8).map((t) => ({ id: t.id, title: t.title, icon: null, state: t.state, nextDueOn: t.nextDueOn })) };
+        }
+        case "reviews": {
+          const docs = (await listLibrary(workspace.id)).map((d) => ({ ...d, review: reviewState(d.reviewCycle, d.lastReviewedOn) })).filter((d) => d.review === "overdue" || d.review === "due_soon" || d.review === "first");
+          return { ...base, items: docs.slice(0, w.config.limit ?? 8).map((d) => ({ id: d.id, title: d.title, icon: d.icon, review: d.review })) };
+        }
         default:
           return { ...base, items: [] };
       }

@@ -133,6 +133,14 @@ async function main() {
       { workspaceId: ws.id, type: "sops", title: "SOPs & Policies", width: 1, position: 3, config: { limit: 8 } },
       { workspaceId: ws.id, type: "pages", title: "Pinned pages", width: 1, position: 4, config: { pageIds: [start.id, sops.id] } },
       { workspaceId: ws.id, type: "recent", title: "Recently updated", width: 1, position: 5, config: { limit: 6 } },
+      { workspaceId: ws.id, type: "tasks", title: "My tasks", width: 1, position: 1.5, config: { limit: 8 } },
+      { workspaceId: ws.id, type: "reviews", title: "Reviews due", width: 1, position: 3.5, config: { limit: 6 } },
+    ]);
+    await db.insert(schema.tasks).values([
+      { workspaceId: ws.id, title: "Check today's schedule and confirm with the team", category: "Operations", frequency: "daily", nextDueOn: new Date().toLocaleDateString("en-CA", { timeZone: "America/Los_Angeles" }), createdById: owner.id },
+      { workspaceId: ws.id, title: "Run payroll", category: "Payroll", frequency: "weekly", whenText: "Every Friday", nextDueOn: new Date().toLocaleDateString("en-CA", { timeZone: "America/Los_Angeles" }), createdById: owner.id },
+      { workspaceId: ws.id, title: "Reconcile bank accounts in QuickBooks", category: "Finance", frequency: "monthly", whenText: "By the 5th", nextDueOn: new Date().toLocaleDateString("en-CA", { timeZone: "America/Los_Angeles" }), createdById: owner.id },
+      { workspaceId: ws.id, title: "Review insurance coverage", category: "Insurance", frequency: "annual", nextDueOn: new Date().toLocaleDateString("en-CA", { timeZone: "America/Los_Angeles" }), createdById: owner.id },
     ]);
     console.log(`✓ Created workspace ${s.name}`);
   }

@@ -11,7 +11,8 @@ export const WIDGET_CATALOG: Record<WidgetType, { title: string; description: st
   sops: { title: "SOPs & Policies", description: "Every page marked as an SOP", emoji: "📚", available: true },
   pages: { title: "Pinned pages", description: "Pages you pick", emoji: "📌", available: true },
   recent: { title: "Recently updated", description: "What changed lately", emoji: "🕒", available: true },
-  tasks: { title: "Tasks", description: "Today's and this week's tasks (coming in Milestone 2)", emoji: "✅", available: false },
+  tasks: { title: "Tasks", description: "Overdue, due today and coming up this week", emoji: "✅", available: true },
+  reviews: { title: "Reviews due", description: "Documents that need a review", emoji: "📋", available: true },
 };
 
 export async function listWidgets(workspaceId: string) {

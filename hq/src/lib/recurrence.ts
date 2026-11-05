@@ -1,0 +1,124 @@
+/**
+ * Date math for recurring tasks and document reviews. Works on plain
+ * YYYY-MM-DD strings so there are no timezone surprises.
+ */
+import type { Frequency, ReviewCycle } from "@/db/schema";
+
+export const TZ = "America/Los_Angeles";
+
+/** Today's date in the company's timezone, as YYYY-MM-DD. */
+export function todayISO(now = new Date()): string {
+  return now.toLocaleDateString("en-CA", { timeZone: TZ });
+}
+
+export function addDays(iso: string, days: number): string {
+  const [y, m, d] = iso.split("-").map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d + days));
+  return dt.toISOString().slice(0, 10);
+}
+
+export function addMonths(iso: string, months: number): string {
+  const [y, m, d] = iso.split("-").map(Number);
+  const target = new Date(Date.UTC(y, m - 1 + months, 1));
+  const lastDay = new Date(Date.UTC(target.getUTCFullYear(), target.getUTCMonth() + 1, 0)).getUTCDate();
+  target.setUTCDate(Math.min(d, lastDay));
+  return target.toISOString().slice(0, 10);
+}
+
+export function daysBetween(fromISO: string, toISO: string): number {
+  const a = new Date(fromISO + "T00:00:00Z").getTime();
+  const b = new Date(toISO + "T00:00:00Z").getTime();
+  return Math.round((b - a) / 864e5);
+}
+
+/** Next due date after a task was done on `doneOn`. */
+export function nextDueAfter(frequency: Frequency, doneOn: string): string | null {
+  switch (frequency) {
+    case "daily":
+      return addDays(doneOn, 1);
+    case "weekly":
+      return addDays(doneOn, 7);
+    case "monthly":
+      return addMonths(doneOn, 1);
+    case "quarterly":
+      return addMonths(doneOn, 3);
+    case "annual":
+      return addMonths(doneOn, 12);
+    case "once":
+      return null;
+  }
+}
+
+/**
+ * Compute next due for a task from its frequency, optional fixed due date and
+ * last completion. Never done + no due date = due today.
+ */
+export function computeNextDue(frequency: Frequency, dueOn: string | null, lastDoneOn: string | null, today = todayISO()): string | null {
+  if (frequency === "once") return lastDoneOn ? null : dueOn ?? today;
+  if (!lastDoneOn) return dueOn ?? today;
+  return nextDueAfter(frequency, lastDoneOn);
+}
+
+export type DueState = "overdue" | "today" | "soon" | "later" | "done";
+
+export function dueState(nextDueOn: string | null, today = todayISO()): DueState {
+  if (!nextDueOn) return "done";
+  const d = daysBetween(today, nextDueOn);
+  if (d < 0) return "overdue";
+  if (d === 0) return "today";
+  if (d <= 7) return "soon";
+  return "later";
+}
+
+export const DUE_LABELS: Record<DueState, { label: string; tone: "danger" | "warn" | "accent" | "muted" | "ok" }> = {
+  overdue: { label: "Overdue", tone: "danger" },
+  today: { label: "Due today", tone: "warn" },
+  soon: { label: "Due soon", tone: "accent" },
+  later: { label: "Scheduled", tone: "muted" },
+  done: { label: "Done", tone: "ok" },
+};
+
+export const FREQUENCY_LABELS: Record<Frequency, string> = {
+  once: "One-off",
+  daily: "Daily",
+  weekly: "Weekly",
+  monthly: "Monthly",
+  quarterly: "Quarterly",
+  annual: "Annual",
+};
+
+// --- Document reviews -------------------------------------------------------
+
+export const REVIEW_CYCLE_MONTHS: Record<ReviewCycle, number> = { quarterly: 3, semiannual: 6, annual: 12 };
+export const REVIEW_CYCLE_LABELS: Record<ReviewCycle, string> = { quarterly: "Every 3 months", semiannual: "Every 6 months", annual: "Every year" };
+
+export function nextReviewOn(cycle: ReviewCycle | null, lastReviewedOn: string | null): string | null {
+  if (!cycle || !lastReviewedOn) return null;
+  return addMonths(lastReviewedOn, REVIEW_CYCLE_MONTHS[cycle]);
+}
+
+export type ReviewState = "first" | "overdue" | "due_soon" | "current" | "none";
+
+export function reviewState(cycle: ReviewCycle | null, lastReviewedOn: string | null, today = todayISO()): ReviewState {
+  if (!cycle) return "none";
+  if (!lastReviewedOn) return "first";
+  const next = nextReviewOn(cycle, lastReviewedOn)!;
+  const d = daysBetween(today, next);
+  if (d < 0) return "overdue";
+  if (d <= 30) return "due_soon";
+  return "current";
+}
+
+export const REVIEW_LABELS: Record<ReviewState, { label: string; tone: "danger" | "warn" | "accent" | "muted" | "ok" }> = {
+  first: { label: "Needs first review", tone: "warn" },
+  overdue: { label: "Review overdue", tone: "danger" },
+  due_soon: { label: "Review due within 30 days", tone: "accent" },
+  current: { label: "Current", tone: "ok" },
+  none: { label: "No review cycle", tone: "muted" },
+};
+
+export function fmtDate(iso: string | null | undefined): string {
+  if (!iso) return "";
+  const [y, m, d] = iso.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString("en-US", { month: "short", day: "numeric", year: y === new Date().getFullYear() ? undefined : "numeric", timeZone: "UTC" });
+}
