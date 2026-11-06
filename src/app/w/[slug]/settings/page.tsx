@@ -17,6 +17,7 @@ export default async function Settings({ params }: { params: Promise<{ slug: str
   const { members, pending } = await listMembers(workspace.id);
   const grants = can(role, "manage_members") ? await listGrants(workspace.id) : [];
   const conn = can(role, "manage_members") ? await getConnection(workspace.id) : null;
+  const saStatus = await serviceAccountStatus();
 
   return (
     <div className="mx-auto max-w-3xl space-y-8 px-4 py-6 md:space-y-10 md:px-10 md:py-10">
@@ -44,7 +45,7 @@ export default async function Settings({ params }: { params: Promise<{ slug: str
       {can(role, "manage_members") && (
         <section>
           <h2 className="text-lg font-semibold">Google Drive</h2>
-          <DrivePanel slug={slug} serviceEmail={(() => { const s = serviceAccountStatus(); return s.state === "ok" ? s.email : null; })()} problem={(() => { const s = serviceAccountStatus(); return s.state === "invalid" ? s.reason : null; })()} conn={conn ? { ...conn, lastSyncAt: conn.lastSyncAt?.toISOString() ?? null } : null} />
+          <DrivePanel slug={slug} serviceEmail={saStatus.state === "ok" ? saStatus.email : null} problem={saStatus.state === "invalid" ? saStatus.reason : null} isAppAdmin={user.isAppAdmin} conn={conn ? { ...conn, lastSyncAt: conn.lastSyncAt?.toISOString() ?? null } : null} />
         </section>
       )}
 

@@ -1,5 +1,8 @@
 import "server-only";
 import { JWT } from "google-auth-library";
+import { getSetting } from "@/lib/services/app-settings";
+
+export const DRIVE_KEY_SETTING = "google_service_account_json";
 
 /**
  * Thin Google Drive REST client using a service account. The account only
@@ -20,18 +23,24 @@ export type ServiceAccountStatus = { state: "ok"; email: string } | { state: "mi
  * usual paste accidents: surrounding quotes, base64, Windows line endings, and
  * real newlines inside the private key.
  */
-export function serviceAccountStatus(): ServiceAccountStatus {
-  let raw = (process.env.GOOGLE_SERVICE_ACCOUNT_JSON ?? "").trim();
-  if (!raw) return { state: "missing" };
+function normalise(input: string) {
+  let raw = input.trim();
   if ((raw.startsWith("'") && raw.endsWith("'")) || (raw.startsWith('"') && raw.endsWith('"') && !raw.startsWith('{"'))) raw = raw.slice(1, -1);
   if (!raw.startsWith("{")) {
     try {
       raw = Buffer.from(raw, "base64").toString("utf8").trim();
     } catch {}
   }
+  return raw.replace(/\r/g, "");
+}
+
+/** Validates a pasted key without storing it. */
+export function checkServiceAccountJson(input: string): ServiceAccountStatus {
+  const raw = normalise(input);
+  if (!raw) return { state: "missing" };
   if (!raw.startsWith("{")) return { state: "invalid", reason: "The value doesn't start with { — paste the whole contents of the downloaded .json file." };
   try {
-    const j = JSON.parse(raw.replace(/\r/g, ""));
+    const j = JSON.parse(raw);
     if (!j.client_email) return { state: "invalid", reason: "No client_email in the file. Is this a service account key?" };
     if (!j.private_key) return { state: "invalid", reason: "No private_key in the file." };
     return { state: "ok", email: j.client_email };
@@ -40,24 +49,33 @@ export function serviceAccountStatus(): ServiceAccountStatus {
   }
 }
 
-export function serviceAccount(): { client_email: string; private_key: string } | null {
-  if (serviceAccountStatus().state !== "ok") return null;
-  let raw = process.env.GOOGLE_SERVICE_ACCOUNT_JSON!.trim();
-  if ((raw.startsWith("'") && raw.endsWith("'")) || (raw.startsWith('"') && raw.endsWith('"') && !raw.startsWith('{"'))) raw = raw.slice(1, -1);
-  if (!raw.startsWith("{")) raw = Buffer.from(raw, "base64").toString("utf8").trim();
-  const j = JSON.parse(raw.replace(/\r/g, ""));
-  // A key pasted with literal line breaks instead of "\n" still works once normalised.
+async function rawKey(): Promise<string> {
+  return (await getSetting(DRIVE_KEY_SETTING)) ?? process.env.GOOGLE_SERVICE_ACCOUNT_JSON ?? "";
+}
+
+export async function serviceAccountStatus(): Promise<ServiceAccountStatus> {
+  return checkServiceAccountJson(await rawKey());
+}
+
+export async function serviceAccount(): Promise<{ client_email: string; private_key: string } | null> {
+  const raw = normalise(await rawKey());
+  if (checkServiceAccountJson(raw).state !== "ok") return null;
+  const j = JSON.parse(raw);
   j.private_key = String(j.private_key).replace(/\\n/g, "\n");
   return j;
 }
 
-export const driveEnabled = () => Boolean(serviceAccount());
+export const driveEnabled = async () => Boolean(await serviceAccount());
 
 let jwt: JWT | null = null;
+let jwtEmail = "";
 async function token() {
-  const sa = serviceAccount();
-  if (!sa) throw new Error("Google Drive isn't set up: GOOGLE_SERVICE_ACCOUNT_JSON is missing.");
-  jwt ??= new JWT({ email: sa.client_email, key: sa.private_key, scopes: ["https://www.googleapis.com/auth/drive.readonly"] });
+  const sa = await serviceAccount();
+  if (!sa) throw new Error("Google Drive isn't set up: no service account key.");
+  if (!jwt || jwtEmail !== sa.client_email) {
+    jwt = new JWT({ email: sa.client_email, key: sa.private_key, scopes: ["https://www.googleapis.com/auth/drive.readonly"] });
+    jwtEmail = sa.client_email;
+  }
   const t = await jwt.getAccessToken();
   if (!t.token) throw new Error("Couldn't get a Google access token");
   return t.token;

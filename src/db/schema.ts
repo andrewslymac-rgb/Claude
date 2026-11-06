@@ -501,3 +501,10 @@ export const driveConnections = pgTable("drive_connections", {
   lastSyncCounts: jsonb("last_sync_counts").$type<{ created: number; updated: number; trashed: number; skipped: number }>(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+/** App-wide settings that are easier to paste into Orbit than into Railway (e.g. the Drive key). */
+export const appSettings = pgTable("app_settings", {
+  key: text("key").primaryKey(),
+  value: text("value").notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
