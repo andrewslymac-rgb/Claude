@@ -13,14 +13,42 @@ export const GDOC = "application/vnd.google-apps.document";
 export const DOCX = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 export const SHORTCUT = "application/vnd.google-apps.shortcut";
 
-export function serviceAccount(): { client_email: string; private_key: string } | null {
-  const raw = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
-  if (!raw) return null;
+export type ServiceAccountStatus = { state: "ok"; email: string } | { state: "missing" } | { state: "invalid"; reason: string };
+
+/**
+ * Reads the service-account key from GOOGLE_SERVICE_ACCOUNT_JSON. Tolerates the
+ * usual paste accidents: surrounding quotes, base64, Windows line endings, and
+ * real newlines inside the private key.
+ */
+export function serviceAccountStatus(): ServiceAccountStatus {
+  let raw = (process.env.GOOGLE_SERVICE_ACCOUNT_JSON ?? "").trim();
+  if (!raw) return { state: "missing" };
+  if ((raw.startsWith("'") && raw.endsWith("'")) || (raw.startsWith('"') && raw.endsWith('"') && !raw.startsWith('{"'))) raw = raw.slice(1, -1);
+  if (!raw.startsWith("{")) {
+    try {
+      raw = Buffer.from(raw, "base64").toString("utf8").trim();
+    } catch {}
+  }
+  if (!raw.startsWith("{")) return { state: "invalid", reason: "The value doesn't start with { — paste the whole contents of the downloaded .json file." };
   try {
-    const j = JSON.parse(raw);
-    if (j.client_email && j.private_key) return j;
-  } catch {}
-  return null;
+    const j = JSON.parse(raw.replace(/\r/g, ""));
+    if (!j.client_email) return { state: "invalid", reason: "No client_email in the file. Is this a service account key?" };
+    if (!j.private_key) return { state: "invalid", reason: "No private_key in the file." };
+    return { state: "ok", email: j.client_email };
+  } catch (e) {
+    return { state: "invalid", reason: `Not valid JSON (${(e as Error).message.slice(0, 80)}). Re-copy the entire file, including the first { and last }.` };
+  }
+}
+
+export function serviceAccount(): { client_email: string; private_key: string } | null {
+  if (serviceAccountStatus().state !== "ok") return null;
+  let raw = process.env.GOOGLE_SERVICE_ACCOUNT_JSON!.trim();
+  if ((raw.startsWith("'") && raw.endsWith("'")) || (raw.startsWith('"') && raw.endsWith('"') && !raw.startsWith('{"'))) raw = raw.slice(1, -1);
+  if (!raw.startsWith("{")) raw = Buffer.from(raw, "base64").toString("utf8").trim();
+  const j = JSON.parse(raw.replace(/\r/g, ""));
+  // A key pasted with literal line breaks instead of "\n" still works once normalised.
+  j.private_key = String(j.private_key).replace(/\\n/g, "\n");
+  return j;
 }
 
 export const driveEnabled = () => Boolean(serviceAccount());

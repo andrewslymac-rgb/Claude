@@ -9,7 +9,7 @@ import { appUrl } from "@/lib/oauth-meta";
 import { DrivePanel } from "@/components/settings/DrivePanel";
 import { ImportPanel } from "@/components/settings/ImportPanel";
 import { getConnection } from "@/lib/drive/sync";
-import { serviceAccount } from "@/lib/drive/client";
+import { serviceAccountStatus } from "@/lib/drive/client";
 
 export default async function Settings({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -44,7 +44,7 @@ export default async function Settings({ params }: { params: Promise<{ slug: str
       {can(role, "manage_members") && (
         <section>
           <h2 className="text-lg font-semibold">Google Drive</h2>
-          <DrivePanel slug={slug} serviceEmail={serviceAccount()?.client_email ?? null} conn={conn ? { ...conn, lastSyncAt: conn.lastSyncAt?.toISOString() ?? null } : null} />
+          <DrivePanel slug={slug} serviceEmail={(() => { const s = serviceAccountStatus(); return s.state === "ok" ? s.email : null; })()} problem={(() => { const s = serviceAccountStatus(); return s.state === "invalid" ? s.reason : null; })()} conn={conn ? { ...conn, lastSyncAt: conn.lastSyncAt?.toISOString() ?? null } : null} />
         </section>
       )}
 
