@@ -481,3 +481,23 @@ export const aiProposals = pgTable(
   (t) => [index("ai_proposals_ws_idx").on(t.workspaceId, t.status)],
 );
 export type AiProposal = typeof aiProposals.$inferSelect;
+
+// ---------------------------------------------------------------------------
+// Google Drive sync (Milestone 3): one connected folder per workspace.
+// ---------------------------------------------------------------------------
+
+export const driveConnections = pgTable("drive_connections", {
+  workspaceId: uuid("workspace_id")
+    .primaryKey()
+    .references(() => workspaces.id, { onDelete: "cascade" }),
+  folderId: text("folder_id").notNull(),
+  folderName: text("folder_name").notNull().default(""),
+  /** Orbit page that synced pages live under. */
+  rootPageId: uuid("root_page_id").references(() => pages.id, { onDelete: "set null" }),
+  /** Folder ids to skip (e.g. a duplicate folder). */
+  excludeFolderIds: jsonb("exclude_folder_ids").$type<string[]>().notNull().default([]),
+  lastSyncAt: timestamp("last_sync_at", { withTimezone: true }),
+  lastSyncStatus: text("last_sync_status"),
+  lastSyncCounts: jsonb("last_sync_counts").$type<{ created: number; updated: number; trashed: number; skipped: number }>(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});

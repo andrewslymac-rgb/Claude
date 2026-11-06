@@ -1,0 +1,306 @@
+[
+ {
+  "title": "Safety Data Sheets: four different locations, several missing",
+  "type": "compliance_risk",
+  "severity": "high",
+  "whoDecides": "Office Manager",
+  "whatWeFound": "The handbook says SDS binders are on the shared Google Drive. The spill procedure says the WhatsApp group or Drive. The Safety Plan says the supply kit. The daily task list says a binder in the vehicle. All-Purpose Cleaner and All-Purpose Cleaning Vinegar (Lavender) have no SDS, and the Dawn SDS link looks broken.",
+  "nextStep": "Pick one primary location plus one on-site copy, state it in every document, and get the missing sheets."
+ },
+ {
+  "title": "Job timer: start at home or at the client's door?",
+  "type": "contradiction",
+  "severity": "high",
+  "whoDecides": "Attorney or CPA review",
+  "whatWeFound": "The Employee Handbook (3.5, 5.2, 10B) says to start the job timer when you leave home for your first job, and that travel between jobs is paid. The Clock-In and Job Documentation SOP says to start the timer when you begin work at the client's home.",
+  "nextStep": "Pick one rule. Have your attorney or CPA confirm the compliant rule, then update both documents and tell the team in writing."
+ },
+ {
+  "title": "Bleach: handbook prohibits it, Toilet Brush Protocol uses it",
+  "type": "contradiction",
+  "severity": "high",
+  "whoDecides": "Owners",
+  "whatWeFound": "Handbook 9.3 says use of bleach is strictly prohibited. The Toilet Brush Protocol tells specialists to use a Clorox toilet wand and pod. The Clorox wand and pods are not on the inventory or SDS list.",
+  "nextStep": "Decide whether the Clorox pod is allowed. Change the handbook or the protocol to match, add the product and its SDS to the inventory, and tell the team."
+ },
+ {
+  "title": "Pay schedule: every two weeks or the 1st and 15th?",
+  "type": "contradiction",
+  "severity": "high",
+  "whoDecides": "Attorney or CPA review",
+  "whatWeFound": "The handbook says paychecks are bi-weekly. The Operations Tracker says to process payroll on the 1st and 15th.",
+  "nextStep": "Confirm what payroll actually runs. Fix whichever document is wrong."
+ },
+ {
+  "title": "Final paycheck and equipment deadlines differ from the handbook",
+  "type": "contradiction",
+  "severity": "high",
+  "whoDecides": "Attorney or CPA review",
+  "whatWeFound": "The Offboarding Checklist says final paycheck and equipment within 48 hours. The handbook gives different deadlines depending on how the employment ended.",
+  "nextStep": "Use the handbook deadlines until your attorney says otherwise, and rewrite the checklist to match."
+ },
+ {
+  "title": "Three-month raise wording is both promised and discretionary",
+  "type": "contradiction",
+  "severity": "high",
+  "whoDecides": "Owners",
+  "whatWeFound": "Handbook 3.1 says employees meeting expectations receive a $1.00 hourly raise at three months, while also stating all raises are discretionary.",
+  "nextStep": "Confirm the intended rule and approve consistent wording."
+ },
+ {
+  "title": "Maintenance leave-behind conflicts with recurring scope and add-ons",
+  "type": "contradiction",
+  "severity": "high",
+  "whoDecides": "Owners",
+  "whatWeFound": "Maintenance leave-behind lists grout scrubbing, inside medicine cabinet and under couch cushions. Recurring SOP excludes grout/inside cabinets; Add-On SOP labels upholstery vacuuming as add-ons.",
+  "nextStep": "Confirm recurring inclusions and exclusions, then align the leave-behind and SOPs."
+ },
+ {
+  "title": "Changed-price script does not request the confirmation required by SOP",
+  "type": "contradiction",
+  "severity": "high",
+  "whoDecides": "Owners",
+  "whatWeFound": "New Cleaning Request SOP section 10 requires customer confirmation before proceeding, but the script announces that cleaning is starting rather than asking for approval of the changed price.",
+  "nextStep": "Revise the script to ask for explicit approval."
+ },
+ {
+  "title": "Extra-time charge vs. \"never charge above the quoted range\"",
+  "type": "contradiction",
+  "severity": "medium",
+  "whoDecides": "Owners",
+  "whatWeFound": "Scopes say $25 per 30 minutes may apply when a job runs over. The New Cleaning Request SOP says never charge above what the customer was told.",
+  "nextStep": "State which rule wins for phone-quoted first cleans, and when the $25 charge applies."
+ },
+ {
+  "title": "Service area: Beaverton in some documents only",
+  "type": "contradiction",
+  "severity": "medium",
+  "whoDecides": "Owners",
+  "whatWeFound": "Two SOPs list Beaverton as a service area. The phone script, VA course, Deluxe scope and Difference page list eight cities and not Beaverton.",
+  "nextStep": "Confirm the service area and make every document list the same cities."
+ },
+ {
+  "title": "Quoting: range plus deposit, or one price over the phone?",
+  "type": "contradiction",
+  "severity": "medium",
+  "whoDecides": "Owners",
+  "whatWeFound": "The New Cleaning Request SOP quotes a range and takes a deposit with an optional walk-through. The VA course says to state one price and close over the phone with no walk-through.",
+  "nextStep": "Decide which method is current and rewrite the others."
+ },
+ {
+  "title": "Three owner decisions still open inside the VA Sales course",
+  "type": "open_decision",
+  "severity": "medium",
+  "whoDecides": "Owners",
+  "whatWeFound": "Card-on-file policy for bookings with no walk-through, which review sites to use, and how the VA escalates to the owners.",
+  "nextStep": "Answer the three questions and put the answers into the course."
+ },
+ {
+  "title": "Three rate card versions in the pricing folder",
+  "type": "outdated",
+  "severity": "medium",
+  "whoDecides": "Owners",
+  "whatWeFound": "Current residential-only card, a combined commercial/residential Revised v2 with malformed text, and one titled OLD.",
+  "nextStep": "Confirm the current card for each line of business; move OLD files to an Archive folder."
+ },
+ {
+  "title": "18 recurring tasks were assigned to Megan, who is no longer with the company",
+  "type": "open_decision",
+  "severity": "medium",
+  "whoDecides": "Owners",
+  "whatWeFound": "Eight daily, seven weekly and three monthly tasks named Megan as owner.",
+  "nextStep": "Assign each to the office manager, a lead, or an owner."
+ },
+ {
+  "title": "Lead follow-up cadence: 4 days vs same day",
+  "type": "contradiction",
+  "severity": "medium",
+  "whoDecides": "Owners",
+  "whatWeFound": "The New Cleaning Request SOP works an unbooked lead over three business days. The VA course works it the same day. The task list says 24 hours.",
+  "nextStep": "Choose one cadence and make the other documents match."
+ },
+ {
+  "title": "Service names don't match across documents",
+  "type": "naming_mismatch",
+  "severity": "medium",
+  "whoDecides": "Owners",
+  "whatWeFound": "Phone script, Difference page, VA course, rate card and scopes use different names for the same cleans (Deep vs Deluxe, Initial Reset vs Refresh Reset).",
+  "nextStep": "Agree on one list of service names and rename across all documents."
+ },
+ {
+  "title": "Are we still taking commercial and apartment work?",
+  "type": "contradiction",
+  "severity": "medium",
+  "whoDecides": "Owners",
+  "whatWeFound": "The VA course says decline commercial. The handbook says residential and commercial. Commercial scope, rate card and apartment scope exist. Meeting agenda says apartments are being scaled back.",
+  "nextStep": "Decide whether to accept new commercial and multifamily jobs and retire historical rate cards."
+ },
+ {
+  "title": "Training manual has many blank links",
+  "type": "incomplete",
+  "severity": "medium",
+  "whoDecides": "Office Manager",
+  "whatWeFound": "The SOP and Training Manual has [Paste Link] placeholders for Team Communication, Reporting Issues, room checklists, Deep vs Standard, Product Guide, Equipment Care, Customer Interaction, Dress Code and Handling Customer Concerns.",
+  "nextStep": "Link each to the matching Orbit page, or write the missing ones."
+ },
+ {
+  "title": "Same SOPs live in both Drive and Orchard; many saved copies",
+  "type": "duplicate",
+  "severity": "medium",
+  "whoDecides": "Owners",
+  "whatWeFound": "Several SOPs exist in Drive and in Orchard, with multiple saved copies. Nobody can tell which copy is the source of truth.",
+  "nextStep": "Choose one home for each SOP (Drive is now synced to Orbit). Retire the other copies."
+ },
+ {
+  "title": "New Cleaning Request SOP still has placeholders and numbering errors",
+  "type": "incomplete",
+  "severity": "medium",
+  "whoDecides": "Owners",
+  "whatWeFound": "Dollar figures are illustrative, Jobber steps need checking, the follow-up table repeats Touch 1 and references a Touch 4 that doesn't exist.",
+  "nextStep": "Replace examples with rate-card numbers and fix the table."
+ },
+ {
+  "title": "Handbook leftovers: version label, numbering, and notes to self",
+  "type": "incomplete",
+  "severity": "medium",
+  "whoDecides": "Owners",
+  "whatWeFound": "File name says Updated 07/29/26 but text says effective January 2026. Section numbers skip and repeat. Section 7.2 has an owner note. 10C says Coming Soon but the program is live.",
+  "nextStep": "Clean these up in the next handbook revision; annual review is due in February."
+ },
+ {
+  "title": "SOPs referenced but not found",
+  "type": "missing_document",
+  "severity": "medium",
+  "whoDecides": "Owners",
+  "whatWeFound": "Room Workflows SOP, Deluxe to Recurring Conversion SOP, 30-minute ETA text protocol, Flex Home Program, 8 billed hours goal.",
+  "nextStep": "Write them, or remove the references. (Room Workflows and Deluxe to Recurring now exist in Drive; verify.)"
+ },
+ {
+  "title": "Fall Promo 2026: terms and cutoff never written down",
+  "type": "open_decision",
+  "severity": "medium",
+  "whoDecides": "Owners",
+  "whatWeFound": "The promo document doesn't state the offer, who qualifies, or the end date.",
+  "nextStep": "Write the offer terms and end date, and say which Jobber method to use."
+ },
+ {
+  "title": "Blinds: dusted or vacuumed on a Deluxe clean?",
+  "type": "contradiction",
+  "severity": "medium",
+  "whoDecides": "Owners",
+  "whatWeFound": "Difference page says dusted. Deluxe scope and First-Time Deluxe SOP say vacuumed clean. Deep Clean scope says light dusting.",
+  "nextStep": "Decide the standard and fix the others."
+ },
+ {
+  "title": "No written refund or credit policy; deposit rules unclear",
+  "type": "missing_document",
+  "severity": "medium",
+  "whoDecides": "Owners",
+  "whatWeFound": "Nothing says when a refund, credit or free re-clean should be given. Deposit rules conflict.",
+  "nextStep": "Write a one-page refund and credit policy for the office, including deposits."
+ },
+ {
+  "title": "Onboarding checklist is out of date and conflicts with the training SOP",
+  "type": "outdated",
+  "severity": "medium",
+  "whoDecides": "Owners",
+  "whatWeFound": "Says Orchard is coming soon; OregonSaves timing differs from the handbook; I-9 timing differs from the Training Week SOP.",
+  "nextStep": "Reset the checklist and align paperwork timing."
+ },
+ {
+  "title": "No policy for re-contacting past one-time clients about recurring cleans",
+  "type": "missing_document",
+  "severity": "medium",
+  "whoDecides": "Owners",
+  "whatWeFound": "Nothing covers reaching back out to earlier one-time or lapsed clients to offer recurring service.",
+  "nextStep": "Write a short SOP: who, how often, what to say, how to log it in Jobber."
+ },
+ {
+  "title": "Cancellation fees differ: 25% residential, 50% apartments",
+  "type": "open_decision",
+  "severity": "low",
+  "whoDecides": "Owners",
+  "whatWeFound": "Residential scopes charge up to 25% inside 48 hours; apartment scope charges up to 50% plus a lockout fee.",
+  "nextStep": "Confirm the difference is intended and add a staff script for cancellations and lockouts."
+ },
+ {
+  "title": "Older Safety Plan differs from the handbook",
+  "type": "outdated",
+  "severity": "low",
+  "whoDecides": "Owners",
+  "whatWeFound": "The Safety Plan (Nov 2025) promises quarterly refreshers and a safety log; the handbook doesn't mention them.",
+  "nextStep": "Decide whether quarterly refreshers happen and align the incident record name."
+ },
+ {
+  "title": "Arrival time: 5 minutes or 10 minutes early?",
+  "type": "contradiction",
+  "severity": "low",
+  "whoDecides": "Owners",
+  "whatWeFound": "Arrival SOP says 10 minutes. Handbook says at least 5. Recurring Maintenance SOP says 5 to 10.",
+  "nextStep": "Pick one number. If early arrival is on the clock, say so in the Timekeeping policy."
+ },
+ {
+  "title": "Deep Clean scope text is cut off; other source rows are incomplete",
+  "type": "incomplete",
+  "severity": "low",
+  "whoDecides": "Office Manager",
+  "whatWeFound": "The Deep Clean scope's first sentence ends mid-word. Tracker rows and the May 6 meeting notes are empty.",
+  "nextStep": "Fix the sentence, fill in or delete the rows, decide where meeting notes live."
+ },
+ {
+  "title": "Task list mentions PTO balances; the handbook has sick time only",
+  "type": "contradiction",
+  "severity": "low",
+  "whoDecides": "Owners",
+  "whatWeFound": "The monthly task says review PTO/sick balances; the handbook describes Oregon sick time only. Review timing also differs.",
+  "nextStep": "Update the task wording and review timing to match the handbook."
+ },
+ {
+  "title": "\"Non-toxic\" product claim vs. the chemicals on the supply list",
+  "type": "contradiction",
+  "severity": "low",
+  "whoDecides": "Owners",
+  "whatWeFound": "The VA course says the company uses non-toxic products. The supply list has acidic toilet cleaner, oven cleaner, hard-water remover, and the Clorox pod.",
+  "nextStep": "Check the claim against the actual products and soften the wording if needed."
+ },
+ {
+  "title": "Offer letter not compared with the handbook",
+  "type": "open_decision",
+  "severity": "low",
+  "whoDecides": "Attorney or CPA review",
+  "whatWeFound": "The handbook quotes an offer letter line about deducting unreturned items from the final paycheck.",
+  "nextStep": "Confirm the offer letter and handbook say the same thing, with attorney input."
+ },
+ {
+  "title": "Supply tracker is stale",
+  "type": "outdated",
+  "severity": "low",
+  "whoDecides": "Office Manager",
+  "whatWeFound": "Reorder dates are in 2025 or early 2026; quantities last updated April 2026; one Item ID has a typo.",
+  "nextStep": "Update it during the next supply reorder."
+ },
+ {
+  "title": "Training week exists in Drive and in Orchard",
+  "type": "duplicate",
+  "severity": "low",
+  "whoDecides": "Trainer",
+  "whatWeFound": "The Day 1 to 5 process is in the Training Manager SOP in Drive and in Orchard.",
+  "nextStep": "Compare the two and keep one."
+ },
+ {
+  "title": "Job titles vary: Cleaning Specialist, Technician, Tech, Lead, Trainer",
+  "type": "naming_mismatch",
+  "severity": "low",
+  "whoDecides": "Owners",
+  "whatWeFound": "The handbook says Cleaning Specialist; other documents and Orchard use Technician, Tech, Team Lead, Trainer/Lead.",
+  "nextStep": "Pick one title per role."
+ },
+ {
+  "title": "Company name written with \"&\" or misspelled in two documents",
+  "type": "naming_mismatch",
+  "severity": "low",
+  "whoDecides": "Office Manager",
+  "whatWeFound": "The Toilet Brush Protocol banner reads LEMON & LAVENDE. The Safety Plan is headed Lemon & Lavender Cleaning Co.",
+  "nextStep": "Fix the headers when each document is next edited. Standard is Lemon and Lavender Cleaning Co. in full."
+ }
+]

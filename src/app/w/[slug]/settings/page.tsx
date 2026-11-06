@@ -6,12 +6,17 @@ import { WorkspaceForm } from "@/components/settings/WorkspaceForm";
 import { AiAccessPanel } from "@/components/settings/AiAccessPanel";
 import { listGrants, SCOPE_LABELS } from "@/lib/services/ai-auth";
 import { appUrl } from "@/lib/oauth-meta";
+import { DrivePanel } from "@/components/settings/DrivePanel";
+import { ImportPanel } from "@/components/settings/ImportPanel";
+import { getConnection } from "@/lib/drive/sync";
+import { serviceAccount } from "@/lib/drive/client";
 
 export default async function Settings({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const { user, workspace, role } = await requireWorkspacePage(slug);
   const { members, pending } = await listMembers(workspace.id);
   const grants = can(role, "manage_members") ? await listGrants(workspace.id) : [];
+  const conn = can(role, "manage_members") ? await getConnection(workspace.id) : null;
 
   return (
     <div className="mx-auto max-w-3xl space-y-8 px-4 py-6 md:space-y-10 md:px-10 md:py-10">
@@ -26,6 +31,20 @@ export default async function Settings({ params }: { params: Promise<{ slug: str
         <section>
           <h2 className="text-lg font-semibold">Workspace</h2>
           <WorkspaceForm slug={slug} name={workspace.name} icon={workspace.icon} color={workspace.color} />
+        </section>
+      )}
+
+      {user.isAppAdmin && workspace.slug === "lemon-and-lavender" && (
+        <section>
+          <h2 className="text-lg font-semibold">Import</h2>
+          <ImportPanel slug={slug} />
+        </section>
+      )}
+
+      {can(role, "manage_members") && (
+        <section>
+          <h2 className="text-lg font-semibold">Google Drive</h2>
+          <DrivePanel slug={slug} serviceEmail={serviceAccount()?.client_email ?? null} conn={conn ? { ...conn, lastSyncAt: conn.lastSyncAt?.toISOString() ?? null } : null} />
         </section>
       )}
 

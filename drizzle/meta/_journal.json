@@ -43,6 +43,13 @@
       "when": 1793940926660,
       "tag": "0005_ai_proposals",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1793941231423,
+      "tag": "0006_drive_sync",
+      "breakpoints": true
     }
   ]
 }
