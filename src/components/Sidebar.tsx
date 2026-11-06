@@ -38,7 +38,7 @@ export function Sidebar(props: { workspace: Ws; workspaces: Ws[]; tree: Node[]; 
     });
 
   return (
-    <aside className="flex w-64 shrink-0 flex-col border-r border-line bg-side text-[14px]">
+    <aside className="flex h-full w-full flex-col border-r border-line bg-side text-[15px] md:text-[14px]">
       <Link href="/" className="flex items-center gap-2 px-4 pt-4 text-accent hover:opacity-80" title="All companies">
         <OrbitLogo size={22} />
         <span className="text-lg font-bold tracking-tight text-ink">orbit</span>
@@ -93,7 +93,7 @@ export function Sidebar(props: { workspace: Ws; workspaces: Ws[]; tree: Node[]; 
 
 function NavItem({ href, icon, label, active, badge }: { href: string; icon: React.ReactNode; label: string; active?: boolean; badge?: number }) {
   return (
-    <Link href={href} className={`flex items-center gap-2 rounded-md px-2 py-1.5 ${active ? "bg-hover font-medium text-ink" : "text-ink-soft hover:bg-hover"}`}>
+    <Link href={href} className={`flex min-h-10 items-center gap-2 rounded-md px-2 py-1.5 md:min-h-0 ${active ? "bg-hover font-medium text-ink" : "text-ink-soft hover:bg-hover"}`}>
       {icon} {label}
       {badge ? <span className="ml-auto rounded-full bg-warn-soft px-1.5 text-[11px] font-semibold text-warn">{badge}</span> : null}
     </Link>
@@ -265,17 +265,17 @@ function PageTree({ slug, nodes, canEdit, onNew }: { slug: string; nodes: Node[]
           >
             {dz === "before" && <div className="absolute -top-px left-2 right-2 h-0.5 rounded bg-accent" />}
             {dz === "after" && <div className="absolute -bottom-px left-2 right-2 h-0.5 rounded bg-accent" />}
-            <button onClick={() => toggle(n.id)} className="rounded p-0.5 text-ink-faint hover:bg-line" aria-label={open ? "Collapse" : "Expand"}>
+            <button onClick={() => toggle(n.id)} className="rounded p-1.5 text-ink-faint hover:bg-line md:p-0.5" aria-label={open ? "Collapse" : "Expand"}>
               {open ? <ChevronDown size={14} /> : <ChevronRight size={14} className={kids.length ? "" : "opacity-40"} />}
             </button>
-            <Link href={`/w/${slug}/p/${n.id}`} className="flex min-w-0 flex-1 items-center gap-1.5 py-1.5 pl-0.5">
+            <Link href={`/w/${slug}/p/${n.id}`} className="flex min-h-10 min-w-0 flex-1 items-center gap-1.5 py-1.5 pl-0.5 md:min-h-0">
               <span className="w-5 shrink-0 text-center">{n.icon ?? "📄"}</span>
               <span className="truncate">{n.title || "Untitled"}</span>
               {n.source === "gdrive" && <span title="Synced from Google Drive" className="text-[10px] text-ink-faint">Drive</span>}
             </Link>
             {canEdit && (
-              <div className="relative flex opacity-0 group-hover:opacity-100">
-                <button onClick={() => setMenu(menu === n.id ? null : n.id)} className="rounded p-0.5 text-ink-faint hover:bg-line hover:text-ink" title="More">
+              <div className="relative flex md:opacity-0 md:group-hover:opacity-100">
+                <button onClick={() => setMenu(menu === n.id ? null : n.id)} className="rounded p-1.5 text-ink-faint hover:bg-line hover:text-ink md:p-0.5" title="More">
                   <MoreHorizontal size={14} />
                 </button>
                 <button
@@ -283,7 +283,7 @@ function PageTree({ slug, nodes, canEdit, onNew }: { slug: string; nodes: Node[]
                     toggle(n.id, true);
                     onNew(n.id);
                   }}
-                  className="rounded p-0.5 text-ink-faint hover:bg-line hover:text-ink"
+                  className="rounded p-1.5 text-ink-faint hover:bg-line hover:text-ink md:p-0.5"
                   title="Add a page inside"
                 >
                   <Plus size={14} />

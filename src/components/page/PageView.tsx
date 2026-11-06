@@ -87,10 +87,10 @@ export function PageView({ slug, page, crumbs, subpages, canEdit, docInfo, membe
   return (
     <div className="relative min-h-full">
       {/* Top bar */}
-      <div className="sticky top-0 z-20 flex h-11 items-center gap-2 bg-paper/90 px-4 text-sm backdrop-blur">
+      <div className="sticky top-0 z-20 flex h-11 items-center gap-1 bg-paper/90 px-2 text-sm backdrop-blur md:gap-2 md:px-4">
         <nav className="flex min-w-0 flex-1 items-center gap-1 text-ink-soft">
           {crumbs.map((c) => (
-            <span key={c.id} className="flex min-w-0 items-center gap-1">
+            <span key={c.id} className="hidden min-w-0 items-center gap-1 sm:flex">
               <Link href={`/w/${slug}/p/${c.id}`} className="truncate rounded px-1 py-0.5 hover:bg-hover">
                 {c.icon ?? "📄"} {c.title}
               </Link>
@@ -103,12 +103,12 @@ export function PageView({ slug, page, crumbs, subpages, canEdit, docInfo, membe
         </nav>
         <SaveIndicator state={save} />
         {isSop && <span className="rounded bg-warn-soft px-2 py-0.5 text-xs font-semibold text-warn">SOP</span>}
-        <button onClick={() => setHistory(true)} className="flex items-center gap-1 rounded-md px-2 py-1 text-ink-soft hover:bg-hover">
-          <History size={15} /> History
+        <button onClick={() => setHistory(true)} className="flex min-h-10 items-center gap-1 rounded-md px-2 py-1 text-ink-soft hover:bg-hover md:min-h-0">
+          <History size={15} /> <span className="hidden sm:inline">History</span>
         </button>
         {canEdit && (
           <div className="relative">
-            <button onClick={() => setMenu((m) => !m)} className="rounded-md p-1 text-ink-soft hover:bg-hover" aria-label="More">
+            <button onClick={() => setMenu((m) => !m)} className="flex h-10 w-10 items-center justify-center rounded-md text-ink-soft hover:bg-hover md:h-auto md:w-auto md:p-1" aria-label="More">
               <MoreHorizontal size={18} />
             </button>
             {menu && (
@@ -167,7 +167,7 @@ export function PageView({ slug, page, crumbs, subpages, canEdit, docInfo, membe
         </Banner>
       )}
 
-      <article className="mx-auto max-w-[760px] px-6 pb-40 pt-10 md:px-14">
+      <article className="mx-auto max-w-[760px] px-4 pb-40 pt-6 md:px-14 md:pt-10">
         {/* Icon + title */}
         <div className="relative mb-2">
           <button
@@ -209,7 +209,7 @@ export function PageView({ slug, page, crumbs, subpages, canEdit, docInfo, membe
               el.style.height = `${el.scrollHeight}px`;
             }
           }}
-          className="mb-4 w-full resize-none overflow-hidden bg-transparent text-[40px] font-bold leading-tight tracking-tight outline-none placeholder:text-ink-faint"
+          className="mb-4 w-full resize-none overflow-hidden bg-transparent text-3xl font-bold leading-tight tracking-tight outline-none placeholder:text-ink-faint md:text-[40px]"
           autoFocus={canEdit && !page.title}
         />
 

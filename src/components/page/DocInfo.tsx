@@ -55,7 +55,7 @@ export function DocInfo({ slug, pageId, initial, members, options, canEdit, forc
   const field = "rounded-md border border-line bg-paper px-2 py-1 text-sm";
   return (
     <div className="mb-6 rounded-xl border border-line bg-card/60 text-sm">
-      <div className="flex flex-wrap items-center gap-2 px-4 py-2.5">
+      <div className="flex flex-wrap items-center gap-2 px-3 py-2.5 md:px-4">
         {v.docStatus && <span className={`rounded px-2 py-0.5 text-xs font-medium ${STATUS[v.docStatus].cls}`}>{STATUS[v.docStatus].label}</span>}
         {v.docType && <span className="text-ink-soft">{v.docType}</span>}
         {v.area && <span className="text-ink-faint">· {v.area}</span>}
@@ -91,7 +91,7 @@ export function DocInfo({ slug, pageId, initial, members, options, canEdit, forc
       </div>
 
       {open && canEdit && (
-        <div className="grid grid-cols-2 gap-3 border-t border-line px-4 py-3 md:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 border-t border-line px-4 py-3 sm:grid-cols-2 md:grid-cols-3">
           <L label="Type">
             <select value={v.docType ?? ""} onChange={(e) => save({ docType: e.target.value || null })} className={field}>
               <option value="">—</option>

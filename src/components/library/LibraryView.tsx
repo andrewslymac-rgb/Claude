@@ -52,7 +52,7 @@ export function LibraryView({ slug, docs, log, types, areas }: { slug: string; d
 
   const sel = "rounded-md border border-line bg-card px-2 py-1.5 text-sm";
   return (
-    <div className="mx-auto max-w-6xl px-6 py-8 md:px-10">
+    <div className="mx-auto max-w-6xl px-4 py-6 md:px-10 md:py-8">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold">Document Library</h1>
@@ -103,7 +103,30 @@ export function LibraryView({ slug, docs, log, types, areas }: { slug: string; d
               ))}
             </select>
           </div>
-          <div className="mt-4 overflow-x-auto rounded-xl border border-line">
+          <ul className="mt-4 space-y-2 md:hidden">
+            {rows.length === 0 && <li className="rounded-xl border border-dashed border-line px-4 py-8 text-center text-sm text-ink-faint">No documents match.</li>}
+            {rows.map((d) => (
+              <li key={d.id}>
+                <Link href={`/w/${slug}/p/${d.id}`} className="block rounded-xl border border-line bg-card p-3 active:bg-hover">
+                  <div className="flex items-center gap-2 font-medium">
+                    <span>{d.icon ?? "📄"}</span>
+                    <span className="min-w-0 flex-1 truncate">{d.title || "Untitled"}</span>
+                    {d.docStatus && <span className={`shrink-0 rounded px-1.5 py-0.5 text-[11px] font-medium ${STATUS_LABELS[d.docStatus].cls}`}>{STATUS_LABELS[d.docStatus].label}</span>}
+                  </div>
+                  <div className="mt-1 flex flex-wrap gap-x-2 text-xs text-ink-faint">
+                    {(d.docType ?? (d.isSop ? "SOP" : "")) && <span>{d.docType ?? "SOP"}</span>}
+                    {d.area && <span>· {d.area}</span>}
+                    {d.ownerName && <span>· {d.ownerName}</span>}
+                  </div>
+                  <div className={`mt-1 text-xs font-medium ${TONE[REVIEW_LABELS[d.review].tone]}`}>
+                    {REVIEW_LABELS[d.review].label}
+                    {d.next ? ` · ${fmtDate(d.next)}` : ""}
+                  </div>
+                </Link>
+              </li>
+            ))}
+          </ul>
+          <div className="mt-4 hidden overflow-x-auto rounded-xl border border-line md:block">
             <table className="w-full text-sm">
               <thead className="bg-side text-left text-xs uppercase tracking-wide text-ink-faint">
                 <tr>

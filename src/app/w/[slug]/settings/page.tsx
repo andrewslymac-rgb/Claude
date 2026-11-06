@@ -14,7 +14,7 @@ export default async function Settings({ params }: { params: Promise<{ slug: str
   const grants = can(role, "manage_members") ? await listGrants(workspace.id) : [];
 
   return (
-    <div className="mx-auto max-w-3xl space-y-10 px-6 py-10">
+    <div className="mx-auto max-w-3xl space-y-8 px-4 py-6 md:space-y-10 md:px-10 md:py-10">
       <div>
         <h1 className="text-2xl font-semibold">Settings</h1>
         <p className="mt-1 text-sm text-ink-soft">

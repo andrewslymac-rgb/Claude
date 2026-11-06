@@ -42,11 +42,11 @@ export default async function Home({ params }: { params: Promise<{ slug: string 
   const greeting = +hour < 12 ? "Good morning" : +hour < 17 ? "Good afternoon" : "Good evening";
 
   return (
-    <div className="mx-auto max-w-5xl px-6 py-10 md:px-10">
+    <div className="mx-auto max-w-5xl px-4 py-6 md:px-10 md:py-10">
       <div className="flex items-center gap-3">
-        <span className="text-4xl">{workspace.icon}</span>
+        <span className="text-3xl md:text-4xl">{workspace.icon}</span>
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">
+          <h1 className="text-xl font-semibold tracking-tight md:text-2xl">
             {greeting}, {(user.name ?? "").split(" ")[0] || "there"}
           </h1>
           <p className="text-sm text-ink-soft">{workspace.name}</p>

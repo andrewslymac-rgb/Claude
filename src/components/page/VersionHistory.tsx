@@ -48,8 +48,8 @@ export function VersionHistory({
 
   return (
     <div className="fixed inset-0 z-50 flex bg-black/60" onMouseDown={onClose}>
-      <div className="m-4 flex flex-1 overflow-hidden rounded-xl border border-line bg-card shadow-2xl" onMouseDown={(e) => e.stopPropagation()}>
-        <div className="flex-1 overflow-y-auto px-10 py-8">
+      <div className="m-2 flex flex-1 flex-col-reverse overflow-hidden rounded-xl border border-line bg-card shadow-2xl md:m-4 md:flex-row" onMouseDown={(e) => e.stopPropagation()}>
+        <div className="flex-1 overflow-y-auto px-4 py-6 md:px-10 md:py-8">
           {preview ? (
             <>
               <h1 className="mb-4 text-3xl font-bold">{preview.title || "Untitled"}</h1>
@@ -59,7 +59,7 @@ export function VersionHistory({
             <div className="text-sm text-ink-faint">Loading…</div>
           )}
         </div>
-        <aside className="flex w-80 flex-col border-l border-line bg-side">
+        <aside className="flex max-h-[45%] w-full flex-col border-b border-line bg-side md:max-h-none md:w-80 md:border-b-0 md:border-l">
           <div className="flex items-center justify-between px-4 py-3">
             <h2 className="font-semibold">Version history</h2>
             <button onClick={onClose} className="rounded p-1 hover:bg-hover" aria-label="Close">

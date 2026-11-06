@@ -18,7 +18,7 @@ export default async function Hub() {
   const first = (user.name ?? "").split(" ")[0] || "there";
 
   return (
-    <main className="mx-auto max-w-3xl px-6 py-10">
+    <main className="mx-auto max-w-3xl px-4 py-6 md:px-6 md:py-10">
       <header className="flex items-center justify-between">
         <OrbitWordmark size={30} />
         <form action={signOutAction}>
@@ -30,8 +30,8 @@ export default async function Hub() {
 
       <section className="orbit-hero mt-8 rounded-2xl border border-line p-7">
         <div className="text-xs font-semibold uppercase tracking-[0.18em] text-ink-faint">Your business headquarters</div>
-        <h1 className="mt-3 text-4xl font-bold tracking-tight">{greeting}, {first}.</h1>
-        <p className="mt-2 text-xl text-ink-soft">Here&apos;s what&apos;s happening across your companies.</p>
+        <h1 className="mt-3 text-3xl font-bold tracking-tight md:text-4xl">{greeting}, {first}.</h1>
+        <p className="mt-2 text-lg text-ink-soft md:text-xl">Here&apos;s what&apos;s happening across your companies.</p>
       </section>
 
       <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">

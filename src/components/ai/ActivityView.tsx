@@ -12,7 +12,7 @@ const fmt = (iso: string) => new Date(iso).toLocaleString("en-US", { month: "sho
 export function ActivityView({ slug, items, canUndo }: { slug: string; items: A[]; canUndo: boolean }) {
   const [busy, start] = useTransition();
   return (
-    <div className="mx-auto max-w-3xl px-6 py-8 md:px-10">
+    <div className="mx-auto max-w-3xl px-4 py-6 md:px-10 md:py-8">
       <h1 className="flex items-center gap-2 text-2xl font-semibold">
         <Bot size={24} className="text-accent" /> AI activity
       </h1>

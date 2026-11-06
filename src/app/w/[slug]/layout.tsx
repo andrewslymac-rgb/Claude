@@ -2,6 +2,7 @@ import { requireWorkspacePage, listWorkspacesForUser } from "@/lib/access";
 import { listTree } from "@/lib/services/pages";
 import { can } from "@/lib/permissions";
 import { Sidebar } from "@/components/Sidebar";
+import { MobileShell } from "@/components/MobileShell";
 import { listTasks } from "@/lib/services/tasks";
 import { listFlags } from "@/lib/services/flags";
 
@@ -13,7 +14,8 @@ export default async function WorkspaceLayout({ children, params }: { children: 
   const openFlags = flags.filter((f) => f.status === "open").length;
 
   return (
-    <div className="flex h-screen overflow-hidden" style={{ ["--ws-accent" as string]: workspace.color }}>
+    <div style={{ ["--ws-accent" as string]: workspace.color }}>
+      <MobileShell title={workspace.name} icon={workspace.icon} sidebar={
       <Sidebar
         workspace={{ slug: workspace.slug, name: workspace.name, icon: workspace.icon, color: workspace.color }}
         workspaces={workspaces.map((w) => ({ slug: w.slug, name: w.name, icon: w.icon, color: w.color }))}
@@ -24,7 +26,9 @@ export default async function WorkspaceLayout({ children, params }: { children: 
         attention={attention}
         openFlags={openFlags}
       />
-      <main className="flex-1 overflow-y-auto scrollbar-thin">{children}</main>
+      }>
+        {children}
+      </MobileShell>
     </div>
   );
 }
