@@ -1,0 +1,231 @@
+{
+  "version": "samantha-v3",
+  "voice": "Samantha",
+  "segments": {
+    "opening": [
+      [
+        "Hi, I'm Taylor.",
+        178,
+        180
+      ],
+      [
+        "I'm looking for someone to clean our house every other week.",
+        178,
+        140
+      ],
+      [
+        "Could you give me an idea of the price?",
+        174,
+        0
+      ]
+    ],
+    "discover": [
+      [
+        "It's about two thousand square feet.",
+        178,
+        180
+      ],
+      [
+        "Mostly, I need help with the kitchen and bathrooms.",
+        176,
+        120
+      ],
+      [
+        "The kitchen's gotten a bit ahead of us.",
+        180,
+        210
+      ],
+      [
+        "Every other week would be great.",
+        178,
+        160
+      ],
+      [
+        "Is next week possible?",
+        173,
+        0
+      ]
+    ],
+    "value": [
+      [
+        "Yeah, that would help.",
+        176,
+        150
+      ],
+      [
+        "The kitchen and bathrooms are definitely the priority.",
+        179,
+        0
+      ]
+    ],
+    "explain": [
+      [
+        "Okay, so five seventy for the first visit.",
+        172,
+        230
+      ],
+      [
+        "Then two twenty every other week?",
+        174,
+        240
+      ],
+      [
+        "Why is the first one so much more?",
+        177,
+        0
+      ]
+    ],
+    "objection": [
+      [
+        "Oh, okay.",
+        174,
+        160
+      ],
+      [
+        "You're getting it back into shape first.",
+        177,
+        180
+      ],
+      [
+        "Then the regular visits keep it that way.",
+        175,
+        0
+      ]
+    ],
+    "close_ready": [
+      [
+        "Yes, let's put in that request.",
+        178,
+        180
+      ],
+      [
+        "Five hundred seventy for the deep clean, then two hundred twenty every other week.",
+        171,
+        230
+      ],
+      [
+        "Just let me know what date the team can confirm.",
+        178,
+        180
+      ],
+      [
+        "I understand it isn't booked yet.",
+        176,
+        0
+      ]
+    ],
+    "close_missing": [
+      [
+        "I'm not quite ready yet.",
+        176,
+        210
+      ],
+      [
+        "Could we go over what I'd get, and what it would cost?",
+        174,
+        140
+      ],
+      [
+        "I still have a couple of questions.",
+        178,
+        0
+      ]
+    ],
+    "clarify": [
+      [
+        "Sure, thank you.",
+        177,
+        180
+      ],
+      [
+        "Just check with your manager and let me know.",
+        178,
+        0
+      ]
+    ],
+    "escalate": [
+      [
+        "Okay, that works.",
+        177,
+        150
+      ],
+      [
+        "I'll wait until we have an answer before I decide.",
+        176,
+        0
+      ]
+    ],
+    "unsafe": [
+      [
+        "Wait, I'm a little confused.",
+        178,
+        200
+      ],
+      [
+        "That sounds different from the terms you mentioned.",
+        175,
+        170
+      ],
+      [
+        "Could you double-check?",
+        175,
+        0
+      ]
+    ]
+  },
+  "status": "prerecorded local speech; no live AI",
+  "scripts": {
+    "opening": "Hi, I'm Taylor. I'm looking for someone to clean our house every other week. Could you give me an idea of the price?",
+    "discover": "It's about two thousand square feet. Mostly, I need help with the kitchen and bathrooms. The kitchen's gotten a bit ahead of us. Every other week would be great. Is next week possible?",
+    "value": "Yeah, that would help. The kitchen and bathrooms are definitely the priority.",
+    "explain": "Okay, so five seventy for the first visit. Then two twenty every other week? Why is the first one so much more?",
+    "objection": "Oh, okay. You're getting it back into shape first. Then the regular visits keep it that way.",
+    "close_ready": "Yes, let's put in that request. Five hundred seventy for the deep clean, then two hundred twenty every other week. Just let me know what date the team can confirm. I understand it isn't booked yet.",
+    "close_missing": "I'm not quite ready yet. Could we go over what I'd get, and what it would cost? I still have a couple of questions.",
+    "clarify": "Sure, thank you. Just check with your manager and let me know.",
+    "escalate": "Okay, that works. I'll wait until we have an answer before I decide.",
+    "unsafe": "Wait, I'm a little confused. That sounds different from the terms you mentioned. Could you double-check?"
+  },
+  "recordings": {
+    "opening": {
+      "seconds": 6.996,
+      "sha256": "9b4e5b34e4c6e17411825d08d85c63b79222112b10a82e8848c550aab17be869"
+    },
+    "discover": {
+      "seconds": 11.207,
+      "sha256": "3f0ed47556ecc26c620928f9a6eab553507dc8a6569ca48bb034f1e8c1158091"
+    },
+    "value": {
+      "seconds": 4.694,
+      "sha256": "67b93a0e8c77b8288674e3237681a048e07f5084e28b7d13c6495719398420d8"
+    },
+    "explain": {
+      "seconds": 7.488,
+      "sha256": "db5d19d8535117f3f026de78e2b5f7988578b21887a0007bb2e68472152211ca"
+    },
+    "objection": {
+      "seconds": 6.071,
+      "sha256": "bb9f13b65aadc951bd3bf43a6515295d82636939fdae9adb0d86f614a89b79fc"
+    },
+    "close_ready": {
+      "seconds": 12.173,
+      "sha256": "0906afea5402e985f2b987083e3d68fa861f798a29fcae0f798271034779b554"
+    },
+    "close_missing": {
+      "seconds": 7.027,
+      "sha256": "ca5666694ea17d27387141ddf5301030bd80b9a3300d54412ac3b0eee267b9e6"
+    },
+    "clarify": {
+      "seconds": 4.063,
+      "sha256": "51a61819a52411a463a6eac496c915891ecb9c806096e4ded4d7091660323200"
+    },
+    "escalate": {
+      "seconds": 4.621,
+      "sha256": "562161fc1c12db02543cce6e6d21bb632f72cce08495b4d4cb8b4810092857ef"
+    },
+    "unsafe": {
+      "seconds": 6.116,
+      "sha256": "fb7871b161d9039c84d3bd15775fabf84ef5e22cf638f1371c11dd85ce4bff8b"
+    }
+  }
+}

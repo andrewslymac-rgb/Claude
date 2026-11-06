@@ -1,0 +1,11 @@
+{% extends 'training/base.html' %}{% block title %}Stage {{ stage.number }} · {{ stage.short_title }}{% endblock %}{% block content %}
+<div class="learner-journey">
+<a class="back" href="{% url 'course' assignment.pk %}">← Training home</a><div class="eyebrow">STAGE {{ stage.number }} OF 4</div><h1>{{ stage.title }}</h1><p class="lead">{{ stage.purpose }}</p>
+<p class="stage-summary">{{ stage.completed }} of {{ stage.total }} lesson{{ stage.total|pluralize }} complete{% if stage.slug == 'industry' %} · Orientation {% if stage.guide_reviewed %}reviewed{% else %}to read{% endif %}{% endif %}</p>
+<section class="journey-next"><div class="eyebrow">{% if stage.complete %}UP NEXT{% else %}YOUR NEXT STEP{% endif %}</div><h2>{{ stage_action.title }}</h2><p>{{ stage_action.detail }}</p><a class="button primary-continue" href="{{ stage_action.url }}">{{ stage_action.label }} <span aria-hidden="true">→</span></a></section>
+<h2 class="stage-content-title">In this stage</h2><ol class="stage-lessons">{% for item in stage.items %}<li><a href="{{ item.url }}"><strong>{{ item.title }}</strong><span>{% if item.is_guide %}Orientation · {% if item.complete %}reviewed{% else %}4 minutes{% endif %}{% elif item.complete %}Complete · revisit{% elif item.progress %}{{ item.pages_done }} of {{ item.pages_total }} steps complete{% else %}{{ item.pages_total }} steps · {{ item.minutes }} minutes{% endif %}</span></a><p>{{ item.summary }}</p></li>{% endfor %}
+{% if stage.slug == 'role-playing' %}<li><a href="{% url 'practice_library' assignment.pk %}"><strong>Practice a call, then review feedback</strong><span>{{ practice_saved }} saved call rehearsal{{ practice_saved|pluralize }} · {{ practice_reviewed }} with manager feedback</span></a><p>Try a local simulation, save the customer’s needs and next step, then use one coaching point in your next attempt.</p></li>{% endif %}</ol>
+{% if stage.slug == 'role-playing' %}<p class="muted">Practice is ongoing. There is no automatic pass or readiness decision.</p>{% endif %}
+<div class="journey-footer"><a href="{% url 'course' assignment.pk %}">← Training home</a><a href="{% url 'services' assignment.pk %}">Open reference</a></div>
+{% if user.profile.role != 'learner' %}<p class="notice">Trainer view · Read-only.</p>{% endif %}
+</div>{% endblock %}

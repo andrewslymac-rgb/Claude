@@ -1,0 +1,103 @@
+Creating test database for alias 'default'...
+........................Forbidden (CSRF cookie not set.): /course/1/orientation/
+..................................................Forbidden (CSRF cookie not set.): /course/1/live/start/
+............................./Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/unittest/case.py:586: UserWarning: Overriding setting DATABASES can lead to unexpected behavior.
+  self.setUp()
+..................Forbidden (CSRF cookie not set.): /attempt/55b463a0-7b07-464a-af40-deac4b7029e1/record/
+.......................Forbidden (CSRF cookie not set.): /live/253612b7-3b7f-44b8-98fb-dcb619591d57/control/
+......Forbidden (CSRF cookie not set.): /live/3f5835d1-128f-49e2-9322-645355fa37b7/align/
+.....................Forbidden (Origin checking failed - null does not match any trusted origins.): /sign-in/
+.Forbidden (CSRF cookie not set.): /magic/
+Forbidden (CSRF cookie not set.): /course/1/start/
+.....................................................................................................................E........./Users/macintoshfamily/Documents/Codex/2026-11-05/task/transfer-output/lemon-lavender-pilot/training/test_live_fixture.py:30: UserWarning: Overriding setting DATABASES can lead to unexpected behavior.
+  with override_settings(DATA_DIR=self.root, DATABASES={'default': {'NAME': self.root / 'pilot.sqlite3'}}):
+....E.E....................................................................................
+======================================================================
+ERROR: test_keychain_failure_is_generic_no_fallback (training.test_live.ProtocolTests.test_keychain_failure_is_generic_no_fallback)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/macintoshfamily/Documents/Codex/2026-11-05/task/transfer-output/lemon-lavender-pilot/training/test_live.py", line 288, in test_keychain_failure_is_generic_no_fallback
+    with self.assertRaises(CredentialUnavailable) as error: read_project_key()
+                                                            ^^^^^^^^^^^^^^^^^^
+  File "/Users/macintoshfamily/Documents/Codex/2026-11-05/task/transfer-output/lemon-lavender-pilot/training/live_credentials.py", line 64, in read_project_key
+    keychain_path = str(login_keychain()).encode()
+                        ^^^^^^^^^^^^^^^^
+  File "/Users/macintoshfamily/Documents/Codex/2026-11-05/task/transfer-output/lemon-lavender-pilot/training/keychain_setup.py", line 43, in login_keychain
+    result = _metadata(['default-keychain', '-d', 'user'])
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/macintoshfamily/Documents/Codex/2026-11-05/task/transfer-output/lemon-lavender-pilot/training/keychain_setup.py", line 31, in _metadata
+    return subprocess.run(
+           ^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/subprocess.py", line 548, in run
+    with Popen(*popenargs, **kwargs) as process:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/subprocess.py", line 1026, in __init__
+    self._execute_child(args, executable, preexec_fn, close_fds,
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/subprocess.py", line 1821, in _execute_child
+    sys.audit("subprocess.Popen", executable, args, cwd, env)
+  File "/tmp/verify_voice_transfer.py", line 9, in guard
+    if event=='subprocess.Popen' and any('/security' in str(a) for a in args[:2]): raise RuntimeError('Transfer verification blocks Keychain CLI')
+                                                                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: Transfer verification blocks Keychain CLI
+
+======================================================================
+ERROR: test_explicit_prompt_refresh_preserves_unused_grant_and_exact_limits (training.test_quality_acceptance.QualityBudgetTests.test_explicit_prompt_refresh_preserves_unused_grant_and_exact_limits)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/macintoshfamily/Documents/Codex/2026-11-05/task/transfer-output/lemon-lavender-pilot/training/test_quality_acceptance.py", line 26, in test_explicit_prompt_refresh_preserves_unused_grant_and_exact_limits
+    original=(settings.BASE_DIR/'artifacts/quality-configuration-review/original-unused-grant.json').read_bytes()
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/pathlib.py", line 1020, in read_bytes
+    with self.open(mode='rb') as f:
+         ^^^^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/pathlib.py", line 1014, in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/Users/macintoshfamily/Documents/Codex/2026-11-05/task/transfer-output/lemon-lavender-pilot/artifacts/quality-configuration-review/original-unused-grant.json'
+
+======================================================================
+ERROR: test_prompt_refresh_rejects_future_edits_and_scope_tampering (training.test_quality_acceptance.QualityBudgetTests.test_prompt_refresh_rejects_future_edits_and_scope_tampering)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/macintoshfamily/Documents/Codex/2026-11-05/task/transfer-output/lemon-lavender-pilot/training/test_quality_acceptance.py", line 47, in test_prompt_refresh_rejects_future_edits_and_scope_tampering
+    original=json.loads((settings.BASE_DIR/'artifacts/quality-configuration-review/original-unused-grant.json').read_text())
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/pathlib.py", line 1028, in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/pathlib.py", line 1014, in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/Users/macintoshfamily/Documents/Codex/2026-11-05/task/transfer-output/lemon-lavender-pilot/artifacts/quality-configuration-review/original-unused-grant.json'
+
+----------------------------------------------------------------------
+Ran 390 tests in 3.566s
+
+FAILED (errors=3)
+Destroying test database for alias 'default'...
+Found 390 test(s).
+System check identified no issues (0 silenced).
+Fictional learner, trainer, and pilot admin ready. No real email sent; no owner credentials created.
+Fictional learner, trainer, and pilot admin ready. No real email sent; no owner credentials created.
+Fictional learner, trainer, and pilot admin ready. No real email sent; no owner credentials created.
+Fictional learner, trainer, and pilot admin ready. No real email sent; no owner credentials created.
+Fictional learner, trainer, and pilot admin ready. No real email sent; no owner credentials created.
+Fictional learner, trainer, and pilot admin ready. No real email sent; no owner credentials created.
+Fictional learner, trainer, and pilot admin ready. No real email sent; no owner credentials created.
+Fictional learner, trainer, and pilot admin ready. No real email sent; no owner credentials created.
+Fictional learner, trainer, and pilot admin ready. No real email sent; no owner credentials created.
+Fictional learner, trainer, and pilot admin ready. No real email sent; no owner credentials created.
+Fictional learner, trainer, and pilot admin ready. No real email sent; no owner credentials created.
+Fictional learner, trainer, and pilot admin ready. No real email sent; no owner credentials created.
+Fictional learner, trainer, and pilot admin ready. No real email sent; no owner credentials created.
+Fictional learner, trainer, and pilot admin ready. No real email sent; no owner credentials created.
+Fictional learner, trainer, and pilot admin ready. No real email sent; no owner credentials created.
+Fictional learner, trainer, and pilot admin ready. No real email sent; no owner credentials created.
+Fictional learner, trainer, and pilot admin ready. No real email sent; no owner credentials created.
+Fictional learner, trainer, and pilot admin ready. No real email sent; no owner credentials created.
+Fictional learner, trainer, and pilot admin ready. No real email sent; no owner credentials created.
+Fictional learner, trainer, and pilot admin ready. No real email sent; no owner credentials created.
+Fictional learner, trainer, and pilot admin ready. No real email sent; no owner credentials created.
+Fictional learner, trainer, and pilot admin ready. No real email sent; no owner credentials created.
+Fictional learner, trainer, and pilot admin ready. No real email sent; no owner credentials created.
+Fictional learner, trainer, and pilot admin ready. No real email sent; no owner credentials created.

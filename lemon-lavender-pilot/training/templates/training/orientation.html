@@ -1,0 +1,11 @@
+{% extends 'training/base.html' %}{% block title %}Portland-area orientation{% endblock %}{% block content %}
+<article class="guided-lesson orientation-guide">
+<div class="journey-crumbs"><a href="{% url 'course' assignment.pk %}">Training home</a><span aria-hidden="true">/</span><a href="{% url 'learning_stage' assignment.pk 'industry' %}">Stage 2</a></div>
+<div class="eyebrow">STAGE 2 OF 4 · ABOUT {{ guide.minutes }} MINUTES</div>
+<h1 class="guided-title">{{ guide.title }}</h1><p class="guided-intro">{{ guide.summary }}</p>
+<p class="notice">Short orientation · {% if reviewed %}Reviewed{% else %}Read the guide, then continue to services.{% endif %}</p>
+{% for section in guide.sections %}<section class="teaching"><h2>{{ section.title }}</h2>{% for paragraph in section.paragraphs %}<p>{{ paragraph }}</p>{% endfor %}{% if section.sources %}<p class="guide-sources">Geographic references: {% for source in section.sources %}<a href="{{ source.url }}" rel="noreferrer">{{ source.title }}</a>{% if not forloop.last %} · {% endif %}{% endfor %}</p>{% endif %}</section>{% endfor %}
+<p><a href="{% url 'services' assignment.pk %}">Open the current services &amp; pricing reference →</a></p>
+{% if user.profile.role == 'learner' and not reviewed %}<form method="post">{% csrf_token %}<input type="hidden" name="content_version" value="{{ guide.version }}"><button class="primary-continue" name="action" value="reviewed">Mark reviewed &amp; continue →</button></form>{% elif user.profile.role != 'learner' %}<p class="notice">Trainer view · Read-only.</p>{% endif %}
+{% if reviewed or user.profile.role != 'learner' %}<p><a class="button primary-continue" href="{% url 'guided_lesson' assignment.pk 'services' 1 %}">Next: choose the right service →</a></p>{% endif %}<div class="journey-footer"><a href="{% url 'learning_stage' assignment.pk 'industry' %}">← Back to stage 2</a><a href="{% url 'course' assignment.pk %}">Training home</a></div>
+</article>{% endblock %}

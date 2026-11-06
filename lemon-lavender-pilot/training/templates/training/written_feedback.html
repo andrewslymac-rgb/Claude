@@ -1,0 +1,7 @@
+{% if writing_feedback %}<section class="answer-feedback writing-feedback {{ writing_feedback.status }}" aria-label="Written response feedback" role="status">
+<div class="eyebrow">WRITTEN RESPONSE · LOCAL CHECK</div><h3>{{ writing_feedback.label }}</h3>
+{% if writing_feedback.legacy_unassessed %}<p><strong>Earlier feedback checked only the multiple-choice answer.</strong> It did not assess this writing. Earlier learning credit is preserved separately.</p>{% endif %}
+{% if writing_feedback.issues %}<ul>{% for issue in writing_feedback.issues %}<li>{{ issue }}</li>{% endfor %}</ul>{% endif %}
+{% if writing_feedback.missing %}<p><strong>What to add or clarify</strong></p><ul>{% for missing in writing_feedback.missing %}<li>{{ missing }}</li>{% endfor %}</ul>{% endif %}
+<p>{{ writing_feedback.note }}</p><p class="muted">No writing grade or competence approval has been awarded.</p>
+</section>{% endif %}

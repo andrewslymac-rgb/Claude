@@ -1,0 +1,3 @@
+{% extends 'training/base.html' %}{% block title %}Confirm sign-in{% endblock %}{% block content %}
+<div class="narrow"><div class="eyebrow">ONE MORE STEP</div><h1>You’re almost in.</h1><p>Confirm below to open the Training Center. This demo link can be used once.</p>{% if error %}<div class="notice error">{{ error }}</div>{% endif %}
+<form method="post" class="card">{% csrf_token %}<input id="token" name="token" autocomplete="off" type="hidden" maxlength="128"><p>Use this link in the browser where you requested it.</p><button id="confirm-signin" disabled>Confirm sign-in →</button></form><p><a href="{% url 'sign_in' %}">Get a new demo link</a></p></div>{% endblock %}

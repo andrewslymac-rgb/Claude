@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ll-caller-schema-v1",
+  "description": "Allowlisted input parameters. The server creates an immutable profile, pricing, policy and prompt snapshot; raw learner text is not configuration.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "persona_id",
+    "difficulty",
+    "drill"
+  ],
+  "properties": {
+    "persona_id": {
+      "type": "string",
+      "enum": [
+        "busy_parent",
+        "price_shopper",
+        "skeptical_first",
+        "older_client",
+        "landlord",
+        "airbnb",
+        "office",
+        "cluttered_home",
+        "pet_owner",
+        "deadline_move",
+        "ballpark",
+        "discount_request",
+        "think_about_it"
+      ]
+    },
+    "difficulty": {
+      "type": "string",
+      "enum": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ]
+    },
+    "drill": {
+      "type": "string",
+      "enum": [
+        "full",
+        "discovery",
+        "objections",
+        "closing"
+      ]
+    }
+  }
+}

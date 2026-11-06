@@ -1,0 +1,4 @@
+{% extends 'training/base.html' %}{% block title %}My training{% endblock %}{% block content %}
+<div class="eyebrow">MY TRAINING</div><h1>Your next chapter.</h1><p class="lead">Pick up where you left off.</p>
+<div class="grid two">{% for assignment in assignments %}<article class="card"><div class="eyebrow">ASSIGNED TRAINING</div><h2>{{ assignment.course.title }}</h2><a class="button" href="{% url 'course' assignment.pk %}">Open training →</a></article>{% empty %}<section class="card empty-state"><span class="empty-mark" aria-hidden="true">▤</span><h2>Your training starts here.</h2><p>Your manager hasn’t assigned a course yet. Check back after they set up your learning path.</p></section>{% endfor %}</div>
+{% endblock %}

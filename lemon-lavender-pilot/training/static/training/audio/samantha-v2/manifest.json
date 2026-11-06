@@ -1,0 +1,60 @@
+{
+  "version": "samantha-v2",
+  "voice": "Samantha",
+  "rate_wpm": 165,
+  "status": "prerecorded local speech; no live AI",
+  "scripts": {
+    "opening": "Hi, I'm Taylor. We're looking for cleaning every other week. What would that cost?",
+    "discover": "It's about two thousand square feet. The kitchen has some buildup, and the bathrooms need attention. Every other week sounds good. Could we start next week?",
+    "value": "That sounds good. The kitchen and bathrooms are what I need help with most.",
+    "explain": "Okay, five seventy for the first visit, then two twenty every other week. Why is the first visit more?",
+    "objection": "That makes sense. The deep clean comes first, then we keep up with it.",
+    "close_ready": "Yes, please request the five hundred seventy dollar deep clean and two hundred twenty dollar visits every other week. Please have the team confirm the date. I know it's not booked yet.",
+    "close_missing": "Before I decide, could you walk me through what I'd get and the price? I still have a few questions.",
+    "clarify": "Thanks. Please check with your manager and let me know.",
+    "escalate": "Okay, please ask your manager. I'll wait to decide until we have that answer.",
+    "unsafe": "Hang on, that sounds different from the service terms. Could you check with your manager?"
+  },
+  "recordings": {
+    "opening": {
+      "seconds": 4.998,
+      "sha256": "5f3761b841caa602a078bcb2c7874a059f1c69e1aabcd56d8175fbc371332379"
+    },
+    "discover": {
+      "seconds": 8.855,
+      "sha256": "8f4b657c3830dcef26136a81df4ad6616c1715630df5a2f2775aadd3c4bdd3cd"
+    },
+    "value": {
+      "seconds": 4.131,
+      "sha256": "6b5244c31d048cf635c5b388c69d2aac2a53cb9b424e4d3a33e753de51aa32b9"
+    },
+    "explain": {
+      "seconds": 6.414,
+      "sha256": "c6536ad81631f1ea3d29d013029064fd0e9a8276a242a4d9a7e137a4b214870d"
+    },
+    "objection": {
+      "seconds": 4.213,
+      "sha256": "0f701dc1628bceb7a8ccc71bf905ba691f5f86b99f1d6987a18a76f0742bd9d3"
+    },
+    "close_ready": {
+      "seconds": 10.268,
+      "sha256": "c873f5734b8e4c104db276ab87834f03e4dabf714ab672f23c278069ad1df2a0"
+    },
+    "close_missing": {
+      "seconds": 5.774,
+      "sha256": "4f958cbe0cd9e737225329f66a6229707bb904349b72e90a82bb2f40b5b0a43c"
+    },
+    "clarify": {
+      "seconds": 3.288,
+      "sha256": "49d819edf380cd26c2f73996217ae645b7a46957ebd3b287ea2b7b30d1e05091"
+    },
+    "escalate": {
+      "seconds": 4.649,
+      "sha256": "64d7bebd5e69797f7cd9a3c53acf5fef66c0ac9835b8498f36c528df3eb1998a"
+    },
+    "unsafe": {
+      "seconds": 4.838,
+      "sha256": "fa64593ee1af5b2221395e6cd2fd9a0e91bd7974fcec3ceab85da2982853b104"
+    }
+  }
+}

@@ -1,0 +1,5 @@
+{% if review.criteria_version %}<details><summary>Saved manager evidence · {{ review.criteria_version }}</summary>
+{% if review.objection_evidence %}<p><strong>Objection-handling evidence:</strong> {{ review.objection_evidence }}</p>{% endif %}
+{% if review.policy_flag_assessment %}<p><strong>Policy concern review:</strong> {{ review.policy_flag_assessment }} · {{ review.override_reason }}</p>{% endif %}
+{% if review.simulated_deposit_reference %}<p><strong>Simulated paid deposit recorded by trainer.</strong> This is a fictional practice outcome. No real money was collected and no booking or payment authority is granted.</p><p>{{ review.simulated_deposit_reference }}</p>{% else %}<p>No simulated deposit is recorded. This attempt is not a deposit win.</p>{% endif %}
+</details>{% endif %}

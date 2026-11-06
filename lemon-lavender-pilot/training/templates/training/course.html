@@ -1,0 +1,22 @@
+{% extends 'training/base.html' %}{% block title %}Training home{% endblock %}{% block content %}
+<div class="learner-journey">
+<div class="eyebrow">LEMON &amp; LAVENDER · MY TRAINING</div><h1>Your next step, all in one place.</h1>
+<p class="lead">Learn the essentials, then practice a clear, confident sales conversation.</p>
+<section class="journey-next" aria-labelledby="next-step-heading">
+<div class="eyebrow">STAGE {{ primary_step.section.number }} OF 4 · {{ primary_step.section.short_title }}</div>
+<h2 id="next-step-heading">{{ primary_step.title }}</h2><p>{{ primary_step.detail }}</p>
+{% if primary_step.progress %}<p class="muted">Your saved place: step {{ primary_step.progress.page_index|add:'1' }} of {{ primary_step.pages_total }}.</p>{% endif %}
+<a class="button primary-continue" href="{{ primary_step.url }}">{{ primary_step.label }} <span aria-hidden="true">→</span></a>
+</section>
+<section class="journey-path" aria-labelledby="learning-order">
+<div class="journey-path-heading"><h2 id="learning-order">Your four stages</h2><span>{{ completed_count }} of {{ lesson_count }} lessons complete</span></div>
+<ol class="stage-list">{% for section in learning_sections %}<li id="{{ section.slug }}"{% if section.number == primary_step.section.number %} class="current-stage"{% endif %}>
+<a href="{{ section.landing_url }}"{% if section.number == primary_step.section.number %} aria-current="step"{% endif %}><span class="stage-number" aria-hidden="true">{{ section.number }}</span><span class="stage-copy"><strong>{{ section.title }}</strong><small>{{ section.completed }} of {{ section.total }} lesson{{ section.total|pluralize }} complete{% if section.slug == 'industry' %} · Orientation {% if section.guide_reviewed %}reviewed{% else %}to read{% endif %}{% elif section.slug == 'role-playing' and section.complete %} · Practice &amp; feedback{% endif %}</small></span><span class="stage-arrow" aria-hidden="true">→</span></a>
+</li>{% endfor %}</ol><p class="path-help">Follow the order, or open any stage to revisit a topic.</p>
+</section>
+<details class="journey-resources"><summary>Reference, saved work &amp; other tools</summary><div class="resource-links"><a href="{% url 'practice_library' assignment.pk %}">Practice &amp; saved calls</a><a href="{% url 'coaching' assignment.pk %}">Trainer feedback &amp; readiness</a><a href="{% url 'services' assignment.pk %}">Services &amp; pricing reference</a><a href="{% url 'sales_report' assignment.pk %}">Practice history &amp; exports</a></div>
+<details class="course-outline"><summary>Original six-lesson outline</summary><ol>{% for item in journey_rows %}<li><a href="{{ item.url }}">{{ item.title }}</a> · {% if item.complete %}Complete{% else %}{{ item.pages_done }} of {{ item.pages_total }} steps{% endif %}</li>{% endfor %}</ol></details>
+{% if retired_lessons %}<details class="retired-history"><summary>Retired learning history</summary>{% for retired in retired_lessons %}<p><a href="{{ retired.url }}">{{ retired.title }} · {{ retired.answers }} saved response{{ retired.answers|pluralize }}</a></p>{% endfor %}</details>{% endif %}
+<p class="muted">Earlier lesson credit and saved responses are preserved. Lesson completion is separate from your manager’s readiness decision.</p></details>
+{% if user.profile.role != 'learner' %}<p class="notice">Trainer view · Progress and responses are read-only.</p>{% endif %}
+</div>{% endblock %}

@@ -1,0 +1,99 @@
+{
+  "version": "ll-sales-rubric-draft-v2",
+  "status": "Draft weights only — owner approval and manager review required",
+  "weights_approved": false,
+  "pass_threshold": null,
+  "automatic_pass": null,
+  "primary_goal": "Earn a paid deposit without pressure or unsupported promises. Requests and proposals are useful steps, not wins.",
+  "readiness_requires": "Manager-confirmed objection handling with specific learner evidence; no automatic pass.",
+  "categories": [
+    {
+      "id": "greeting",
+      "title": "Greeting and professionalism",
+      "proposed_weight": 5,
+      "codes": [
+        "greet"
+      ],
+      "coaching": "Name L&L and invite the caller to explain their need. Vocal tone requires listening evidence."
+    },
+    {
+      "id": "discovery",
+      "title": "Structured discovery",
+      "proposed_weight": 18,
+      "codes": [
+        "discover",
+        "priorities",
+        "timing"
+      ],
+      "coaching": "Ask about property, size, rooms, condition, pets, frequency, extras, timing and location before price."
+    },
+    {
+      "id": "listening",
+      "title": "Listening and relevant value",
+      "proposed_weight": 10,
+      "codes": [
+        "value",
+        "acknowledge"
+      ],
+      "coaching": "Be kind, calm and patient; reflect the need, listen and explain clearly without pressure. Tone requires audio evidence; a selected script does not prove spontaneous empathy."
+    },
+    {
+      "id": "objections",
+      "title": "Objection handling",
+      "proposed_weight": 15,
+      "codes": [
+        "probe",
+        "respond",
+        "check"
+      ],
+      "coaching": "Acknowledge, clarify, answer the actual concern using confirmed facts, then check understanding."
+    },
+    {
+      "id": "closing",
+      "title": "Closing and accurate handoff",
+      "proposed_weight": 30,
+      "codes": [
+        "close",
+        "choice_close",
+        "trial",
+        "followup",
+        "escalate"
+      ],
+      "coaching": "Ask for the appropriate explicit next step, verify the customer’s actual agreement and save accurate notes."
+    },
+    {
+      "id": "pricing",
+      "title": "Scope and pricing accuracy",
+      "proposed_weight": 10,
+      "codes": [
+        "explain"
+      ],
+      "coaching": "Separate the required initial deep and recurring estimate. Do not invent a discount or final booking."
+    },
+    {
+      "id": "control",
+      "title": "Call structure and control",
+      "proposed_weight": 7,
+      "codes": [
+        "discover",
+        "explain",
+        "check"
+      ],
+      "coaching": "Use a relevant question, one concern at a time, and a clear transition. Network waits are not learner delay."
+    },
+    {
+      "id": "clarity",
+      "title": "Spoken clarity and pacing",
+      "proposed_weight": 5,
+      "codes": [],
+      "coaching": "Manager listening required. Coach a specific intelligibility moment with a timestamp and confidence; never score accent identity, health or personality."
+    }
+  ],
+  "nonnegotiables": [
+    "No invented discount",
+    "No false policy assurance",
+    "No waived mandatory initial deep",
+    "No claim that a request is a booking or payment",
+    "No automated employment decision"
+  ]
+}

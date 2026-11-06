@@ -1,0 +1,1397 @@
+{
+  "busy_parent": {
+    "version": "ll-sales-library-v1:busy_parent:advanced:full",
+    "schema_version": "ll-caller-schema-v1",
+    "engine_version": "ll-branching-v1",
+    "prompt_version": "ll-caller-v2",
+    "mode": "scenario_rehearsal",
+    "title": "A busy household",
+    "persona_id": "busy_parent",
+    "customer": "Taylor Sample",
+    "service": "biweekly",
+    "sqft": 2000,
+    "needs": "Kitchen buildup and bathrooms",
+    "profile": {
+      "id": "busy_parent",
+      "title": "A busy household",
+      "customer": "Taylor Sample",
+      "backstory": "Work and family routines leave little cleaning time.",
+      "motivation": "A manageable routine with clear priorities.",
+      "communication_style": "Brief, warm; may pause to check the calendar.",
+      "service": "biweekly",
+      "sqft": 2000,
+      "property_type": "residential home",
+      "needs": "Kitchen buildup and bathrooms",
+      "opening": "Hi, I am looking for cleaning every other week. Could you give me an idea of the cost?",
+      "objections": [
+        "first_deep",
+        "pricing_basis"
+      ],
+      "hidden_objection": "Worries the first visit is just a more expensive maintenance clean.",
+      "buying_signals": "Asks what the next step involves.",
+      "ending": "request",
+      "timing": "Next week if available",
+      "beds": 3,
+      "baths": 2,
+      "pets": "No pets to plan around",
+      "location": "Fictional address; service area must be confirmed",
+      "win_criteria": "Earn an explicit, qualified service request after discovery, accurate scope/price and resolved concerns.",
+      "loss_criteria": "Pressure, repeated premature closes, fabricated assurances, waived mandatory deep or an invented discount.",
+      "probe_answer": "I was worried the first visit was the same work at a higher price."
+    },
+    "difficulty": "advanced",
+    "difficulty_config": {
+      "label": "Advanced",
+      "objection_count": 2,
+      "probe_required": true,
+      "behavior": "Raise two distinct concerns one at a time. Add brief realistic hesitation or a calendar distraction. Persist when the reply misses the concern; do not constantly interrupt."
+    },
+    "drill": "full",
+    "drill_config": {
+      "label": "Full guided call",
+      "context": [],
+      "goal": "Discovery, qualified next step and accurate handoff."
+    },
+    "objection_bank": [
+      {
+        "id": "first_deep",
+        "title": "Why is the first visit more?",
+        "type": "sales concern",
+        "variants": [
+          "Why does the first clean cost more?",
+          "Can we just start with maintenance?"
+        ],
+        "clarify": "Is the concern the first-visit budget or what the initial clean is for?",
+        "response": "The initial Deluxe Deep addresses the starting buildup before recurring maintenance. It is required for every new recurring plan; I cannot waive it.",
+        "followup": "That explains why the first visit is different.",
+        "requires_confirmation": false,
+        "principle": "Acknowledge, clarify the concern, respond with relevant confirmed facts, then check the next step."
+      },
+      {
+        "id": "pricing_basis",
+        "title": "Flat estimate or hourly?",
+        "type": "sales concern",
+        "variants": [
+          "Is that a flat price or an hourly bill?",
+          "Will the amount change on arrival?"
+        ],
+        "clarify": "Are you asking how we estimate the work or how the final amount is confirmed?",
+        "response": "This is a practice estimate based on service and square footage. The $85 production-hour figure informs the calculation; it does not establish a customer hourly billing promise. Final scope and arrangements need confirmation.",
+        "followup": "That helps me understand what the estimate means.",
+        "requires_confirmation": false,
+        "principle": "Acknowledge, clarify the concern, respond with relevant confirmed facts, then check the next step."
+      }
+    ],
+    "pricing": {
+      "manual": false,
+      "base": 220,
+      "total": 220,
+      "extras": [],
+      "service": "biweekly",
+      "sqft": 2000,
+      "initial_deep": 570
+    },
+    "policy_version": "ll-fictional-2026-10-06-v5",
+    "requirements": [
+      "greet",
+      "discover",
+      "priorities",
+      "timing",
+      "value",
+      "explain",
+      "objections_resolved",
+      "close",
+      "saved_quote"
+    ],
+    "practice_data": "fictional only",
+    "origin": "Original L&L sales adaptation; company policy controls promises.",
+    "opening_text": "Hi, I am looking for cleaning every other week. Could you give me an idea of the cost?"
+  },
+  "price_shopper": {
+    "version": "ll-sales-library-v1:price_shopper:advanced:full",
+    "schema_version": "ll-caller-schema-v1",
+    "engine_version": "ll-branching-v1",
+    "prompt_version": "ll-caller-v2",
+    "mode": "scenario_rehearsal",
+    "title": "Comparing three quotes",
+    "persona_id": "price_shopper",
+    "customer": "Jordan Sample",
+    "service": "monthly",
+    "sqft": 1800,
+    "needs": "Kitchen surfaces and bathroom upkeep",
+    "profile": {
+      "id": "price_shopper",
+      "title": "Comparing three quotes",
+      "customer": "Jordan Sample",
+      "backstory": "Has collected two other residential cleaning estimates.",
+      "motivation": "Understand value within a fixed budget.",
+      "communication_style": "Direct, asks comparisons; not automatically hostile.",
+      "service": "monthly",
+      "sqft": 1800,
+      "property_type": "residential home",
+      "needs": "Kitchen surfaces and bathroom upkeep",
+      "opening": "I am getting three quotes. What would monthly cleaning cost?",
+      "objections": [
+        "price",
+        "first_deep"
+      ],
+      "hidden_objection": "Has not compared initial work and maintenance consistently.",
+      "buying_signals": "Repeats the scope back and asks about requesting service.",
+      "ending": "request",
+      "timing": "Next week if available",
+      "beds": 3,
+      "baths": 2,
+      "pets": "No pets to plan around",
+      "location": "Fictional address; service area must be confirmed",
+      "win_criteria": "Earn an explicit, qualified service request after discovery, accurate scope/price and resolved concerns.",
+      "loss_criteria": "Pressure, repeated premature closes, fabricated assurances, waived mandatory deep or an invented discount.",
+      "probe_answer": "I have not checked whether the other quotes include the same first-visit work."
+    },
+    "difficulty": "advanced",
+    "difficulty_config": {
+      "label": "Advanced",
+      "objection_count": 2,
+      "probe_required": true,
+      "behavior": "Raise two distinct concerns one at a time. Add brief realistic hesitation or a calendar distraction. Persist when the reply misses the concern; do not constantly interrupt."
+    },
+    "drill": "full",
+    "drill_config": {
+      "label": "Full guided call",
+      "context": [],
+      "goal": "Discovery, qualified next step and accurate handoff."
+    },
+    "objection_bank": [
+      {
+        "id": "price",
+        "title": "Your quote is expensive",
+        "type": "sales concern",
+        "variants": [
+          "That is more than I expected.",
+          "I have a lower quote from someone else."
+        ],
+        "clarify": "Are you comparing the same scope and first-visit work, or is the total outside your budget?",
+        "response": "Let us compare the work you need and the first visit separately from maintenance. I can explain our estimate; I cannot promise a discount or claim a competitor does less.",
+        "followup": "Okay, comparing the same work helps me understand it.",
+        "requires_confirmation": false,
+        "principle": "Acknowledge, clarify the concern, respond with relevant confirmed facts, then check the next step."
+      },
+      {
+        "id": "first_deep",
+        "title": "Why is the first visit more?",
+        "type": "sales concern",
+        "variants": [
+          "Why does the first clean cost more?",
+          "Can we just start with maintenance?"
+        ],
+        "clarify": "Is the concern the first-visit budget or what the initial clean is for?",
+        "response": "The initial Deluxe Deep addresses the starting buildup before recurring maintenance. It is required for every new recurring plan; I cannot waive it.",
+        "followup": "That explains why the first visit is different.",
+        "requires_confirmation": false,
+        "principle": "Acknowledge, clarify the concern, respond with relevant confirmed facts, then check the next step."
+      }
+    ],
+    "pricing": {
+      "manual": false,
+      "base": 240,
+      "total": 240,
+      "extras": [],
+      "service": "monthly",
+      "sqft": 1800,
+      "initial_deep": 510
+    },
+    "policy_version": "ll-fictional-2026-10-06-v5",
+    "requirements": [
+      "greet",
+      "discover",
+      "priorities",
+      "timing",
+      "value",
+      "explain",
+      "objections_resolved",
+      "close",
+      "saved_quote"
+    ],
+    "practice_data": "fictional only",
+    "origin": "Original L&L sales adaptation; company policy controls promises.",
+    "opening_text": "I am getting three quotes. What would monthly cleaning cost?"
+  },
+  "skeptical_first": {
+    "version": "ll-sales-library-v1:skeptical_first:advanced:full",
+    "schema_version": "ll-caller-schema-v1",
+    "engine_version": "ll-branching-v1",
+    "prompt_version": "ll-caller-v2",
+    "mode": "scenario_rehearsal",
+    "title": "First-time trust questions",
+    "persona_id": "skeptical_first",
+    "customer": "Morgan Sample",
+    "service": "biweekly",
+    "sqft": 1600,
+    "needs": "Whole-home routine, especially bathrooms",
+    "profile": {
+      "id": "skeptical_first",
+      "title": "First-time trust questions",
+      "customer": "Morgan Sample",
+      "backstory": "Has never hired a home cleaning service.",
+      "motivation": "Feel comfortable about who enters the home.",
+      "communication_style": "Careful, asks for specifics rather than broad reassurance.",
+      "service": "biweekly",
+      "sqft": 1600,
+      "property_type": "residential home",
+      "needs": "Whole-home routine, especially bathrooms",
+      "opening": "I have never used a cleaning company. How does this work?",
+      "objections": [
+        "trust",
+        "insurance"
+      ],
+      "hidden_objection": "Will not decide without verified screening details.",
+      "buying_signals": "Accepts a manager response with the specific question recorded.",
+      "ending": "escalation",
+      "timing": "Next week if available",
+      "beds": 3,
+      "baths": 2,
+      "pets": "No pets to plan around",
+      "location": "Fictional address; service area must be confirmed",
+      "win_criteria": "Respect the stated decision boundary and agree on a truthful next step; do not manufacture a sale.",
+      "loss_criteria": "Pressure, repeated premature closes, fabricated assurances, waived mandatory deep or an invented discount.",
+      "probe_answer": "I need the screening details confirmed before I can feel comfortable deciding."
+    },
+    "difficulty": "advanced",
+    "difficulty_config": {
+      "label": "Advanced",
+      "objection_count": 2,
+      "probe_required": true,
+      "behavior": "Raise two distinct concerns one at a time. Add brief realistic hesitation or a calendar distraction. Persist when the reply misses the concern; do not constantly interrupt."
+    },
+    "drill": "full",
+    "drill_config": {
+      "label": "Full guided call",
+      "context": [],
+      "goal": "Discovery, qualified next step and accurate handoff."
+    },
+    "objection_bank": [
+      {
+        "id": "trust",
+        "title": "Trust and background checks",
+        "type": "policy confirmation",
+        "variants": [
+          "How do I know who is coming into my home?",
+          "Are everyone’s background checks current?"
+        ],
+        "clarify": "Which detail would help you feel comfortable: who attends or the screening policy?",
+        "response": "I understand why that matters. I need the manager to confirm our current screening and team details before I make an assurance. May I record that question for a reply?",
+        "followup": "I need that confirmed before I decide.",
+        "requires_confirmation": true,
+        "principle": "Acknowledge, clarify the concern, respond with relevant confirmed facts, then check the next step."
+      },
+      {
+        "id": "insurance",
+        "title": "Insurance and bonding",
+        "type": "policy confirmation",
+        "variants": [
+          "Are you insured and bonded?",
+          "What protection do I have if something breaks?"
+        ],
+        "clarify": "Would you like confirmation of coverage, bonding, or the process for a specific concern?",
+        "response": "I will ask the manager for the current verified insurance, bonding and damage-process information. I cannot represent unverified coverage as a promise.",
+        "followup": "Please get me the verified information first.",
+        "requires_confirmation": true,
+        "principle": "Acknowledge, clarify the concern, respond with relevant confirmed facts, then check the next step."
+      }
+    ],
+    "pricing": {
+      "manual": false,
+      "base": 180,
+      "total": 180,
+      "extras": [],
+      "service": "biweekly",
+      "sqft": 1600,
+      "initial_deep": 455
+    },
+    "policy_version": "ll-fictional-2026-10-06-v5",
+    "requirements": [
+      "greet",
+      "discover",
+      "priorities",
+      "timing",
+      "value",
+      "explain",
+      "objections_resolved",
+      "close",
+      "saved_quote"
+    ],
+    "practice_data": "fictional only",
+    "origin": "Original L&L sales adaptation; company policy controls promises.",
+    "opening_text": "I have never used a cleaning company. How does this work?"
+  },
+  "older_client": {
+    "version": "ll-sales-library-v1:older_client:advanced:full",
+    "schema_version": "ll-caller-schema-v1",
+    "engine_version": "ll-branching-v1",
+    "prompt_version": "ll-caller-v2",
+    "mode": "scenario_rehearsal",
+    "title": "A deliberate decision",
+    "persona_id": "older_client",
+    "customer": "Robin Sample",
+    "service": "monthly",
+    "sqft": 1500,
+    "needs": "Kitchen and main bathroom",
+    "profile": {
+      "id": "older_client",
+      "title": "A deliberate decision",
+      "customer": "Robin Sample",
+      "backstory": "Prefers to understand the service before making changes to a routine.",
+      "motivation": "Clear expectations and control over the decision.",
+      "communication_style": "Thoughtful; prefers one question at a time.",
+      "service": "monthly",
+      "sqft": 1500,
+      "property_type": "residential home",
+      "needs": "Kitchen and main bathroom",
+      "opening": "I would like to understand your cleaning options before deciding.",
+      "objections": [
+        "pricing_basis",
+        "partner"
+      ],
+      "hidden_objection": "Does not want to be rushed into agreeing.",
+      "buying_signals": "Summarizes the estimate accurately.",
+      "ending": "request",
+      "timing": "Next week if available",
+      "beds": 3,
+      "baths": 2,
+      "pets": "No pets to plan around",
+      "location": "Fictional address; service area must be confirmed",
+      "win_criteria": "Earn an explicit, qualified service request after discovery, accurate scope/price and resolved concerns.",
+      "loss_criteria": "Pressure, repeated premature closes, fabricated assurances, waived mandatory deep or an invented discount.",
+      "probe_answer": "I want to understand the estimate and make the decision without being rushed."
+    },
+    "difficulty": "advanced",
+    "difficulty_config": {
+      "label": "Advanced",
+      "objection_count": 2,
+      "probe_required": true,
+      "behavior": "Raise two distinct concerns one at a time. Add brief realistic hesitation or a calendar distraction. Persist when the reply misses the concern; do not constantly interrupt."
+    },
+    "drill": "full",
+    "drill_config": {
+      "label": "Full guided call",
+      "context": [],
+      "goal": "Discovery, qualified next step and accurate handoff."
+    },
+    "objection_bank": [
+      {
+        "id": "pricing_basis",
+        "title": "Flat estimate or hourly?",
+        "type": "sales concern",
+        "variants": [
+          "Is that a flat price or an hourly bill?",
+          "Will the amount change on arrival?"
+        ],
+        "clarify": "Are you asking how we estimate the work or how the final amount is confirmed?",
+        "response": "This is a practice estimate based on service and square footage. The $85 production-hour figure informs the calculation; it does not establish a customer hourly billing promise. Final scope and arrangements need confirmation.",
+        "followup": "That helps me understand what the estimate means.",
+        "requires_confirmation": false,
+        "principle": "Acknowledge, clarify the concern, respond with relevant confirmed facts, then check the next step."
+      },
+      {
+        "id": "partner",
+        "title": "I need to discuss it",
+        "type": "sales concern",
+        "variants": [
+          "I need to ask my partner.",
+          "Let me think about this."
+        ],
+        "clarify": "What information would help the decision, and would an agreed follow-up be useful?",
+        "response": "Take the time you need. I can summarize the relevant scope and estimate, and we can agree on a follow-up if you want one. You have not committed to service.",
+        "followup": "A summary and a follow-up would help; I am not agreeing to service yet.",
+        "requires_confirmation": false,
+        "principle": "Acknowledge, clarify the concern, respond with relevant confirmed facts, then check the next step."
+      }
+    ],
+    "pricing": {
+      "manual": false,
+      "base": 200,
+      "total": 200,
+      "extras": [],
+      "service": "monthly",
+      "sqft": 1500,
+      "initial_deep": 425
+    },
+    "policy_version": "ll-fictional-2026-10-06-v5",
+    "requirements": [
+      "greet",
+      "discover",
+      "priorities",
+      "timing",
+      "value",
+      "explain",
+      "objections_resolved",
+      "close",
+      "saved_quote"
+    ],
+    "practice_data": "fictional only",
+    "origin": "Original L&L sales adaptation; company policy controls promises.",
+    "opening_text": "I would like to understand your cleaning options before deciding."
+  },
+  "landlord": {
+    "version": "ll-sales-library-v1:landlord:advanced:full",
+    "schema_version": "ll-caller-schema-v1",
+    "engine_version": "ll-branching-v1",
+    "prompt_version": "ll-caller-v2",
+    "mode": "scenario_rehearsal",
+    "title": "Residential property handover",
+    "persona_id": "landlord",
+    "customer": "Casey Sample",
+    "service": "move",
+    "sqft": 2200,
+    "needs": "Empty residential home, kitchen appliances and bathrooms",
+    "profile": {
+      "id": "landlord",
+      "title": "Residential property handover",
+      "customer": "Casey Sample",
+      "backstory": "Arranging a move-out clean for one residential property.",
+      "motivation": "Prepare for the next occupant without unsupported completion promises.",
+      "communication_style": "Task-focused, asks about scope.",
+      "service": "move",
+      "sqft": 2200,
+      "property_type": "residential home",
+      "needs": "Empty residential home, kitchen appliances and bathrooms",
+      "opening": "I need a move-out clean for a rental home. What information do you need?",
+      "objections": [
+        "pricing_basis",
+        "availability"
+      ],
+      "hidden_objection": "Wants a clear distinction between an estimate and a confirmed appointment.",
+      "buying_signals": "Asks to submit a request for the team to check.",
+      "ending": "request",
+      "timing": "Next week if available",
+      "beds": 3,
+      "baths": 2,
+      "pets": "No pets to plan around",
+      "location": "Fictional address; service area must be confirmed",
+      "win_criteria": "Earn an explicit, qualified service request after discovery, accurate scope/price and resolved concerns.",
+      "loss_criteria": "Pressure, repeated premature closes, fabricated assurances, waived mandatory deep or an invented discount.",
+      "probe_answer": "I need to know what is only an estimate and what the team has actually confirmed."
+    },
+    "difficulty": "advanced",
+    "difficulty_config": {
+      "label": "Advanced",
+      "objection_count": 2,
+      "probe_required": true,
+      "behavior": "Raise two distinct concerns one at a time. Add brief realistic hesitation or a calendar distraction. Persist when the reply misses the concern; do not constantly interrupt."
+    },
+    "drill": "full",
+    "drill_config": {
+      "label": "Full guided call",
+      "context": [],
+      "goal": "Discovery, qualified next step and accurate handoff."
+    },
+    "objection_bank": [
+      {
+        "id": "pricing_basis",
+        "title": "Flat estimate or hourly?",
+        "type": "sales concern",
+        "variants": [
+          "Is that a flat price or an hourly bill?",
+          "Will the amount change on arrival?"
+        ],
+        "clarify": "Are you asking how we estimate the work or how the final amount is confirmed?",
+        "response": "This is a practice estimate based on service and square footage. The $85 production-hour figure informs the calculation; it does not establish a customer hourly billing promise. Final scope and arrangements need confirmation.",
+        "followup": "That helps me understand what the estimate means.",
+        "requires_confirmation": false,
+        "principle": "Acknowledge, clarify the concern, respond with relevant confirmed facts, then check the next step."
+      },
+      {
+        "id": "availability",
+        "title": "A firm deadline",
+        "type": "policy confirmation",
+        "variants": [
+          "Can you guarantee Friday?",
+          "I need it done before the handover."
+        ],
+        "clarify": "What is the deadline, and is there any flexibility before it?",
+        "response": "I will record the deadline and ask the team to check availability. A request is not a confirmed appointment, and I cannot guarantee a slot.",
+        "followup": "Please check the date before I commit.",
+        "requires_confirmation": true,
+        "principle": "Acknowledge, clarify the concern, respond with relevant confirmed facts, then check the next step."
+      }
+    ],
+    "pricing": {
+      "manual": false,
+      "base": 680,
+      "total": 680,
+      "extras": [],
+      "service": "move",
+      "sqft": 2200
+    },
+    "policy_version": "ll-fictional-2026-10-06-v5",
+    "requirements": [
+      "greet",
+      "discover",
+      "priorities",
+      "timing",
+      "value",
+      "explain",
+      "objections_resolved",
+      "close",
+      "saved_quote"
+    ],
+    "practice_data": "fictional only",
+    "origin": "Original L&L sales adaptation; company policy controls promises.",
+    "opening_text": "I need a move-out clean for a rental home. What information do you need?"
+  },
+  "airbnb": {
+    "version": "ll-sales-library-v1:airbnb:advanced:full",
+    "schema_version": "ll-caller-schema-v1",
+    "engine_version": "ll-branching-v1",
+    "prompt_version": "ll-caller-v2",
+    "mode": "scenario_rehearsal",
+    "title": "Short-stay turnover inquiry",
+    "persona_id": "airbnb",
+    "customer": "Avery Sample",
+    "service": "deep",
+    "sqft": 1400,
+    "needs": "Cleaning plus requested laundry, restocking and guest turnaround",
+    "profile": {
+      "id": "airbnb",
+      "title": "Short-stay turnover inquiry",
+      "customer": "Avery Sample",
+      "backstory": "Asks about turnover tasks between short-stay guests.",
+      "motivation": "Find out if specialized turnover scope is supported.",
+      "communication_style": "Friendly but assumes laundry and restocking are included.",
+      "service": "deep",
+      "sqft": 1400,
+      "property_type": "residential home",
+      "needs": "Cleaning plus requested laundry, restocking and guest turnaround",
+      "opening": "Do you do Airbnb turnovers with laundry and restocking?",
+      "objections": [
+        "scope",
+        "availability"
+      ],
+      "hidden_objection": "Specialized turnover work has not been approved as an offering.",
+      "buying_signals": "Agrees to scope clarification instead of a promised package.",
+      "ending": "escalation",
+      "timing": "Next week if available",
+      "beds": 3,
+      "baths": 2,
+      "pets": "No pets to plan around",
+      "location": "Fictional address; service area must be confirmed",
+      "win_criteria": "Respect the stated decision boundary and agree on a truthful next step; do not manufacture a sale.",
+      "loss_criteria": "Pressure, repeated premature closes, fabricated assurances, waived mandatory deep or an invented discount.",
+      "probe_answer": "I assumed laundry and restocking were included. Can someone verify that scope?"
+    },
+    "difficulty": "advanced",
+    "difficulty_config": {
+      "label": "Advanced",
+      "objection_count": 2,
+      "probe_required": true,
+      "behavior": "Raise two distinct concerns one at a time. Add brief realistic hesitation or a calendar distraction. Persist when the reply misses the concern; do not constantly interrupt."
+    },
+    "drill": "full",
+    "drill_config": {
+      "label": "Full guided call",
+      "context": [],
+      "goal": "Discovery, qualified next step and accurate handoff."
+    },
+    "objection_bank": [
+      {
+        "id": "scope",
+        "title": "Uncertain property scope",
+        "type": "policy confirmation",
+        "variants": [
+          "Can you handle everything I have described?",
+          "Would turnover work be exactly the same service?"
+        ],
+        "clarify": "Which tasks, property use and condition should the team review before estimating?",
+        "response": "I can explain our residential services and record the tasks for review. I cannot promise specialized turnover, commercial work, hazard removal or extra tasks outside confirmed scope.",
+        "followup": "Please have the manager check the fit first.",
+        "requires_confirmation": true,
+        "principle": "Acknowledge, clarify the concern, respond with relevant confirmed facts, then check the next step."
+      },
+      {
+        "id": "availability",
+        "title": "A firm deadline",
+        "type": "policy confirmation",
+        "variants": [
+          "Can you guarantee Friday?",
+          "I need it done before the handover."
+        ],
+        "clarify": "What is the deadline, and is there any flexibility before it?",
+        "response": "I will record the deadline and ask the team to check availability. A request is not a confirmed appointment, and I cannot guarantee a slot.",
+        "followup": "Please check the date before I commit.",
+        "requires_confirmation": true,
+        "principle": "Acknowledge, clarify the concern, respond with relevant confirmed facts, then check the next step."
+      }
+    ],
+    "pricing": {
+      "manual": false,
+      "base": 400,
+      "total": 400,
+      "extras": [],
+      "service": "deep",
+      "sqft": 1400
+    },
+    "policy_version": "ll-fictional-2026-10-06-v5",
+    "requirements": [
+      "greet",
+      "discover",
+      "priorities",
+      "timing",
+      "value",
+      "explain",
+      "objections_resolved",
+      "close",
+      "saved_quote"
+    ],
+    "practice_data": "fictional only",
+    "origin": "Original L&L sales adaptation; company policy controls promises.",
+    "opening_text": "Do you do Airbnb turnovers with laundry and restocking?"
+  },
+  "office": {
+    "version": "ll-sales-library-v1:office:advanced:full",
+    "schema_version": "ll-caller-schema-v1",
+    "engine_version": "ll-branching-v1",
+    "prompt_version": "ll-caller-v2",
+    "mode": "scenario_rehearsal",
+    "title": "Small office inquiry",
+    "persona_id": "office",
+    "customer": "Drew Sample",
+    "service": "commercial",
+    "sqft": 1800,
+    "needs": "Desks, common areas and office restrooms",
+    "profile": {
+      "id": "office",
+      "title": "Small office inquiry",
+      "customer": "Drew Sample",
+      "backstory": "Has called about a small office rather than a home.",
+      "motivation": "Find a provider suited to a commercial space.",
+      "communication_style": "Practical and receptive to an honest fit check.",
+      "service": "commercial",
+      "sqft": 1800,
+      "property_type": "small office",
+      "needs": "Desks, common areas and office restrooms",
+      "opening": "Could you quote cleaning for our small office?",
+      "objections": [
+        "scope",
+        "price"
+      ],
+      "hidden_objection": "Needs commercial service, outside the approved residential offering.",
+      "buying_signals": "Accepts a clear non-fit without a fabricated referral.",
+      "ending": "nonfit",
+      "timing": "Next week if available",
+      "beds": 0,
+      "baths": 2,
+      "pets": "No pets to plan around",
+      "location": "Fictional address; service area must be confirmed",
+      "win_criteria": "Respect the stated decision boundary and agree on a truthful next step; do not manufacture a sale.",
+      "loss_criteria": "Pressure, repeated premature closes, fabricated assurances, waived mandatory deep or an invented discount.",
+      "probe_answer": "This is an office, not a home. I need to know whether you offer commercial service."
+    },
+    "difficulty": "advanced",
+    "difficulty_config": {
+      "label": "Advanced",
+      "objection_count": 2,
+      "probe_required": true,
+      "behavior": "Raise two distinct concerns one at a time. Add brief realistic hesitation or a calendar distraction. Persist when the reply misses the concern; do not constantly interrupt."
+    },
+    "drill": "full",
+    "drill_config": {
+      "label": "Full guided call",
+      "context": [],
+      "goal": "Discovery, qualified next step and accurate handoff."
+    },
+    "objection_bank": [
+      {
+        "id": "scope",
+        "title": "Uncertain property scope",
+        "type": "policy confirmation",
+        "variants": [
+          "Can you handle everything I have described?",
+          "Would turnover work be exactly the same service?"
+        ],
+        "clarify": "Which tasks, property use and condition should the team review before estimating?",
+        "response": "I can explain our residential services and record the tasks for review. I cannot promise specialized turnover, commercial work, hazard removal or extra tasks outside confirmed scope.",
+        "followup": "Please have the manager check the fit first.",
+        "requires_confirmation": true,
+        "principle": "Acknowledge, clarify the concern, respond with relevant confirmed facts, then check the next step."
+      },
+      {
+        "id": "price",
+        "title": "Your quote is expensive",
+        "type": "sales concern",
+        "variants": [
+          "That is more than I expected.",
+          "I have a lower quote from someone else."
+        ],
+        "clarify": "Are you comparing the same scope and first-visit work, or is the total outside your budget?",
+        "response": "Let us compare the work you need and the first visit separately from maintenance. I can explain our estimate; I cannot promise a discount or claim a competitor does less.",
+        "followup": "Okay, comparing the same work helps me understand it.",
+        "requires_confirmation": false,
+        "principle": "Acknowledge, clarify the concern, respond with relevant confirmed facts, then check the next step."
+      }
+    ],
+    "pricing": {
+      "manual": true,
+      "reason": "The requested commercial service is outside approved residential offerings."
+    },
+    "policy_version": "ll-fictional-2026-10-06-v5",
+    "requirements": [
+      "greet",
+      "discover",
+      "priorities",
+      "timing",
+      "value",
+      "explain",
+      "objections_resolved",
+      "close",
+      "saved_quote"
+    ],
+    "practice_data": "fictional only",
+    "origin": "Original L&L sales adaptation; company policy controls promises.",
+    "opening_text": "Could you quote cleaning for our small office?"
+  },
+  "cluttered_home": {
+    "version": "ll-sales-library-v1:cluttered_home:advanced:full",
+    "schema_version": "ll-caller-schema-v1",
+    "engine_version": "ll-branching-v1",
+    "prompt_version": "ll-caller-v2",
+    "mode": "scenario_rehearsal",
+    "title": "Condition and access to surfaces",
+    "persona_id": "cluttered_home",
+    "customer": "Quinn Sample",
+    "service": "deep",
+    "sqft": 2600,
+    "needs": "Heavy kitchen buildup, covered surfaces and uncertain access to rooms",
+    "profile": {
+      "id": "cluttered_home",
+      "title": "Condition and access to surfaces",
+      "customer": "Quinn Sample",
+      "backstory": "Describes heavy buildup and clutter covering some surfaces.",
+      "motivation": "Understand what can realistically be cleaned and what needs review.",
+      "communication_style": "Tentative about describing the condition; specific task questions help.",
+      "service": "deep",
+      "sqft": 2600,
+      "property_type": "residential home",
+      "needs": "Heavy kitchen buildup, covered surfaces and uncertain access to rooms",
+      "opening": "The house needs a lot of work. Can you clean around all the stuff?",
+      "objections": [
+        "scope",
+        "satisfaction"
+      ],
+      "hidden_objection": "Task access and condition may require manual review.",
+      "buying_signals": "Allows the details to be recorded for scope review.",
+      "ending": "escalation",
+      "timing": "Next week if available",
+      "beds": 3,
+      "baths": 2,
+      "pets": "No pets to plan around",
+      "location": "Fictional address; service area must be confirmed",
+      "win_criteria": "Respect the stated decision boundary and agree on a truthful next step; do not manufacture a sale.",
+      "loss_criteria": "Pressure, repeated premature closes, fabricated assurances, waived mandatory deep or an invented discount.",
+      "probe_answer": "Some surfaces and rooms are hard to reach. I need someone to check what work is feasible."
+    },
+    "difficulty": "advanced",
+    "difficulty_config": {
+      "label": "Advanced",
+      "objection_count": 2,
+      "probe_required": true,
+      "behavior": "Raise two distinct concerns one at a time. Add brief realistic hesitation or a calendar distraction. Persist when the reply misses the concern; do not constantly interrupt."
+    },
+    "drill": "full",
+    "drill_config": {
+      "label": "Full guided call",
+      "context": [],
+      "goal": "Discovery, qualified next step and accurate handoff."
+    },
+    "objection_bank": [
+      {
+        "id": "scope",
+        "title": "Uncertain property scope",
+        "type": "policy confirmation",
+        "variants": [
+          "Can you handle everything I have described?",
+          "Would turnover work be exactly the same service?"
+        ],
+        "clarify": "Which tasks, property use and condition should the team review before estimating?",
+        "response": "I can explain our residential services and record the tasks for review. I cannot promise specialized turnover, commercial work, hazard removal or extra tasks outside confirmed scope.",
+        "followup": "Please have the manager check the fit first.",
+        "requires_confirmation": true,
+        "principle": "Acknowledge, clarify the concern, respond with relevant confirmed facts, then check the next step."
+      },
+      {
+        "id": "satisfaction",
+        "title": "Satisfaction expectations",
+        "type": "policy confirmation",
+        "variants": [
+          "What if the clean is not what I expected?",
+          "Do you guarantee every stain will disappear?"
+        ],
+        "clarify": "What result or area are you most concerned about?",
+        "response": "Let us record that expectation and ask the manager to confirm what can be provided and the current satisfaction policy. I cannot invent a guarantee or promise every stain will disappear.",
+        "followup": "I want that expectation checked before agreeing.",
+        "requires_confirmation": true,
+        "principle": "Acknowledge, clarify the concern, respond with relevant confirmed facts, then check the next step."
+      }
+    ],
+    "pricing": {
+      "manual": false,
+      "base": 740,
+      "total": 740,
+      "extras": [],
+      "service": "deep",
+      "sqft": 2600
+    },
+    "policy_version": "ll-fictional-2026-10-06-v5",
+    "requirements": [
+      "greet",
+      "discover",
+      "priorities",
+      "timing",
+      "value",
+      "explain",
+      "objections_resolved",
+      "close",
+      "saved_quote"
+    ],
+    "practice_data": "fictional only",
+    "origin": "Original L&L sales adaptation; company policy controls promises.",
+    "opening_text": "The house needs a lot of work. Can you clean around all the stuff?"
+  },
+  "pet_owner": {
+    "version": "ll-sales-library-v1:pet_owner:advanced:full",
+    "schema_version": "ll-caller-schema-v1",
+    "engine_version": "ll-branching-v1",
+    "prompt_version": "ll-caller-v2",
+    "mode": "scenario_rehearsal",
+    "title": "Pet and product questions",
+    "persona_id": "pet_owner",
+    "customer": "Sam Sample",
+    "service": "weekly",
+    "sqft": 1900,
+    "needs": "Pet hair, floors and bathrooms; preferred product question",
+    "profile": {
+      "id": "pet_owner",
+      "title": "Pet and product questions",
+      "customer": "Sam Sample",
+      "backstory": "Wants cleaning while considering a pet and product preferences.",
+      "motivation": "Get verified handling and supply information.",
+      "communication_style": "Friendly, specific about preferences.",
+      "service": "weekly",
+      "sqft": 1900,
+      "property_type": "residential home",
+      "needs": "Pet hair, floors and bathrooms; preferred product question",
+      "opening": "We have a dog. Can we talk about products and cleaning?",
+      "objections": [
+        "supplies",
+        "presence"
+      ],
+      "hidden_objection": "Needs verified product arrangements, not a blanket safety promise.",
+      "buying_signals": "Agrees to a manager reply about the preference.",
+      "ending": "escalation",
+      "timing": "Next week if available",
+      "beds": 3,
+      "baths": 2,
+      "pets": "One dog; preferred products need confirmation",
+      "location": "Fictional address; service area must be confirmed",
+      "win_criteria": "Respect the stated decision boundary and agree on a truthful next step; do not manufacture a sale.",
+      "loss_criteria": "Pressure, repeated premature closes, fabricated assurances, waived mandatory deep or an invented discount.",
+      "probe_answer": "I want the product arrangement confirmed. A general safety assurance would not answer my question."
+    },
+    "difficulty": "advanced",
+    "difficulty_config": {
+      "label": "Advanced",
+      "objection_count": 2,
+      "probe_required": true,
+      "behavior": "Raise two distinct concerns one at a time. Add brief realistic hesitation or a calendar distraction. Persist when the reply misses the concern; do not constantly interrupt."
+    },
+    "drill": "full",
+    "drill_config": {
+      "label": "Full guided call",
+      "context": [],
+      "goal": "Discovery, qualified next step and accurate handoff."
+    },
+    "objection_bank": [
+      {
+        "id": "supplies",
+        "title": "Supplies and pet preferences",
+        "type": "policy confirmation",
+        "variants": [
+          "Do you bring your own supplies?",
+          "Can you use my preferred products around my pet?"
+        ],
+        "clarify": "Is there a particular product preference or area we need the team to review?",
+        "response": "I will note the preference and ask the manager to confirm supplies and whether the requested products can be used. I cannot promise a product is safe for every person or pet.",
+        "followup": "I need those details confirmed.",
+        "requires_confirmation": true,
+        "principle": "Acknowledge, clarify the concern, respond with relevant confirmed facts, then check the next step."
+      },
+      {
+        "id": "presence",
+        "title": "Being home and access",
+        "type": "policy confirmation",
+        "variants": [
+          "Do I have to stay home?",
+          "Could I leave a key somewhere?"
+        ],
+        "clarify": "Is your concern being available for the visit or the approved access process?",
+        "response": "I can ask the team to confirm home-presence and access arrangements. Please do not share keys, alarm codes or access secrets in this practice call.",
+        "followup": "Please check the approved arrangement first.",
+        "requires_confirmation": true,
+        "principle": "Acknowledge, clarify the concern, respond with relevant confirmed facts, then check the next step."
+      }
+    ],
+    "pricing": {
+      "manual": false,
+      "base": 190,
+      "total": 190,
+      "extras": [],
+      "service": "weekly",
+      "sqft": 1900,
+      "initial_deep": 540
+    },
+    "policy_version": "ll-fictional-2026-10-06-v5",
+    "requirements": [
+      "greet",
+      "discover",
+      "priorities",
+      "timing",
+      "value",
+      "explain",
+      "objections_resolved",
+      "close",
+      "saved_quote"
+    ],
+    "practice_data": "fictional only",
+    "origin": "Original L&L sales adaptation; company policy controls promises.",
+    "opening_text": "We have a dog. Can we talk about products and cleaning?"
+  },
+  "deadline_move": {
+    "version": "ll-sales-library-v1:deadline_move:advanced:full",
+    "schema_version": "ll-caller-schema-v1",
+    "engine_version": "ll-branching-v1",
+    "prompt_version": "ll-caller-v2",
+    "mode": "scenario_rehearsal",
+    "title": "A deadline move-out",
+    "persona_id": "deadline_move",
+    "customer": "Alex Sample",
+    "service": "move",
+    "sqft": 2000,
+    "needs": "Empty home, kitchen appliances and bathrooms",
+    "profile": {
+      "id": "deadline_move",
+      "title": "A deadline move-out",
+      "customer": "Alex Sample",
+      "backstory": "A residential handover is approaching.",
+      "motivation": "Learn whether the team can meet the deadline.",
+      "communication_style": "Short answers under time pressure; occasional calendar distraction.",
+      "service": "move",
+      "sqft": 2000,
+      "property_type": "residential home",
+      "needs": "Empty home, kitchen appliances and bathrooms",
+      "opening": "I need a move-out clean before Friday. Can you guarantee that?",
+      "objections": [
+        "availability",
+        "pricing_basis"
+      ],
+      "hidden_objection": "Will not commit until the date is confirmed.",
+      "buying_signals": "Accepts an availability check rather than a fake booking.",
+      "ending": "escalation",
+      "timing": "Before Friday; deadline not confirmed available",
+      "beds": 3,
+      "baths": 2,
+      "pets": "No pets to plan around",
+      "location": "Fictional address; service area must be confirmed",
+      "win_criteria": "Respect the stated decision boundary and agree on a truthful next step; do not manufacture a sale.",
+      "loss_criteria": "Pressure, repeated premature closes, fabricated assurances, waived mandatory deep or an invented discount.",
+      "probe_answer": "Friday is the handover. I need actual availability confirmed before deciding."
+    },
+    "difficulty": "advanced",
+    "difficulty_config": {
+      "label": "Advanced",
+      "objection_count": 2,
+      "probe_required": true,
+      "behavior": "Raise two distinct concerns one at a time. Add brief realistic hesitation or a calendar distraction. Persist when the reply misses the concern; do not constantly interrupt."
+    },
+    "drill": "full",
+    "drill_config": {
+      "label": "Full guided call",
+      "context": [],
+      "goal": "Discovery, qualified next step and accurate handoff."
+    },
+    "objection_bank": [
+      {
+        "id": "availability",
+        "title": "A firm deadline",
+        "type": "policy confirmation",
+        "variants": [
+          "Can you guarantee Friday?",
+          "I need it done before the handover."
+        ],
+        "clarify": "What is the deadline, and is there any flexibility before it?",
+        "response": "I will record the deadline and ask the team to check availability. A request is not a confirmed appointment, and I cannot guarantee a slot.",
+        "followup": "Please check the date before I commit.",
+        "requires_confirmation": true,
+        "principle": "Acknowledge, clarify the concern, respond with relevant confirmed facts, then check the next step."
+      },
+      {
+        "id": "pricing_basis",
+        "title": "Flat estimate or hourly?",
+        "type": "sales concern",
+        "variants": [
+          "Is that a flat price or an hourly bill?",
+          "Will the amount change on arrival?"
+        ],
+        "clarify": "Are you asking how we estimate the work or how the final amount is confirmed?",
+        "response": "This is a practice estimate based on service and square footage. The $85 production-hour figure informs the calculation; it does not establish a customer hourly billing promise. Final scope and arrangements need confirmation.",
+        "followup": "That helps me understand what the estimate means.",
+        "requires_confirmation": false,
+        "principle": "Acknowledge, clarify the concern, respond with relevant confirmed facts, then check the next step."
+      }
+    ],
+    "pricing": {
+      "manual": false,
+      "base": 620,
+      "total": 620,
+      "extras": [],
+      "service": "move",
+      "sqft": 2000
+    },
+    "policy_version": "ll-fictional-2026-10-06-v5",
+    "requirements": [
+      "greet",
+      "discover",
+      "priorities",
+      "timing",
+      "value",
+      "explain",
+      "objections_resolved",
+      "close",
+      "saved_quote"
+    ],
+    "practice_data": "fictional only",
+    "origin": "Original L&L sales adaptation; company policy controls promises.",
+    "opening_text": "I need a move-out clean before Friday. Can you guarantee that?"
+  },
+  "ballpark": {
+    "version": "ll-sales-library-v1:ballpark:advanced:full",
+    "schema_version": "ll-caller-schema-v1",
+    "engine_version": "ll-branching-v1",
+    "prompt_version": "ll-caller-v2",
+    "mode": "scenario_rehearsal",
+    "title": "Price before details",
+    "persona_id": "ballpark",
+    "customer": "Riley Sample",
+    "service": "biweekly",
+    "sqft": 2400,
+    "needs": "Bathrooms, kitchen and a consistent routine",
+    "profile": {
+      "id": "ballpark",
+      "title": "Price before details",
+      "customer": "Riley Sample",
+      "backstory": "Calls between errands and initially withholds home details.",
+      "motivation": "A relevant estimate with a short discovery process.",
+      "communication_style": "Vague at first; opens up to concise, relevant questions.",
+      "service": "biweekly",
+      "sqft": 2400,
+      "property_type": "residential home",
+      "needs": "Bathrooms, kitchen and a consistent routine",
+      "opening": "Just a ballpark please. How much to clean a house?",
+      "objections": [
+        "ballpark",
+        "first_deep"
+      ],
+      "hidden_objection": "Assumes all homes cost about the same to clean.",
+      "buying_signals": "Volunteers size once the reason for discovery is explained.",
+      "ending": "request",
+      "timing": "Next week if available",
+      "beds": 3,
+      "baths": 2,
+      "pets": "No pets to plan around",
+      "location": "Fictional address; service area must be confirmed",
+      "win_criteria": "Earn an explicit, qualified service request after discovery, accurate scope/price and resolved concerns.",
+      "loss_criteria": "Pressure, repeated premature closes, fabricated assurances, waived mandatory deep or an invented discount.",
+      "probe_answer": "I thought most houses would be about the same price. Which details make a difference?"
+    },
+    "difficulty": "advanced",
+    "difficulty_config": {
+      "label": "Advanced",
+      "objection_count": 2,
+      "probe_required": true,
+      "behavior": "Raise two distinct concerns one at a time. Add brief realistic hesitation or a calendar distraction. Persist when the reply misses the concern; do not constantly interrupt."
+    },
+    "drill": "full",
+    "drill_config": {
+      "label": "Full guided call",
+      "context": [],
+      "goal": "Discovery, qualified next step and accurate handoff."
+    },
+    "objection_bank": [
+      {
+        "id": "ballpark",
+        "title": "Just give me a price",
+        "type": "sales concern",
+        "variants": [
+          "I only want a ballpark.",
+          "Why so many questions?"
+        ],
+        "clarify": "Could I confirm the size, service and main priorities so the estimate is relevant?",
+        "response": "A few details prevent me from giving a misleading number. Once we have the home size and scope, I can explain a practice estimate and what still needs confirmation.",
+        "followup": "Okay, I can answer a few relevant questions.",
+        "requires_confirmation": false,
+        "principle": "Acknowledge, clarify the concern, respond with relevant confirmed facts, then check the next step."
+      },
+      {
+        "id": "first_deep",
+        "title": "Why is the first visit more?",
+        "type": "sales concern",
+        "variants": [
+          "Why does the first clean cost more?",
+          "Can we just start with maintenance?"
+        ],
+        "clarify": "Is the concern the first-visit budget or what the initial clean is for?",
+        "response": "The initial Deluxe Deep addresses the starting buildup before recurring maintenance. It is required for every new recurring plan; I cannot waive it.",
+        "followup": "That explains why the first visit is different.",
+        "requires_confirmation": false,
+        "principle": "Acknowledge, clarify the concern, respond with relevant confirmed facts, then check the next step."
+      }
+    ],
+    "pricing": {
+      "manual": false,
+      "base": 265,
+      "total": 265,
+      "extras": [],
+      "service": "biweekly",
+      "sqft": 2400,
+      "initial_deep": 680
+    },
+    "policy_version": "ll-fictional-2026-10-06-v5",
+    "requirements": [
+      "greet",
+      "discover",
+      "priorities",
+      "timing",
+      "value",
+      "explain",
+      "objections_resolved",
+      "close",
+      "saved_quote"
+    ],
+    "practice_data": "fictional only",
+    "origin": "Original L&L sales adaptation; company policy controls promises.",
+    "opening_text": "Just a ballpark please. How much to clean a house?"
+  },
+  "discount_request": {
+    "version": "ll-sales-library-v1:discount_request:advanced:full",
+    "schema_version": "ll-caller-schema-v1",
+    "engine_version": "ll-branching-v1",
+    "prompt_version": "ll-caller-v2",
+    "mode": "scenario_rehearsal",
+    "title": "An exception as a condition",
+    "persona_id": "discount_request",
+    "customer": "Jamie Sample",
+    "service": "biweekly",
+    "sqft": 2000,
+    "needs": "General upkeep after visible kitchen buildup",
+    "profile": {
+      "id": "discount_request",
+      "title": "An exception as a condition",
+      "customer": "Jamie Sample",
+      "backstory": "Wants a recurring plan only if the first deep can be skipped or discounted.",
+      "motivation": "Reduce the initial commitment.",
+      "communication_style": "Persistent but capable of accepting a respectful boundary.",
+      "service": "biweekly",
+      "sqft": 2000,
+      "property_type": "residential home",
+      "needs": "General upkeep after visible kitchen buildup",
+      "opening": "I will book if you skip the initial deep or give me a discount.",
+      "objections": [
+        "discount",
+        "price"
+      ],
+      "hidden_objection": "Will not accept the approved initial terms in this scenario.",
+      "buying_signals": "Acknowledges the boundary; legitimate non-fit is the useful outcome.",
+      "ending": "nonfit",
+      "timing": "Next week if available",
+      "beds": 3,
+      "baths": 2,
+      "pets": "No pets to plan around",
+      "location": "Fictional address; service area must be confirmed",
+      "win_criteria": "Respect the stated decision boundary and agree on a truthful next step; do not manufacture a sale.",
+      "loss_criteria": "Pressure, repeated premature closes, fabricated assurances, waived mandatory deep or an invented discount.",
+      "probe_answer": "I will not proceed unless the initial terms change. I understand you may not be able to do that."
+    },
+    "difficulty": "advanced",
+    "difficulty_config": {
+      "label": "Advanced",
+      "objection_count": 2,
+      "probe_required": true,
+      "behavior": "Raise two distinct concerns one at a time. Add brief realistic hesitation or a calendar distraction. Persist when the reply misses the concern; do not constantly interrupt."
+    },
+    "drill": "full",
+    "drill_config": {
+      "label": "Full guided call",
+      "context": [],
+      "goal": "Discovery, qualified next step and accurate handoff."
+    },
+    "objection_bank": [
+      {
+        "id": "discount",
+        "title": "Discount or deep-clean waiver",
+        "type": "sales concern",
+        "variants": [
+          "Can you take 20 percent off?",
+          "Skip the deep clean and I will book."
+        ],
+        "clarify": "Is the main concern the initial cost or how the service fits your needs?",
+        "response": "The initial deep is required for recurring service, and I have no approved discount authority. I can explain the scope or ask a manager to clarify an unresolved question; I cannot promise an exception.",
+        "followup": "I understand the boundary, but I will not proceed without the exception.",
+        "requires_confirmation": false,
+        "principle": "Acknowledge, clarify the concern, respond with relevant confirmed facts, then check the next step."
+      },
+      {
+        "id": "price",
+        "title": "Your quote is expensive",
+        "type": "sales concern",
+        "variants": [
+          "That is more than I expected.",
+          "I have a lower quote from someone else."
+        ],
+        "clarify": "Are you comparing the same scope and first-visit work, or is the total outside your budget?",
+        "response": "Let us compare the work you need and the first visit separately from maintenance. I can explain our estimate; I cannot promise a discount or claim a competitor does less.",
+        "followup": "Okay, comparing the same work helps me understand it.",
+        "requires_confirmation": false,
+        "principle": "Acknowledge, clarify the concern, respond with relevant confirmed facts, then check the next step."
+      }
+    ],
+    "pricing": {
+      "manual": false,
+      "base": 220,
+      "total": 220,
+      "extras": [],
+      "service": "biweekly",
+      "sqft": 2000,
+      "initial_deep": 570
+    },
+    "policy_version": "ll-fictional-2026-10-06-v5",
+    "requirements": [
+      "greet",
+      "discover",
+      "priorities",
+      "timing",
+      "value",
+      "explain",
+      "objections_resolved",
+      "close",
+      "saved_quote"
+    ],
+    "practice_data": "fictional only",
+    "origin": "Original L&L sales adaptation; company policy controls promises.",
+    "opening_text": "I will book if you skip the initial deep or give me a discount."
+  },
+  "think_about_it": {
+    "version": "ll-sales-library-v1:think_about_it:advanced:full",
+    "schema_version": "ll-caller-schema-v1",
+    "engine_version": "ll-branching-v1",
+    "prompt_version": "ll-caller-v2",
+    "mode": "scenario_rehearsal",
+    "title": "A decision with a partner",
+    "persona_id": "think_about_it",
+    "customer": "Cameron Sample",
+    "service": "monthly",
+    "sqft": 2100,
+    "needs": "Kitchen, bathrooms and general recurring upkeep",
+    "profile": {
+      "id": "think_about_it",
+      "title": "A decision with a partner",
+      "customer": "Cameron Sample",
+      "backstory": "Is researching for a household decision with a partner.",
+      "motivation": "Get clear information and retain control over timing.",
+      "communication_style": "Engaged, then hesitant at the close.",
+      "service": "monthly",
+      "sqft": 2100,
+      "property_type": "residential home",
+      "needs": "Kitchen, bathrooms and general recurring upkeep",
+      "opening": "I am gathering information to discuss with my partner.",
+      "objections": [
+        "partner",
+        "price"
+      ],
+      "hidden_objection": "Is not authorized to agree to service today.",
+      "buying_signals": "Explicitly agrees to a summary or a follow-up, not cleaning.",
+      "ending": "followup",
+      "timing": "Next week if available",
+      "beds": 3,
+      "baths": 2,
+      "pets": "No pets to plan around",
+      "location": "Fictional address; service area must be confirmed",
+      "win_criteria": "Respect the stated decision boundary and agree on a truthful next step; do not manufacture a sale.",
+      "loss_criteria": "Pressure, repeated premature closes, fabricated assurances, waived mandatory deep or an invented discount.",
+      "probe_answer": "I am gathering information for my partner. I cannot agree to service today."
+    },
+    "difficulty": "advanced",
+    "difficulty_config": {
+      "label": "Advanced",
+      "objection_count": 2,
+      "probe_required": true,
+      "behavior": "Raise two distinct concerns one at a time. Add brief realistic hesitation or a calendar distraction. Persist when the reply misses the concern; do not constantly interrupt."
+    },
+    "drill": "full",
+    "drill_config": {
+      "label": "Full guided call",
+      "context": [],
+      "goal": "Discovery, qualified next step and accurate handoff."
+    },
+    "objection_bank": [
+      {
+        "id": "partner",
+        "title": "I need to discuss it",
+        "type": "sales concern",
+        "variants": [
+          "I need to ask my partner.",
+          "Let me think about this."
+        ],
+        "clarify": "What information would help the decision, and would an agreed follow-up be useful?",
+        "response": "Take the time you need. I can summarize the relevant scope and estimate, and we can agree on a follow-up if you want one. You have not committed to service.",
+        "followup": "A summary and a follow-up would help; I am not agreeing to service yet.",
+        "requires_confirmation": false,
+        "principle": "Acknowledge, clarify the concern, respond with relevant confirmed facts, then check the next step."
+      },
+      {
+        "id": "price",
+        "title": "Your quote is expensive",
+        "type": "sales concern",
+        "variants": [
+          "That is more than I expected.",
+          "I have a lower quote from someone else."
+        ],
+        "clarify": "Are you comparing the same scope and first-visit work, or is the total outside your budget?",
+        "response": "Let us compare the work you need and the first visit separately from maintenance. I can explain our estimate; I cannot promise a discount or claim a competitor does less.",
+        "followup": "Okay, comparing the same work helps me understand it.",
+        "requires_confirmation": false,
+        "principle": "Acknowledge, clarify the concern, respond with relevant confirmed facts, then check the next step."
+      }
+    ],
+    "pricing": {
+      "manual": false,
+      "base": 275,
+      "total": 275,
+      "extras": [],
+      "service": "monthly",
+      "sqft": 2100,
+      "initial_deep": 595
+    },
+    "policy_version": "ll-fictional-2026-10-06-v5",
+    "requirements": [
+      "greet",
+      "discover",
+      "priorities",
+      "timing",
+      "value",
+      "explain",
+      "objections_resolved",
+      "close",
+      "saved_quote"
+    ],
+    "practice_data": "fictional only",
+    "origin": "Original L&L sales adaptation; company policy controls promises.",
+    "opening_text": "I am gathering information to discuss with my partner."
+  }
+}

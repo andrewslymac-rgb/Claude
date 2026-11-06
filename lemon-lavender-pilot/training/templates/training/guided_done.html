@@ -1,0 +1,5 @@
+{% extends 'training/base.html' %}{% block title %}Lesson complete{% endblock %}{% block content %}
+<div class="learner-journey"><a class="back" href="{% url 'course' assignment.pk %}">← Training home</a><div class="eyebrow">LESSON COMPLETE</div><h1>{{ lesson.title }}</h1><p class="lead">Your progress is saved. Written responses remain pending trainer review.</p>
+<section class="journey-next"><div class="eyebrow">UP NEXT · STAGE {{ primary_step.section.number }} OF 4</div><h2>{{ primary_step.title }}</h2><p>{{ primary_step.detail }}</p><a class="button primary-continue" href="{{ primary_step.url }}">Next: {{ primary_step.section.short_title }} →</a></section>
+<details class="journey-resources"><summary>Review what you covered</summary><ul>{% for item in lesson.pages %}<li>{{ item.goal }}</li>{% endfor %}</ul><p>Lesson completion records your learning progress. Your trainer separately reviews writing, practice and readiness.</p></details>
+</div>{% endblock %}

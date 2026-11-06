@@ -1,0 +1,285 @@
+{
+  "version": "ll-sales-library-v2",
+  "objections": {
+    "found_another_cleaner": {
+      "id": "found_another_cleaner",
+      "title": "We found another cleaner",
+      "type": "sales concern",
+      "variants": [
+        "We found another cleaner.",
+        "We have decided to go with someone else."
+      ],
+      "clarify": "Thank you for letting me know. If you are comfortable sharing, what mattered most in that choice?",
+      "response": "I understand. We focus on high-quality cleaning with a background-checked team, and we will always do right by our customers. That is our approach, not a promised refund or guarantee. If there is an unmet need I can explain our relevant scope; I respect your decision either way.",
+      "followup": "Thank you for respecting the decision. I can explain the scope we are comparing.",
+      "requires_confirmation": false,
+      "principle": "Acknowledge, clarify the concern, respond with relevant confirmed facts, then check the next step."
+    },
+    "cost_too_high": {
+      "id": "cost_too_high",
+      "title": "Cost is too high",
+      "type": "sales concern",
+      "variants": [
+        "The cost is too high.",
+        "That is outside the budget I had in mind."
+      ],
+      "clarify": "I understand. Is the main concern the first visit, ongoing cost, or the work included?",
+      "response": "Let us look at the scope and what would help most. The required initial deep addresses buildup and the recurring visits maintain the home. I can explain the value without pressure. If you are asking for a lower price: I’m sorry, we don’t have any discounts available right now. A customer-mentioned active promotion needs verified terms.",
+      "followup": "That helps me understand the work and make my decision.",
+      "requires_confirmation": false,
+      "principle": "Acknowledge, clarify the concern, respond with relevant confirmed facts, then check the next step."
+    },
+    "do_it_ourselves": {
+      "id": "do_it_ourselves",
+      "title": "We decided to do it ourselves",
+      "type": "sales concern",
+      "variants": [
+        "We decided to do it ourselves.",
+        "We will handle the cleaning at home for now."
+      ],
+      "clarify": "Of course. What led you to that decision: the timing, budget, or wanting to handle the work yourselves?",
+      "response": "I respect that. If maintaining the kitchen and bathrooms becomes difficult, we can discuss the relevant help. Would a proposal and a follow-up in a day or two be useful, or would you prefer we stop here?",
+      "followup": "A proposal and an agreed follow-up would help, but I am not agreeing to service yet.",
+      "requires_confirmation": false,
+      "principle": "Acknowledge, clarify the concern, respond with relevant confirmed facts, then check the next step."
+    },
+    "more_than_expected": {
+      "id": "more_than_expected",
+      "title": "More than we expected",
+      "type": "sales concern",
+      "variants": [
+        "That is more than we expected it to cost.",
+        "The first estimate surprised us."
+      ],
+      "clarify": "I understand the surprise. Was the difference in the initial clean, recurring cost, or included scope?",
+      "response": "Let us separate the first visit from maintenance and review the relevant tasks. I can explain the estimate and our high-quality cleaning without assuming your budget or promising a discount.",
+      "followup": "The distinction between initial work and maintenance helps.",
+      "requires_confirmation": false,
+      "principle": "Acknowledge, clarify the concern, respond with relevant confirmed facts, then check the next step."
+    },
+    "promotion": {
+      "id": "promotion",
+      "title": "A customer-mentioned promotion",
+      "type": "policy confirmation",
+      "variants": [
+        "I saw a promotion code. Can I use it?",
+        "Does FALL26 apply to this service?"
+      ],
+      "clarify": "Which promotion did you see, and what service are you considering?",
+      "response": "If that promotion is active and you meet its verified terms, we can offer it because you mentioned it. I will confirm the dates, eligible service and terms; I cannot invent an amount, promise an unknown or expired offer, or stack offers.",
+      "followup": "Please confirm whether that offer applies before I decide.",
+      "requires_confirmation": true,
+      "principle": "Acknowledge, clarify the concern, respond with relevant confirmed facts, then check the next step."
+    },
+    "first_deep": {
+      "id": "first_deep",
+      "title": "Why is the first visit more?",
+      "type": "sales concern",
+      "variants": [
+        "Why does the first clean cost more?",
+        "Can we just start with maintenance?"
+      ],
+      "clarify": "Is the concern the first-visit budget or what the initial clean is for?",
+      "response": "The initial Deluxe Deep addresses the starting buildup before recurring maintenance. It is required for every new recurring plan; I cannot waive it.",
+      "followup": "That explains why the first visit is different.",
+      "requires_confirmation": false,
+      "principle": "Acknowledge, clarify the concern, respond with relevant confirmed facts, then check the next step."
+    },
+    "price": {
+      "id": "price",
+      "title": "Your quote is expensive",
+      "type": "sales concern",
+      "variants": [
+        "That is more than I expected.",
+        "I have a lower quote from someone else."
+      ],
+      "clarify": "Are you comparing the same scope and first-visit work, or is the total outside your budget?",
+      "response": "Let us compare the work you need and the first visit separately from maintenance. I can explain our estimate; I cannot promise a discount or claim a competitor does less.",
+      "followup": "Okay, comparing the same work helps me understand it.",
+      "requires_confirmation": false,
+      "principle": "Acknowledge, clarify the concern, respond with relevant confirmed facts, then check the next step."
+    },
+    "trust": {
+      "id": "trust",
+      "title": "Trust and background checks",
+      "type": "policy confirmation",
+      "variants": [
+        "How do I know who is coming into my home?",
+        "Are everyone’s background checks current?"
+      ],
+      "clarify": "Which detail would help you feel comfortable: who attends or the screening policy?",
+      "response": "I understand why that matters. Our team is background-checked. I will ask the manager to verify individual screening dates and assigned team details rather than invent them. May I record that question for a reply?",
+      "followup": "I need that confirmed before I decide.",
+      "requires_confirmation": true,
+      "principle": "Acknowledge, clarify the concern, respond with relevant confirmed facts, then check the next step."
+    },
+    "insurance": {
+      "id": "insurance",
+      "title": "Insurance and bonding",
+      "type": "policy confirmation",
+      "variants": [
+        "Are you insured and bonded?",
+        "What protection do I have if something breaks?"
+      ],
+      "clarify": "Would you like confirmation of coverage, bonding, or the process for a specific concern?",
+      "response": "I will ask the manager for the current verified insurance, bonding and damage-process information. I cannot represent unverified coverage as a promise.",
+      "followup": "Please get me the verified information first.",
+      "requires_confirmation": true,
+      "principle": "Acknowledge, clarify the concern, respond with relevant confirmed facts, then check the next step."
+    },
+    "satisfaction": {
+      "id": "satisfaction",
+      "title": "Satisfaction expectations",
+      "type": "policy confirmation",
+      "variants": [
+        "What if the clean is not what I expected?",
+        "Do you guarantee every stain will disappear?"
+      ],
+      "clarify": "What result or area are you most concerned about?",
+      "response": "Let us record that expectation and ask the manager to confirm what can be provided and the current satisfaction policy. I cannot invent a guarantee or promise every stain will disappear.",
+      "followup": "I want that expectation checked before agreeing.",
+      "requires_confirmation": true,
+      "principle": "Acknowledge, clarify the concern, respond with relevant confirmed facts, then check the next step."
+    },
+    "presence": {
+      "id": "presence",
+      "title": "Being home and access",
+      "type": "policy confirmation",
+      "variants": [
+        "Do I have to stay home?",
+        "Could I leave a key somewhere?"
+      ],
+      "clarify": "Is your concern being available for the visit or the approved access process?",
+      "response": "I can ask the team to confirm home-presence and access arrangements. Please do not share keys, alarm codes or access secrets in this practice call.",
+      "followup": "Please check the approved arrangement first.",
+      "requires_confirmation": true,
+      "principle": "Acknowledge, clarify the concern, respond with relevant confirmed facts, then check the next step."
+    },
+    "supplies": {
+      "id": "supplies",
+      "title": "Supplies and pet preferences",
+      "type": "policy confirmation",
+      "variants": [
+        "Do you bring your own supplies?",
+        "Can you use my preferred products around my pet?"
+      ],
+      "clarify": "Is there a particular product preference or area we need the team to review?",
+      "response": "I will note the preference and ask the manager to confirm supplies and whether the requested products can be used. I cannot promise a product is safe for every person or pet.",
+      "followup": "I need those details confirmed.",
+      "requires_confirmation": true,
+      "principle": "Acknowledge, clarify the concern, respond with relevant confirmed facts, then check the next step."
+    },
+    "availability": {
+      "id": "availability",
+      "title": "A firm deadline",
+      "type": "policy confirmation",
+      "variants": [
+        "Can you guarantee Friday?",
+        "I need it done before the handover."
+      ],
+      "clarify": "What is the deadline, and is there any flexibility before it?",
+      "response": "I will record the deadline and ask the team to check availability. A request is not a confirmed appointment, and I cannot guarantee a slot.",
+      "followup": "Please check the date before I commit.",
+      "requires_confirmation": true,
+      "principle": "Acknowledge, clarify the concern, respond with relevant confirmed facts, then check the next step."
+    },
+    "pricing_basis": {
+      "id": "pricing_basis",
+      "title": "Flat estimate or hourly?",
+      "type": "sales concern",
+      "variants": [
+        "Is that a flat price or an hourly bill?",
+        "Will the amount change on arrival?"
+      ],
+      "clarify": "Are you asking how we estimate the work or how the final amount is confirmed?",
+      "response": "This is a practice estimate based on service and square footage. The $85 production-hour figure informs the calculation; it does not establish a customer hourly billing promise. Final scope and arrangements need confirmation.",
+      "followup": "That helps me understand what the estimate means.",
+      "requires_confirmation": false,
+      "principle": "Acknowledge, clarify the concern, respond with relevant confirmed facts, then check the next step."
+    },
+    "contracts": {
+      "id": "contracts",
+      "title": "Contracts and cancellation",
+      "type": "policy confirmation",
+      "variants": [
+        "Am I locked into a contract?",
+        "What happens if I need to cancel?"
+      ],
+      "clarify": "Are you concerned about a long-term commitment or changing a particular visit?",
+      "response": "The current policy calls for 48 hours of cancellation notice. Contract terms, cancellation fees and waiver authority need manager confirmation; I cannot promise there is no contract or fee.",
+      "followup": "Please confirm those terms before I decide.",
+      "requires_confirmation": true,
+      "principle": "Acknowledge, clarify the concern, respond with relevant confirmed facts, then check the next step."
+    },
+    "partner": {
+      "id": "partner",
+      "title": "I need to discuss it",
+      "type": "sales concern",
+      "variants": [
+        "I need to ask my partner.",
+        "Let me think about this."
+      ],
+      "clarify": "What information would help the decision, and would an agreed follow-up be useful?",
+      "response": "Take the time you need. I can propose sending a proposal with the relevant scope and estimate, then agree on a specific follow-up in a day or two at your preferred time and channel. You have not committed to service.",
+      "followup": "A summary and a follow-up would help; I am not agreeing to service yet.",
+      "requires_confirmation": false,
+      "principle": "Acknowledge, clarify the concern, respond with relevant confirmed facts, then check the next step."
+    },
+    "ballpark": {
+      "id": "ballpark",
+      "title": "Just give me a price",
+      "type": "sales concern",
+      "variants": [
+        "I only want a ballpark.",
+        "Why so many questions?"
+      ],
+      "clarify": "Could I confirm the size, service and main priorities so the estimate is relevant?",
+      "response": "A few details prevent me from giving a misleading number. Once we have the home size and scope, I can explain a practice estimate and what still needs confirmation.",
+      "followup": "Okay, I can answer a few relevant questions.",
+      "requires_confirmation": false,
+      "principle": "Acknowledge, clarify the concern, respond with relevant confirmed facts, then check the next step."
+    },
+    "discount": {
+      "id": "discount",
+      "title": "Discount or deep-clean waiver",
+      "type": "sales concern",
+      "variants": [
+        "Can you take 20 percent off?",
+        "Skip the deep clean and I will book."
+      ],
+      "clarify": "Is the main concern the initial cost or how the service fits your needs?",
+      "response": "I’m sorry, we don’t have any discounts available right now. The initial deep is required for recurring service. Let us discuss the scope and your needs without pressure. If you mention a current promotion, I will verify its dates, service eligibility and terms before offering it; I cannot invent or stack offers.",
+      "followup": "I understand the boundary, but I will not proceed without the exception.",
+      "requires_confirmation": false,
+      "principle": "Acknowledge, clarify the concern, respond with relevant confirmed facts, then check the next step."
+    },
+    "scope": {
+      "id": "scope",
+      "title": "Uncertain property scope",
+      "type": "policy confirmation",
+      "variants": [
+        "Can you handle everything I have described?",
+        "Would turnover work be exactly the same service?"
+      ],
+      "clarify": "Which tasks, property use and condition should the team review before estimating?",
+      "response": "I can explain our residential services and record the tasks for review. I cannot promise specialized turnover, commercial work, hazard removal or extra tasks outside confirmed scope.",
+      "followup": "Please have the manager check the fit first.",
+      "requires_confirmation": true,
+      "principle": "Acknowledge, clarify the concern, respond with relevant confirmed facts, then check the next step."
+    },
+    "payment": {
+      "id": "payment",
+      "title": "Payment and deposit",
+      "type": "policy confirmation",
+      "variants": [
+        "When do I pay?",
+        "Is a deposit required?"
+      ],
+      "clarify": "Which payment or deposit detail do you need confirmed before proceeding?",
+      "response": "Payment methods, timing and deposit terms need manager confirmation. I will record the question without collecting any payment information.",
+      "followup": "Please confirm those terms first.",
+      "requires_confirmation": true,
+      "principle": "Acknowledge, clarify the concern, respond with relevant confirmed facts, then check the next step."
+    }
+  }
+}

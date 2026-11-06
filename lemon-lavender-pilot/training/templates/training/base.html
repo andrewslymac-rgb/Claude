@@ -1,0 +1,24 @@
+{% load static %}<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}Training Center{% endblock %} · Lemon & Lavender</title>
+<meta name="theme-color" content="#342b42">
+<link rel="stylesheet" href="{% static 'training/app.css' %}"><script src="{% static 'training/app.js' %}" defer></script><script src="{% static 'training/review-audio.js' %}" defer></script>{% block scripts %}{% endblock %}</head>
+<body><a class="skip" href="#main">Skip to content</a><div class="shell">
+<aside aria-label="Training navigation">
+<a class="brand" href="{% url 'home' %}"><span class="brandmark" aria-hidden="true">L<span>&</span>L</span><span>Lemon &amp; Lavender<small>TEAM TRAINING</small></span></a>
+<div class="nav-label">YOUR WORKSPACE</div>
+<nav aria-label="Main navigation">{% if user.is_authenticated and user.profile.role == 'learner' and nav_assignment_id %}
+<a data-nav="learn" href="{% url 'course' nav_assignment_id %}"><span aria-hidden="true" class="nav-icon">▤</span>Training home</a>
+<details class="nav-resources"><summary>Resources</summary><a data-nav="practice" href="{% url 'practice_library' nav_assignment_id %}">Practice &amp; saved calls</a><a data-nav="coaching" href="{% url 'coaching' nav_assignment_id %}">Trainer feedback</a><a data-nav="reference" href="{% url 'services' nav_assignment_id %}">Services &amp; pricing</a></details>
+{% elif user.is_authenticated and user.profile.role == 'learner' %}<a data-nav="desk" href="{% url 'home' %}">Training home</a>
+{% else %}
+<a data-nav="desk" href="{% url 'home' %}"><span aria-hidden="true" class="nav-icon">▦</span>{% if user.is_authenticated %}Coaching desk{% else %}Welcome{% endif %}</a>
+{% if user.is_authenticated %}<a href="{% url 'home' %}#reviews"><span aria-hidden="true" class="nav-icon">◷</span>Review queue</a>{% endif %}
+{% if user.is_authenticated and user.profile.role == 'admin' %}<a data-nav="costs" href="{% url 'costs' %}"><span aria-hidden="true" class="nav-icon">▥</span>Usage &amp; costs</a>{% endif %}
+{% endif %}</nav>
+<div class="aside-note"><span class="status-dot"></span> A little practice. A better call.<p>Build confidence, one conversation at a time.</p></div>
+{% if user.is_authenticated %}<div class="identity"><span class="avatar" aria-hidden="true">{{ user.first_name|first }}</span><div><strong>{{ user.first_name }}</strong><small>{{ user.profile.get_role_display }}</small></div><form action="{% url 'sign_out' %}" method="post">{% csrf_token %}<button class="link-button">Sign out</button></form></div>{% endif %}
+</aside>
+<div class="content"><header><span>Training center <span class="header-divider">/</span> Lemon &amp; Lavender</span><span class="pill"><span class="status-dot"></span> Local preview</span></header>
+<main id="main">{% for message in messages %}<div role="status" class="notice {{ message.tags }}">{{ message }}</div>{% endfor %}{% if user.is_authenticated %}<details class="owner-update"><summary>Current company guidance · October 8</summary><p>New owner decisions apply to current practice. Saved lessons and call results retain their original versions.</p><ul>{% for line in current_owner_guidance %}<li>{{ line }}</li>{% endfor %}</ul><p class="muted">{{ current_owner_version }}</p></details>{% endif %}{% block content %}{% endblock %}</main>
+<footer><span>Fictional practice · Saved on this Mac</span><span>Readiness is reviewed by your manager.</span></footer></div></div></body></html>
