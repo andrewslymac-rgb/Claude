@@ -1,0 +1,1 @@
+{ "name": "business-pulse", "version": "0.1.0", "description": "Side panel with a live snapshot of Adapt Pest Pros, Lemon and Lavender Cleaning Co., and Clever Vending", "types": "./types/index.d.ts" }

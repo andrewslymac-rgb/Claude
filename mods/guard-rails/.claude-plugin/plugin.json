@@ -1,0 +1,1 @@
+{ "name": "guard-rails", "version": "0.1.0", "description": "Asks Andrew before Claude sends messages, runs payroll, or voids/deletes records" }

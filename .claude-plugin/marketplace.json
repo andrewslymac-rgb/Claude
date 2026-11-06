@@ -1,0 +1,9 @@
+{
+  "name": "andrew-business-mods",
+  "owner": { "name": "Andrew MacIntosh" },
+  "plugins": [
+    { "name": "business-pulse", "source": "./mods/business-pulse", "description": "Side panel with a live snapshot of Adapt Pest Pros, Lemon and Lavender Cleaning Co., and Clever Vending" },
+    { "name": "guard-rails", "source": "./mods/guard-rails", "description": "Asks before Claude sends messages, runs payroll, or voids/deletes records" },
+    { "name": "books-status", "source": "./mods/books-status", "description": "Status line showing which business's QuickBooks Claude is working in" }
+  ]
+}
