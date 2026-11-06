@@ -63,6 +63,16 @@ To test what a team member sees: in Settings, add another email as a Viewer or E
 
 Dev login is automatically off in production.
 
+## Google Drive sync (SOPs)
+
+Orbit mirrors one Drive folder per company as read-only pages. Edit in Drive; Orbit updates within 10 minutes.
+
+1. Google Cloud → project Orbit → enable the **Google Drive API**.
+2. **IAM & Admin → Service Accounts → Create** (`orbit-drive-sync`) → **Keys → Add key → JSON**. Download the file.
+3. Share your SOP folder or Shared Drive with the service account's email as **Viewer**.
+4. Railway → Variables → `GOOGLE_SERVICE_ACCOUNT_JSON` = the whole contents of the JSON file → Deploy.
+5. In Orbit: Settings → Google Drive → paste the folder link → Connect & sync.
+
 ## Connect Claude (AI access)
 
 Orbit is an MCP server at `https://myorbithq.net/api/mcp`.

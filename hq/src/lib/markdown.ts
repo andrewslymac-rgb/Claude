@@ -28,3 +28,8 @@ export async function blocksToMarkdown(blocks: unknown[]): Promise<string> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return get().blocksToMarkdownLossy(blocks as any);
 }
+
+/** HTML (from Google Docs export or Word conversion) → editor blocks. */
+export async function htmlToBlocks(html: string): Promise<unknown[]> {
+  return get().tryParseHTMLToBlocks(html);
+}

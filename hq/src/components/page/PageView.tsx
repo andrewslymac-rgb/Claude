@@ -162,8 +162,12 @@ export function PageView({ slug, page, crumbs, subpages, canEdit, docInfo, membe
       {page.archived && <Banner>This page is in the Trash. Restore it from the Trash to edit it again.</Banner>}
       {page.source === "gdrive" && (
         <Banner>
-          This SOP is synced from Google Drive and updates automatically. To change it, edit the Google Doc.
-          <ExternalLink size={14} className="ml-1 inline" />
+          This page is synced from Google Drive and updates automatically. To change it, edit the original.
+          {docInfo.sourceLink && (
+            <a href={docInfo.sourceLink} target="_blank" rel="noreferrer" className="ml-2 inline-flex items-center gap-1 font-medium underline">
+              Open in Google Drive <ExternalLink size={13} />
+            </a>
+          )}
         </Banner>
       )}
 

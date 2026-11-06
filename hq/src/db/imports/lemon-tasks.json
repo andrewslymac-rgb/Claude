@@ -1,0 +1,569 @@
+[
+ {
+  "title": "Chemical SDS Binder Available On Site",
+  "frequency": "daily",
+  "category": "Safety",
+  "whenText": "AM",
+  "instructions": "Confirm SDS binder is in vehicle for OSHA compliance. Required at all job sites.",
+  "ownerRole": "Team Lead",
+  "ownerIsAndrew": false
+ },
+ {
+  "title": "End-of-Day Vehicle Unload and Restock",
+  "frequency": "daily",
+  "category": "Operations",
+  "whenText": "PM",
+  "instructions": "Unload used supplies. Clean dirty tools. Restock caddy for next day.",
+  "ownerRole": "Crew",
+  "ownerIsAndrew": false
+ },
+ {
+  "title": "Equipment Wipe-Down and Storage",
+  "frequency": "daily",
+  "category": "Operations",
+  "whenText": "PM",
+  "instructions": "Clean vacuums, mops, and reusable equipment. Store properly to extend lifespan.",
+  "ownerRole": "Crew",
+  "ownerIsAndrew": false
+ },
+ {
+  "title": "Follow up from prior day's one-time cleans",
+  "frequency": "daily",
+  "category": "Customer Service",
+  "whenText": null,
+  "instructions": "",
+  "ownerRole": "Office Manager",
+  "ownerIsAndrew": false
+ },
+ {
+  "title": "Invoice Trigger in Jobber",
+  "frequency": "daily",
+  "category": "Finance",
+  "whenText": "Post-job",
+  "instructions": "Mark job complete in Jobber to trigger auto-invoice or flag for manual send.",
+  "ownerRole": null,
+  "ownerIsAndrew": false
+ },
+ {
+  "title": "Job Completion Photo, Upload to Jobber",
+  "frequency": "daily",
+  "category": "Quality",
+  "whenText": "On-site",
+  "instructions": "Take before/after photos for each job. Upload directly into Jobber job record.",
+  "ownerRole": "Crew",
+  "ownerIsAndrew": false
+ },
+ {
+  "title": "Job Notes Entry in Jobber",
+  "frequency": "daily",
+  "category": "Operations",
+  "whenText": "On-site",
+  "instructions": "Log any access notes, special requests, or client feedback directly in Jobber.",
+  "ownerRole": "Crew",
+  "ownerIsAndrew": false
+ },
+ {
+  "title": "Timesheet Entry",
+  "frequency": "daily",
+  "category": "Payroll",
+  "whenText": "PM",
+  "instructions": "All employees log hours in Jobber before leaving for the day.",
+  "ownerRole": "All Staff",
+  "ownerIsAndrew": false
+ },
+ {
+  "title": "Vehicle Load-Out Check",
+  "frequency": "daily",
+  "category": "Operations",
+  "whenText": "AM",
+  "instructions": "Verify all supplies, chemicals, and equipment are loaded before departure.",
+  "ownerRole": "Team Lead",
+  "ownerIsAndrew": false
+ },
+ {
+  "title": "Client Communication Follow-Up",
+  "frequency": "weekly",
+  "category": "Customer Service",
+  "whenText": "Wednesday",
+  "instructions": "Reply to all pending client messages, quote requests, and Jobber client actions.",
+  "ownerRole": null,
+  "ownerIsAndrew": true
+ },
+ {
+  "title": "Equipment Check and Minor Maintenance",
+  "frequency": "weekly",
+  "category": "Operations",
+  "whenText": "Friday",
+  "instructions": "Check vacuums, mops, and sprayers. Report any repairs needed before next week.",
+  "ownerRole": "Team Lead",
+  "ownerIsAndrew": false
+ },
+ {
+  "title": "Fuel and Mileage Log Update",
+  "frequency": "weekly",
+  "category": "Finance",
+  "whenText": "Friday",
+  "instructions": "Log all weekly fuel receipts and mileage for company vehicles. Use for tax records.",
+  "ownerRole": "Team Lead",
+  "ownerIsAndrew": false
+ },
+ {
+  "title": "Google Business Profile: Post Content",
+  "frequency": "weekly",
+  "category": "Marketing",
+  "whenText": "Wednesday",
+  "instructions": "Post a Google update: before/after photo, cleaning tip, seasonal promo, or team spotlight.",
+  "ownerRole": null,
+  "ownerIsAndrew": true
+ },
+ {
+  "title": "Job Completion Quality Review",
+  "frequency": "weekly",
+  "category": "Quality",
+  "whenText": "Friday",
+  "instructions": "Review Jobber job notes, client feedback, and any photos submitted this week.",
+  "ownerRole": "Team Lead",
+  "ownerIsAndrew": false
+ },
+ {
+  "title": "Jobber Invoice Aging Review",
+  "frequency": "weekly",
+  "category": "Finance",
+  "whenText": "Friday",
+  "instructions": "Pull aging report in Jobber. Flag any invoices 7+ days unpaid for follow-up.",
+  "ownerRole": null,
+  "ownerIsAndrew": true
+ },
+ {
+  "title": "New Hire / Onboarding Follow-Up",
+  "frequency": "weekly",
+  "category": "HR",
+  "whenText": "As needed",
+  "instructions": "Check in with any employee in first 90 days. Address questions, confirm schedule fit.",
+  "ownerRole": null,
+  "ownerIsAndrew": true
+ },
+ {
+  "title": "New Lead Response (within 24 hours)",
+  "frequency": "weekly",
+  "category": "Sales",
+  "whenText": "Daily",
+  "instructions": "Respond to all new web form, phone, and referral leads within 24 hours. (The New Cleaning Request SOP sets a faster, same-day first call.)",
+  "ownerRole": null,
+  "ownerIsAndrew": true
+ },
+ {
+  "title": "Respond to Online Reviews",
+  "frequency": "weekly",
+  "category": "Marketing",
+  "whenText": "Friday",
+  "instructions": "Respond to all new Google and Facebook reviews, positive and negative, within 7 days.",
+  "ownerRole": null,
+  "ownerIsAndrew": true
+ },
+ {
+  "title": "Social Media Post (Instagram and Facebook)",
+  "frequency": "weekly",
+  "category": "Marketing",
+  "whenText": "Tuesday",
+  "instructions": "Post 1 to 2 times per week. Tip: use a before/after, a team photo, or a client testimonial.",
+  "ownerRole": null,
+  "ownerIsAndrew": true
+ },
+ {
+  "title": "Supply and Chemical Check",
+  "frequency": "weekly",
+  "category": "Operations",
+  "whenText": "Monday",
+  "instructions": "Visual check of cleaning caddy supplies for each crew. Flag shortages.",
+  "ownerRole": "Team Lead",
+  "ownerIsAndrew": false
+ },
+ {
+  "title": "Team Huddle / Morning Briefing",
+  "frequency": "weekly",
+  "category": "Operations",
+  "whenText": "Monday",
+  "instructions": "Quick 10-min team briefing. Review the week's jobs, any special notes, safety reminders.",
+  "ownerRole": "Team Lead",
+  "ownerIsAndrew": false
+ },
+ {
+  "title": "Timesheet Collection and Approval",
+  "frequency": "weekly",
+  "category": "Payroll",
+  "whenText": "Friday",
+  "instructions": "Collect all employee timesheets from Jobber. Approve before EOD Friday for payroll.",
+  "ownerRole": null,
+  "ownerIsAndrew": true
+ },
+ {
+  "title": "Upcoming Schedule Confirmation",
+  "frequency": "weekly",
+  "category": "Operations",
+  "whenText": "Thursday",
+  "instructions": "Confirm next week's jobs: assignments, keys/access, any special client instructions.",
+  "ownerRole": "Team Lead",
+  "ownerIsAndrew": false
+ },
+ {
+  "title": "Vehicle Pre-Trip Inspection Log",
+  "frequency": "weekly",
+  "category": "Safety",
+  "whenText": "Monday",
+  "instructions": "Check tire pressure, fluid levels, and cargo for company vehicle(s) before routes.",
+  "ownerRole": "Team Lead",
+  "ownerIsAndrew": false
+ },
+ {
+  "title": "Accounts Receivable Follow-Up",
+  "frequency": "monthly",
+  "category": "Finance",
+  "whenText": "5th",
+  "instructions": "Follow up on any unpaid invoices 5+ days past due. Log contact attempts.",
+  "ownerRole": null,
+  "ownerIsAndrew": false
+ },
+ {
+  "title": "Bank Account Reconciliation",
+  "frequency": "monthly",
+  "category": "Finance",
+  "whenText": "7th",
+  "instructions": "Reconcile business checking against Jobber revenue report and receipts.",
+  "ownerRole": null,
+  "ownerIsAndrew": true
+ },
+ {
+  "title": "Check who is due for a 3-month or 6-month review",
+  "frequency": "monthly",
+  "category": "HR",
+  "whenText": "Start of each month",
+  "instructions": "Handbook: a raise can be considered at 3 months, then reviews every 6 months. The onboarding checklist sets reminders for both.",
+  "ownerRole": null,
+  "ownerIsAndrew": false
+ },
+ {
+  "title": "Chemical and Supply Inventory Reorder",
+  "frequency": "monthly",
+  "category": "Operations",
+  "whenText": "Mid-month",
+  "instructions": "Check stock of all cleaning products, PPE, and supplies. Place reorder if below par.",
+  "ownerRole": "Team Lead",
+  "ownerIsAndrew": false
+ },
+ {
+  "title": "Credit Card Statement Review",
+  "frequency": "monthly",
+  "category": "Finance",
+  "whenText": "7th",
+  "instructions": "Categorize all charges. Flag personal/mixed-use expenses before submitting to CPA.",
+  "ownerRole": null,
+  "ownerIsAndrew": true
+ },
+ {
+  "title": "Employee Time-Off Request Review",
+  "frequency": "monthly",
+  "category": "HR",
+  "whenText": "1st",
+  "instructions": "Review sick leave balances and approve/deny pending requests for next month.",
+  "ownerRole": null,
+  "ownerIsAndrew": true
+ },
+ {
+  "title": "Fall 2026 promo: check who has reached visit 5 and apply the free clean",
+  "frequency": "monthly",
+  "category": "Sales",
+  "whenText": "Once a month while the promo runs",
+  "instructions": "Pull the tagged clients in Jobber, count completed visits, add the discount line on visit 5, then swap the tag.",
+  "ownerRole": null,
+  "ownerIsAndrew": false
+ },
+ {
+  "title": "Federal 941 Payroll Tax Deposit",
+  "frequency": "monthly",
+  "category": "Tax",
+  "whenText": "Per schedule",
+  "instructions": "Deposit federal payroll taxes (semi-weekly or monthly based on lookback period).",
+  "ownerRole": null,
+  "ownerIsAndrew": true
+ },
+ {
+  "title": "Google Reviews: Request Campaign",
+  "frequency": "monthly",
+  "category": "Marketing",
+  "whenText": "1st to 5th",
+  "instructions": "Send review request via Jobber or Mailchimp to recent completed jobs.",
+  "ownerRole": null,
+  "ownerIsAndrew": true
+ },
+ {
+  "title": "Invoicing: Send All Outstanding Invoices",
+  "frequency": "monthly",
+  "category": "Finance",
+  "whenText": "1st to 3rd",
+  "instructions": "Review Jobber for any uninvoiced jobs. Send final invoices to all clients.",
+  "ownerRole": null,
+  "ownerIsAndrew": true
+ },
+ {
+  "title": "Jobber Schedule Audit",
+  "frequency": "monthly",
+  "category": "Operations",
+  "whenText": "Last week",
+  "instructions": "Confirm all upcoming jobs are scheduled, assigned, and have correct job notes.",
+  "ownerRole": "Team Lead",
+  "ownerIsAndrew": false
+ },
+ {
+  "title": "Mailchimp Newsletter / Promo Send",
+  "frequency": "monthly",
+  "category": "Marketing",
+  "whenText": "15th",
+  "instructions": "Send monthly email to client list. Seasonal tip, promo offer, or company update.",
+  "ownerRole": null,
+  "ownerIsAndrew": true
+ },
+ {
+  "title": "Monthly P&L Review",
+  "frequency": "monthly",
+  "category": "Finance",
+  "whenText": "10th",
+  "instructions": "Pull Jobber revenue report + expense summary. Compare to prior month and budget.",
+  "ownerRole": null,
+  "ownerIsAndrew": true
+ },
+ {
+  "title": "New Client Follow-Up Calls",
+  "frequency": "monthly",
+  "category": "Sales",
+  "whenText": "1st week",
+  "instructions": "Call or email all new clients from prior month. Request reviews and referrals.",
+  "ownerRole": null,
+  "ownerIsAndrew": true
+ },
+ {
+  "title": "Paid Leave Oregon Contributions",
+  "frequency": "monthly",
+  "category": "Compliance",
+  "whenText": "Per payroll",
+  "instructions": "Deduct and remit PLO contributions each payroll cycle. paidleave.oregon.gov",
+  "ownerRole": null,
+  "ownerIsAndrew": true
+ },
+ {
+  "title": "Payroll Processing",
+  "frequency": "monthly",
+  "category": "Payroll",
+  "whenText": "1st and 15th",
+  "instructions": "Process payroll via payroll provider. Confirm hours in Jobber. (The Employee Handbook says pay is every two weeks; confirm which is right.)",
+  "ownerRole": null,
+  "ownerIsAndrew": true
+ },
+ {
+  "title": "Review complaints and re-cleans by team and by task",
+  "frequency": "monthly",
+  "category": "Quality",
+  "whenText": "Once a month",
+  "instructions": "Look at every complaint and re-clean from the month. Look for repeat teams or tasks to coach. (From the Quality Control and Re-Clean SOP.)",
+  "ownerRole": null,
+  "ownerIsAndrew": true
+ },
+ {
+  "title": "Run the monthly company meeting and send out notes",
+  "frequency": "monthly",
+  "category": "Operations",
+  "whenText": "Once a month",
+  "instructions": "New hires are added to the monthly meeting invite at onboarding. Decide where notes and action items live.",
+  "ownerRole": null,
+  "ownerIsAndrew": false
+ },
+ {
+  "title": "Safety Incident Log Review",
+  "frequency": "monthly",
+  "category": "Safety",
+  "whenText": "Last day",
+  "instructions": "Review any incidents or near-misses. Update OSHA 300 log if required.",
+  "ownerRole": "Team Lead",
+  "ownerIsAndrew": false
+ },
+ {
+  "title": "Team Performance Check-In",
+  "frequency": "monthly",
+  "category": "HR",
+  "whenText": "Mid-month",
+  "instructions": "Brief 1:1 or group check-in with team. Address any concerns, recognize wins.",
+  "ownerRole": null,
+  "ownerIsAndrew": true
+ },
+ {
+  "title": "Website / Lead Form Check",
+  "frequency": "monthly",
+  "category": "Marketing",
+  "whenText": "1st",
+  "instructions": "Test website contact form, quote request flow, and any Zapier automations.",
+  "ownerRole": null,
+  "ownerIsAndrew": true
+ },
+ {
+  "title": "Check lead numbers for the quarter",
+  "frequency": "quarterly",
+  "category": "Sales",
+  "whenText": "End of each quarter",
+  "instructions": "Booked rate on live calls, first-clean-to-recurring rate, and overall call-to-recurring rate. Rough targets: 50 to 60%, about 40%, and about 25 to 27%.",
+  "ownerRole": null,
+  "ownerIsAndrew": false
+ },
+ {
+  "title": "Oregon Quarterly Withholding (OQ)",
+  "frequency": "quarterly",
+  "category": "Tax",
+  "whenText": "Last day of the month after each quarter ends",
+  "instructions": "File Oregon OQ form and remit state withholding.",
+  "ownerRole": null,
+  "ownerIsAndrew": true
+ },
+ {
+  "title": "Safety refresher with the team (chemicals, PPE, slips, emergencies)",
+  "frequency": "quarterly",
+  "category": "Safety",
+  "whenText": "Every quarter",
+  "instructions": "The Nov 2025 Safety Plan promises quarterly refreshers. Confirm you still want this.",
+  "ownerRole": null,
+  "ownerIsAndrew": false
+ },
+ {
+  "title": "Training managers' meeting (technique and rules)",
+  "frequency": "quarterly",
+  "category": "HR",
+  "whenText": "Monthly or quarterly",
+  "instructions": "Trainers review technique and rules and share feedback. (From the Training Manager job description.)",
+  "ownerRole": null,
+  "ownerIsAndrew": false
+ },
+ {
+  "title": "Annual Performance Reviews",
+  "frequency": "annual",
+  "category": "HR",
+  "whenText": "March",
+  "instructions": "Schedule 1:1 reviews with each team member. Update compensation if applicable. (The Employee Handbook sets reviews at 3 months, then every 6 months.)",
+  "ownerRole": null,
+  "ownerIsAndrew": true
+ },
+ {
+  "title": "Arizona Secretary of State",
+  "frequency": "annual",
+  "category": "Compliance",
+  "whenText": "April",
+  "instructions": "File annual foreign entity LLC renewal.",
+  "ownerRole": null,
+  "ownerIsAndrew": true
+ },
+ {
+  "title": "BOLI Contractor License annual application",
+  "frequency": "annual",
+  "category": "Compliance",
+  "whenText": null,
+  "instructions": "Source row has only \"$350\" and no month, owner or notes. Confirm whether this applies.",
+  "ownerRole": null,
+  "ownerIsAndrew": false
+ },
+ {
+  "title": "Commercial Auto Insurance Renewal",
+  "frequency": "annual",
+  "category": "Insurance",
+  "whenText": "TBD",
+  "instructions": "Covers company vehicles. Confirm all drivers are listed.",
+  "ownerRole": null,
+  "ownerIsAndrew": true
+ },
+ {
+  "title": "Employee Handbook Annual Review",
+  "frequency": "annual",
+  "category": "HR",
+  "whenText": "February",
+  "instructions": "Update for any Oregon law changes. Have attorney review if major edits.",
+  "ownerRole": null,
+  "ownerIsAndrew": true
+ },
+ {
+  "title": "Equipment Deep Inventory and Audit",
+  "frequency": "annual",
+  "category": "Operations",
+  "whenText": "March",
+  "instructions": "Inventory all vacuums, mops, chemical supplies. Flag replacements.",
+  "ownerRole": "Office Manager",
+  "ownerIsAndrew": false
+ },
+ {
+  "title": "Google Business Profile Audit",
+  "frequency": "annual",
+  "category": "Marketing",
+  "whenText": "January",
+  "instructions": "Update hours, photos, services, and request fresh reviews from top clients.",
+  "ownerRole": null,
+  "ownerIsAndrew": true
+ },
+ {
+  "title": "Oregon Secretary of State Annual Report",
+  "frequency": "annual",
+  "category": "Compliance",
+  "whenText": "July",
+  "instructions": "File annual report for LLC/Corp. Fee ~$100. sos.oregon.gov",
+  "ownerRole": null,
+  "ownerIsAndrew": true
+ },
+ {
+  "title": "Oregon State Tax Return",
+  "frequency": "annual",
+  "category": "Tax",
+  "whenText": "April",
+  "instructions": "File Oregon Form 65 or 20-S. Confirm with CPA.",
+  "ownerRole": null,
+  "ownerIsAndrew": true
+ },
+ {
+  "title": "OregonSaves Annual Review",
+  "frequency": "annual",
+  "category": "HR",
+  "whenText": "January",
+  "instructions": "Confirm all eligible employees are enrolled. oregonsaves.com",
+  "ownerRole": null,
+  "ownerIsAndrew": true
+ },
+ {
+  "title": "Pricing Structure Annual Review",
+  "frequency": "annual",
+  "category": "Finance",
+  "whenText": "January",
+  "instructions": "Adjust rates for inflation, wage increases, and competitive market analysis.",
+  "ownerRole": null,
+  "ownerIsAndrew": true
+ },
+ {
+  "title": "Update pay rates for the Oregon minimum wage change",
+  "frequency": "annual",
+  "category": "Payroll",
+  "whenText": "July 1",
+  "instructions": "Oregon's minimum wage changes each July 1. Check the Portland Metro rate at boli.oregon.gov and update the table in the handbook.",
+  "ownerRole": null,
+  "ownerIsAndrew": false
+ },
+ {
+  "title": "Workers Compensation Policy Renewal",
+  "frequency": "annual",
+  "category": "Insurance",
+  "whenText": "December",
+  "instructions": "Oregon requires WC for all employees. Confirm with SAIF or private carrier.",
+  "ownerRole": null,
+  "ownerIsAndrew": true
+ },
+ {
+  "title": "Year-End Financial Review with CPA",
+  "frequency": "annual",
+  "category": "Finance",
+  "whenText": "December",
+  "instructions": "Review P&L, balance sheet, and cash flow. Plan Q1 tax strategy.",
+  "ownerRole": null,
+  "ownerIsAndrew": true
+ }
+]

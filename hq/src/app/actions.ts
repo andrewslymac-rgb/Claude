@@ -17,6 +17,7 @@ import * as flagSvc from "@/lib/services/flags";
 import { todayISO } from "@/lib/recurrence";
 import * as aiAuth from "@/lib/services/ai-auth";
 import * as proposals from "@/lib/services/ai-proposals";
+import * as driveSync from "@/lib/drive/sync";
 
 const userActor = (userId: string): Actor => ({ type: "user", userId });
 const uuid = z.string().uuid();
@@ -383,4 +384,44 @@ export async function setApprovalRuleAction(slug: string, rule: "sops" | "all" |
   const { workspace } = await requireAbility(slug, "manage_members");
   await proposals.setApprovalRule(workspace.id, z.enum(["sops", "all", "none"]).parse(rule));
   revalidatePath(`/w/${slug}/settings`);
+}
+
+// ---------------------------------------------------------------- Google Drive
+
+export async function connectDriveAction(slug: string, folderLink: string, excludeCsv: string): Promise<Result> {
+  return wrap(async () => {
+    const { workspace } = await requireAbility(slug, "manage_members");
+    const exclude = excludeCsv.split(",").map((s) => s.trim()).map((s) => s.match(/folders\/([A-Za-z0-9_-]+)/)?.[1] ?? s).filter(Boolean);
+    const f = await driveSync.connectFolder(workspace.id, folderLink, exclude);
+    const c = await driveSync.syncWorkspace(workspace.id);
+    revalidatePath(`/w/${slug}`, "layout");
+    return `Connected "${f.name}". Synced: ${c.created} new, ${c.updated} updated, ${c.skipped} unchanged or skipped.`;
+  });
+}
+
+export async function syncDriveAction(slug: string): Promise<Result> {
+  return wrap(async () => {
+    const { workspace } = await requireAbility(slug, "manage_members");
+    const c = await driveSync.syncWorkspace(workspace.id);
+    revalidatePath(`/w/${slug}`, "layout");
+    return `Synced: ${c.created} new, ${c.updated} updated, ${c.trashed} removed, ${c.skipped} unchanged.`;
+  });
+}
+
+export async function disconnectDriveAction(slug: string) {
+  const { workspace } = await requireAbility(slug, "manage_members");
+  await driveSync.disconnect(workspace.id);
+  revalidatePath(`/w/${slug}/settings`);
+}
+
+/** One-click import of the Lemon and Lavender Notion tasks and flags (app admin only). */
+export async function importNotionAction(slug: string): Promise<Result> {
+  return wrap(async () => {
+    const { user, workspace } = await requireAbility(slug, "manage_workspace");
+    if (!user.isAppAdmin) throw new ForbiddenError();
+    const { importLemonNotion } = await import("@/lib/services/import-notion");
+    const r = await importLemonNotion(workspace.id, user.id);
+    revalidatePath(`/w/${slug}`, "layout");
+    return `Imported ${r.tasksAdded} tasks and ${r.flagsAdded} flags from Notion.`;
+  });
 }
