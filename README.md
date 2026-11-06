@@ -63,6 +63,16 @@ To test what a team member sees: in Settings, add another email as a Viewer or E
 
 Dev login is automatically off in production.
 
+## Email sign-in links (and task reminders)
+
+People without a Google account can type their email on the sign-in page and get a one-time link. Orbit sends email through [Resend](https://resend.com) (free up to 3,000 emails a month):
+
+1. Create a Resend account, then **Domains → Add Domain** → `myorbithq.net`. Add the DNS records it shows to Cloudflare (or click Resend's Cloudflare one-click option). Wait for "Verified".
+2. **API Keys → Create API Key** (Sending access). Copy it.
+3. In Railway, add variables `RESEND_API_KEY` (the key) and `EMAIL_FROM` = `Orbit <signin@myorbithq.net>`.
+
+Without a key, Orbit prints the sign-in link to the server log instead of emailing it (fine for local testing).
+
 ## Set up Google sign-in (about 5 minutes)
 
 1. Go to https://console.cloud.google.com, create a project called "Orbit".

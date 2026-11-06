@@ -341,3 +341,20 @@ export type Frequency = (typeof frequencyEnum.enumValues)[number];
 export type DocStatus = (typeof docStatusEnum.enumValues)[number];
 export type ReviewCycle = (typeof reviewCycleEnum.enumValues)[number];
 export type Flag = typeof flags.$inferSelect;
+
+// ---------------------------------------------------------------------------
+// Email sign-in links
+// ---------------------------------------------------------------------------
+
+export const loginTokens = pgTable(
+  "login_tokens",
+  {
+    /** SHA-256 of the token in the link. */
+    id: text("id").primaryKey(),
+    email: text("email").notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    usedAt: timestamp("used_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("login_tokens_email_idx").on(t.email, t.createdAt)],
+);
