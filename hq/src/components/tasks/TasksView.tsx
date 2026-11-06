@@ -68,7 +68,7 @@ export function TasksView({ slug, tasks, members, pages, categories, me, canEdit
   const counts = { overdue: rows.filter((t) => t.state === "overdue").length, today: rows.filter((t) => t.state === "today").length };
 
   return (
-    <div className="mx-auto max-w-5xl px-6 py-8 md:px-10">
+    <div className="mx-auto max-w-5xl px-4 py-6 md:px-10 md:py-8">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold">Tasks</h1>
@@ -86,13 +86,13 @@ export function TasksView({ slug, tasks, members, pages, categories, me, canEdit
         )}
       </div>
 
-      <div className="mt-5 flex flex-wrap items-center gap-1 border-b border-line pb-2">
+      <div className="mt-5 flex items-center gap-1 overflow-x-auto border-b border-line pb-2 scrollbar-thin md:flex-wrap">
         {VIEWS.map((v) => (
-          <button key={v.key} onClick={() => setView(v.key)} className={`rounded-md px-3 py-1.5 text-sm ${view === v.key ? "bg-hover font-medium text-ink" : "text-ink-soft hover:bg-hover"}`}>
+          <button key={v.key} onClick={() => setView(v.key)} className={`shrink-0 rounded-md px-3 py-2 text-sm md:py-1.5 ${view === v.key ? "bg-hover font-medium text-ink" : "text-ink-soft hover:bg-hover"}`}>
             {v.label}
           </button>
         ))}
-        <select value={category} onChange={(e) => setCategory(e.target.value)} className="ml-auto rounded-md border border-line bg-card px-2 py-1.5 text-sm">
+        <select value={category} onChange={(e) => setCategory(e.target.value)} className="ml-auto shrink-0 rounded-md border border-line bg-card px-2 py-1.5 text-sm">
           <option value="">All categories</option>
           {categories.map((c) => (
             <option key={c}>{c}</option>
@@ -105,11 +105,11 @@ export function TasksView({ slug, tasks, members, pages, categories, me, canEdit
       ) : (
         <ul className="mt-2 divide-y divide-line">
           {filtered.map((t) => (
-            <li key={t.id} className="group flex items-center gap-3 py-2.5">
+            <li key={t.id} className="group flex min-h-14 items-center gap-3 py-2.5">
               <button
                 onClick={() => (t.state === "done" && t.canUndo ? undo(t) : markDone(t))}
                 title={t.state === "done" ? "Undo" : "Mark done"}
-                className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border transition ${t.state === "done" ? "border-ok bg-ok-soft text-ok" : "border-ink-faint text-transparent hover:border-accent hover:text-accent"}`}
+                className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border transition md:h-7 md:w-7 ${t.state === "done" ? "border-ok bg-ok-soft text-ok" : "border-ink-faint text-transparent hover:border-accent hover:text-accent"}`}
               >
                 {t.state === "done" ? <Check size={14} /> : <Check size={14} />}
               </button>
@@ -130,7 +130,7 @@ export function TasksView({ slug, tasks, members, pages, categories, me, canEdit
                 {t.state === "done" ? `Done${t.lastDoneOn === "today" ? " today" : t.lastDoneOn ? " " + fmtDate(t.lastDoneOn) : ""}` : t.state === "later" ? fmtDate(t.nextDueOn) : DUE_LABELS[t.state].label}
               </span>
               {t.state === "done" && t.canUndo && (
-                <button onClick={() => undo(t)} className="rounded p-1 text-ink-faint opacity-0 hover:bg-hover hover:text-ink group-hover:opacity-100" title="Undo">
+                <button onClick={() => undo(t)} className="rounded p-2 text-ink-faint hover:bg-hover hover:text-ink md:p-1 md:opacity-0 md:group-hover:opacity-100" title="Undo">
                   <Undo2 size={14} />
                 </button>
               )}
@@ -165,7 +165,7 @@ function TaskDrawer({ slug, task, members, pages, categories, canEdit, onClose, 
   if (editing) return <TaskForm slug={slug} task={task} members={members} pages={pages} categories={categories} onClose={() => setEditing(false)} />;
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-black/60" onMouseDown={onClose}>
-      <div className="flex h-full w-full max-w-lg flex-col overflow-y-auto border-l border-line bg-card p-6 shadow-2xl" onMouseDown={(e) => e.stopPropagation()}>
+      <div className="flex h-full w-full max-w-lg flex-col overflow-y-auto border-l border-line bg-card p-4 shadow-2xl md:p-6" onMouseDown={(e) => e.stopPropagation()}>
         <div className="flex items-start justify-between gap-3">
           <h2 className="text-xl font-semibold">{task.title}</h2>
           <button onClick={onClose} className="rounded p-1 hover:bg-hover" aria-label="Close">
@@ -179,7 +179,7 @@ function TaskDrawer({ slug, task, members, pages, categories, canEdit, onClose, 
           <span className={`rounded px-2 py-0.5 font-medium ${TONE[DUE_LABELS[task.state].tone]}`}>{task.state === "done" ? "Done" : DUE_LABELS[task.state].label}</span>
         </div>
 
-        <dl className="mt-5 grid grid-cols-[120px_1fr] gap-y-2 text-sm">
+        <dl className="mt-5 grid grid-cols-[96px_1fr] gap-y-2 text-sm md:grid-cols-[120px_1fr]">
           <dt className="text-ink-faint">Owner</dt>
           <dd>{task.assignees.map((a) => a.name).join(", ") || task.ownerRole || <span className="text-ink-faint">Anyone</span>}</dd>
           <dt className="text-ink-faint">Next due</dt>
@@ -286,7 +286,7 @@ function TaskForm({ slug, task, members, pages, categories, onClose }: { slug: s
         <h2 className="text-lg font-semibold">{task ? "Edit task" : "New task"}</h2>
         <div className="mt-4 space-y-3 text-sm">
           <input autoFocus value={title} onChange={(e) => setTitle(e.target.value)} placeholder="What needs doing?" className="w-full rounded-lg border border-line bg-paper px-3 py-2 text-base" />
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <label className="block">
               <span className="text-xs text-ink-faint">Repeats</span>
               <select value={frequency} onChange={(e) => setFrequency(e.target.value as Frequency)} className="mt-1 w-full rounded-lg border border-line bg-paper px-2 py-2">
@@ -303,7 +303,7 @@ function TaskForm({ slug, task, members, pages, categories, onClose }: { slug: s
             </label>
           </div>
           {frequency !== "once" && <input value={whenText} onChange={(e) => setWhenText(e.target.value)} placeholder='When, in words (e.g. "First Monday of the month")' className="w-full rounded-lg border border-line bg-paper px-3 py-2" />}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <label className="block">
               <span className="text-xs text-ink-faint">Category</span>
               <select value={category} onChange={(e) => setCategory(e.target.value)} className="mt-1 w-full rounded-lg border border-line bg-paper px-2 py-2">

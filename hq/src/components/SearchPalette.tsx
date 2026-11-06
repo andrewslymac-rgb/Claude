@@ -30,7 +30,7 @@ export function SearchPalette({ slug, onClose }: { slug: string; onClose: () => 
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/60 pt-[15vh]" onMouseDown={onClose}>
+    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/60 p-3 pt-[8vh] md:pt-[15vh]" onMouseDown={onClose}>
       <div className="w-full max-w-xl overflow-hidden rounded-xl border border-line bg-card shadow-2xl" onMouseDown={(e) => e.stopPropagation()}>
         <div className="flex items-center gap-2 border-b border-line px-4">
           <Search size={18} className="text-ink-faint" />

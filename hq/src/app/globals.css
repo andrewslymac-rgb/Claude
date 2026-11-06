@@ -55,3 +55,17 @@ body {
 .orbit-hero {
   background: radial-gradient(120% 140% at 0% 0%, #233055 0%, var(--color-card) 55%);
 }
+
+/* Phones: shrink the editor's drag-handle gutter so text lines up with the title. */
+@media (max-width: 767px) {
+  .hq-editor {
+    margin-left: -12px;
+    margin-right: -8px;
+  }
+  .hq-editor .bn-editor {
+    padding-inline: 28px 8px;
+  }
+  .hq-editor .bn-editor h1 { font-size: 1.6rem; }
+  .hq-editor .bn-editor h2 { font-size: 1.35rem; }
+  .hq-editor .bn-editor h3 { font-size: 1.15rem; }
+}

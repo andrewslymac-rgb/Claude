@@ -59,7 +59,7 @@ export function MembersPanel({ slug, myRole, myId, canManage, members, pending, 
         {members.map((m) => {
           const editable = canManage && m.userId !== myId && (myRole === "owner" || (m.role !== "owner" && m.role !== "admin"));
           return (
-            <li key={m.userId} className="flex items-center gap-3 px-4 py-3">
+            <li key={m.userId} className="flex flex-wrap items-center gap-3 px-4 py-3">
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-side text-sm font-semibold text-ink-soft">{(m.name ?? m.email)[0].toUpperCase()}</div>
               <div className="min-w-0 flex-1">
                 <div className="truncate text-sm font-medium">

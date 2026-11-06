@@ -252,7 +252,7 @@ const Empty = ({ children }: { children: React.ReactNode }) => <p className="tex
 function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onMouseDown={onClose}>
-      <div className="max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-xl border border-line bg-card p-6 shadow-2xl" onMouseDown={(e) => e.stopPropagation()}>
+      <div className="max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-xl border border-line bg-card p-4 shadow-2xl md:p-6" onMouseDown={(e) => e.stopPropagation()}>
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-semibold">{title}</h2>
           <button onClick={onClose} className="rounded p-1 hover:bg-hover" aria-label="Close">
@@ -293,7 +293,7 @@ function WidgetSettings({ w, allPages, onClose, onSave }: { w: WidgetData; allPa
       {w.type === "links" && (
         <div className="space-y-2">
           {links.map((l, i) => (
-            <div key={i} className="flex gap-2">
+            <div key={i} className="flex flex-wrap gap-2">
               <input value={l.emoji ?? ""} onChange={(e) => setLinks(links.map((x, j) => (j === i ? { ...x, emoji: e.target.value } : x)))} placeholder="🔗" className="w-12 rounded-lg border border-line px-2 py-2 text-center" />
               <input value={l.label} onChange={(e) => setLinks(links.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)))} placeholder="Name" className="w-32 rounded-lg border border-line px-3 py-2" />
               <input value={l.url} onChange={(e) => setLinks(links.map((x, j) => (j === i ? { ...x, url: e.target.value } : x)))} placeholder="https://…" className="min-w-0 flex-1 rounded-lg border border-line px-3 py-2" />

@@ -35,7 +35,7 @@ export function FlagsView({ slug, flags, pages, canEdit }: { slug: string; flags
   const visible = flags.filter((f) => showClosed || f.status === "open" || f.status === "in_progress");
 
   return (
-    <div className="mx-auto max-w-4xl px-6 py-8 md:px-10">
+    <div className="mx-auto max-w-4xl px-4 py-6 md:px-10 md:py-8">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold">Flags & open questions</h1>

@@ -22,7 +22,7 @@ export default function Editor({ initial, editable, onChange, focusRef }: { init
   }, [editor, focusRef]);
 
   return (
-    <div className="hq-editor -mx-[54px]">
+    <div className="hq-editor md:-mx-[54px]">
       <BlockNoteView
         editor={editor}
         editable={editable}
