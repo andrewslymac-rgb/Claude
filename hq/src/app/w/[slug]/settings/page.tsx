@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { Building2, Users, FolderSync, Bot } from "lucide-react";
 import { requireWorkspacePage } from "@/lib/access";
 import { can, ROLE_LABELS } from "@/lib/permissions";
 import { listMembers } from "@/lib/services/members";
@@ -11,69 +13,117 @@ import { ImportPanel } from "@/components/settings/ImportPanel";
 import { getConnection } from "@/lib/drive/sync";
 import { serviceAccountStatus } from "@/lib/drive/client";
 
-export default async function Settings({ params }: { params: Promise<{ slug: string }> }) {
+type Tab = "workspace" | "people" | "sync" | "ai";
+
+export default async function Settings({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: Promise<{ tab?: string }> }) {
   const { slug } = await params;
+  const { tab: rawTab } = await searchParams;
   const { user, workspace, role } = await requireWorkspacePage(slug);
-  const { members, pending } = await listMembers(workspace.id);
-  const grants = can(role, "manage_members") ? await listGrants(workspace.id) : [];
-  const conn = can(role, "manage_members") ? await getConnection(workspace.id) : null;
-  const saStatus = await serviceAccountStatus();
+  const admin = can(role, "manage_members");
+
+  const tabs: { key: Tab; label: string; icon: React.ReactNode; show: boolean }[] = [
+    { key: "workspace" as Tab, label: "Workspace", icon: <Building2 size={15} />, show: can(role, "manage_workspace") },
+    { key: "people" as Tab, label: "People", icon: <Users size={15} />, show: true },
+    { key: "sync" as Tab, label: "Import & sync", icon: <FolderSync size={15} />, show: admin },
+    { key: "ai" as Tab, label: "AI", icon: <Bot size={15} />, show: admin },
+  ].filter((t) => t.show);
+  const tab: Tab = tabs.some((t) => t.key === rawTab) ? (rawTab as Tab) : tabs[0].key;
 
   return (
-    <div className="mx-auto max-w-3xl space-y-8 px-4 py-6 md:space-y-10 md:px-10 md:py-10">
-      <div>
-        <h1 className="text-2xl font-semibold">Settings</h1>
-        <p className="mt-1 text-sm text-ink-soft">
-          You are {ROLE_LABELS[role].label === "Admin" || ROLE_LABELS[role].label === "Owner" ? "an" : "a"} <strong>{ROLE_LABELS[role].label}</strong> in this workspace.
-        </p>
+    <div className="mx-auto max-w-3xl px-4 py-6 md:px-10 md:py-10">
+      <h1 className="text-2xl font-semibold">Settings</h1>
+      <p className="mt-1 text-sm text-ink-soft">
+        {workspace.icon} {workspace.name} · you are {ROLE_LABELS[role].label === "Admin" || ROLE_LABELS[role].label === "Owner" ? "an" : "a"} <strong>{ROLE_LABELS[role].label}</strong>
+      </p>
+
+      <nav className="mt-5 flex gap-1 overflow-x-auto border-b border-line pb-2 scrollbar-thin">
+        {tabs.map((t) => (
+          <Link key={t.key} href={`/w/${slug}/settings?tab=${t.key}`} className={`flex shrink-0 items-center gap-1.5 rounded-md px-3 py-2 text-sm md:py-1.5 ${tab === t.key ? "bg-hover font-medium text-ink" : "text-ink-soft hover:bg-hover"}`}>
+            {t.icon} {t.label}
+          </Link>
+        ))}
+      </nav>
+
+      <div className="mt-6">
+        {tab === "workspace" && (
+          <section>
+            <h2 className="text-lg font-semibold">Name, icon and color</h2>
+            <p className="mt-1 text-sm text-ink-soft">How this company appears in the sidebar and on the hub. Logos and more branding options are coming.</p>
+            <WorkspaceForm slug={slug} name={workspace.name} icon={workspace.icon} color={workspace.color} />
+          </section>
+        )}
+
+        {tab === "people" && <PeopleTab slug={slug} workspaceId={workspace.id} role={role} userId={user.id} />}
+
+        {tab === "sync" && admin && (
+          <div className="space-y-8">
+            <section>
+              <h2 className="text-lg font-semibold">Google Drive</h2>
+              <p className="mt-1 text-sm text-ink-soft">Keep SOPs and policies in Drive; Orbit mirrors them as read-only pages.</p>
+              <DriveTab slug={slug} workspaceId={workspace.id} isAppAdmin={user.isAppAdmin} />
+            </section>
+            {user.isAppAdmin && workspace.slug === "lemon-and-lavender" && (
+              <section>
+                <h2 className="text-lg font-semibold">Notion</h2>
+                <ImportPanel slug={slug} />
+              </section>
+            )}
+          </div>
+        )}
+
+        {tab === "ai" && admin && (
+          <section>
+            <h2 className="text-lg font-semibold">AI access</h2>
+            <p className="mt-1 text-sm text-ink-soft">Which AI tools can read and change this company&apos;s pages and tasks, and what needs your approval first.</p>
+            <AiTab slug={slug} workspaceId={workspace.id} approvalRule={workspace.aiApproval} />
+          </section>
+        )}
       </div>
-
-      {can(role, "manage_workspace") && (
-        <section>
-          <h2 className="text-lg font-semibold">Workspace</h2>
-          <WorkspaceForm slug={slug} name={workspace.name} icon={workspace.icon} color={workspace.color} />
-        </section>
-      )}
-
-      {user.isAppAdmin && workspace.slug === "lemon-and-lavender" && (
-        <section>
-          <h2 className="text-lg font-semibold">Import</h2>
-          <ImportPanel slug={slug} />
-        </section>
-      )}
-
-      {can(role, "manage_members") && (
-        <section>
-          <h2 className="text-lg font-semibold">Google Drive</h2>
-          <DrivePanel slug={slug} serviceEmail={saStatus.state === "ok" ? saStatus.email : null} problem={saStatus.state === "invalid" ? saStatus.reason : null} isAppAdmin={user.isAppAdmin} conn={conn ? { ...conn, lastSyncAt: conn.lastSyncAt?.toISOString() ?? null } : null} />
-        </section>
-      )}
-
-      {can(role, "manage_members") && (
-        <section>
-          <h2 className="text-lg font-semibold">AI access</h2>
-          <AiAccessPanel
-            slug={slug}
-            grants={grants.map((g) => ({ ...g, createdAt: g.createdAt.toISOString(), lastUsedAt: g.lastUsedAt?.toISOString() ?? null, revokedAt: g.revokedAt?.toISOString() ?? null }))}
-            scopeInfo={Object.entries(SCOPE_LABELS).map(([key, v]) => ({ key, ...v }))}
-            mcpUrl={`${appUrl()}/api/mcp`}
-            approvalRule={workspace.aiApproval}
-          />
-        </section>
-      )}
-
-      <section>
-        <h2 className="text-lg font-semibold">People</h2>
-        <MembersPanel
-          slug={slug}
-          myRole={role}
-          myId={user.id}
-          canManage={can(role, "manage_members")}
-          members={members.map((m) => ({ ...m, lastSeenAt: m.lastSeenAt?.toISOString() ?? null }))}
-          pending={pending.map((p) => ({ id: p.id, email: p.email, role: p.role }))}
-          roles={ROLE_LABELS}
-        />
-      </section>
     </div>
+  );
+}
+
+async function PeopleTab({ slug, workspaceId, role, userId }: { slug: string; workspaceId: string; role: Parameters<typeof can>[0]; userId: string }) {
+  const { members, pending } = await listMembers(workspaceId);
+  return (
+    <section>
+      <h2 className="text-lg font-semibold">People</h2>
+      <p className="mt-1 text-sm text-ink-soft">Who can open this company in Orbit and what they can do. Roles are per company.</p>
+      <MembersPanel
+        slug={slug}
+        myRole={role!}
+        myId={userId}
+        canManage={can(role, "manage_members")}
+        members={members.map((m) => ({ ...m, lastSeenAt: m.lastSeenAt?.toISOString() ?? null }))}
+        pending={pending.map((p) => ({ id: p.id, email: p.email, role: p.role }))}
+        roles={ROLE_LABELS}
+      />
+    </section>
+  );
+}
+
+async function DriveTab({ slug, workspaceId, isAppAdmin }: { slug: string; workspaceId: string; isAppAdmin: boolean }) {
+  const [conn, saStatus] = await Promise.all([getConnection(workspaceId), serviceAccountStatus()]);
+  return (
+    <DrivePanel
+      slug={slug}
+      serviceEmail={saStatus.state === "ok" ? saStatus.email : null}
+      problem={saStatus.state === "invalid" ? saStatus.reason : null}
+      isAppAdmin={isAppAdmin}
+      conn={conn ? { ...conn, lastSyncAt: conn.lastSyncAt?.toISOString() ?? null } : null}
+    />
+  );
+}
+
+async function AiTab({ slug, workspaceId, approvalRule }: { slug: string; workspaceId: string; approvalRule: "sops" | "all" | "none" }) {
+  const grants = await listGrants(workspaceId);
+  return (
+    <AiAccessPanel
+      slug={slug}
+      grants={grants.map((g) => ({ ...g, createdAt: g.createdAt.toISOString(), lastUsedAt: g.lastUsedAt?.toISOString() ?? null, revokedAt: g.revokedAt?.toISOString() ?? null }))}
+      scopeInfo={Object.entries(SCOPE_LABELS).map(([key, v]) => ({ key, ...v }))}
+      mcpUrl={`${appUrl()}/api/mcp`}
+      approvalRule={approvalRule}
+    />
   );
 }
