@@ -6,7 +6,7 @@ import { connectDriveAction, disconnectDriveAction, syncDriveAction } from "@/ap
 
 type Conn = { folderId: string; folderName: string; lastSyncAt: string | null; lastSyncStatus: string | null; lastSyncCounts: { created: number; updated: number; trashed: number; skipped: number } | null; excludeFolderIds: string[] } | null;
 
-export function DrivePanel({ slug, conn, serviceEmail }: { slug: string; conn: Conn; serviceEmail: string | null }) {
+export function DrivePanel({ slug, conn, serviceEmail, problem }: { slug: string; conn: Conn; serviceEmail: string | null; problem?: string | null }) {
   const [link, setLink] = useState("");
   const [exclude, setExclude] = useState(conn?.excludeFolderIds.join(", ") ?? "");
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
@@ -16,7 +16,17 @@ export function DrivePanel({ slug, conn, serviceEmail }: { slug: string; conn: C
   if (!serviceEmail)
     return (
       <div className="mt-3 rounded-xl border border-dashed border-line p-4 text-sm text-ink-soft">
-        Google Drive sync isn&apos;t set up on the server yet (the <code>GOOGLE_SERVICE_ACCOUNT_JSON</code> setting is missing). See the README for the five steps.
+        {problem ? (
+          <>
+            <div className="font-medium text-warn">The Google key is set in Railway but Orbit can&apos;t read it.</div>
+            <div className="mt-1">{problem}</div>
+            <div className="mt-2 text-xs text-ink-faint">After fixing the value in Railway → Variables, click Deploy and reload this page.</div>
+          </>
+        ) : (
+          <>
+            Google Drive sync isn&apos;t set up on the server yet: the <code>GOOGLE_SERVICE_ACCOUNT_JSON</code> variable is missing in Railway, or Railway hasn&apos;t been redeployed since it was added. Add it under web → Variables, then click Deploy.
+          </>
+        )}
       </div>
     );
 
