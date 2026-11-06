@@ -175,7 +175,7 @@ export async function disconnect(workspaceId: string) {
 
 /** Sync every connected workspace. Used by the background timer. */
 export async function syncAll() {
-  if (!drive.driveEnabled()) return;
+  if (!(await drive.driveEnabled())) return;
   const rows = await db.select({ workspaceId: driveConnections.workspaceId, name: workspaces.name }).from(driveConnections).innerJoin(workspaces, eq(workspaces.id, driveConnections.workspaceId));
   for (const r of rows) {
     try {

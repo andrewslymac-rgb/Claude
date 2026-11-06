@@ -425,3 +425,18 @@ export async function importNotionAction(slug: string): Promise<Result> {
     return `Imported ${r.tasksAdded} tasks and ${r.flagsAdded} flags from Notion.`;
   });
 }
+
+/** App admins paste the Drive service-account key here instead of into Railway. */
+export async function saveDriveKeyAction(json: string): Promise<Result> {
+  return wrap(async () => {
+    const user = await getCurrentUser();
+    if (!user?.isAppAdmin) throw new ForbiddenError("Only an app admin can set the Google key.");
+    const { checkServiceAccountJson, DRIVE_KEY_SETTING } = await import("@/lib/drive/client");
+    const status = checkServiceAccountJson(json);
+    if (status.state !== "ok") throw new Error(status.state === "invalid" ? status.reason : "Paste the key first.");
+    const { setSetting } = await import("@/lib/services/app-settings");
+    await setSetting(DRIVE_KEY_SETTING, json.trim());
+    revalidatePath("/", "layout");
+    return `Key saved. Orbit will read Drive as ${status.email}.`;
+  });
+}

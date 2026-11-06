@@ -2,31 +2,57 @@
 
 import { useState, useTransition } from "react";
 import { FolderSync, RefreshCw, Copy, Check } from "lucide-react";
-import { connectDriveAction, disconnectDriveAction, syncDriveAction } from "@/app/actions";
+import { connectDriveAction, disconnectDriveAction, syncDriveAction, saveDriveKeyAction } from "@/app/actions";
 
 type Conn = { folderId: string; folderName: string; lastSyncAt: string | null; lastSyncStatus: string | null; lastSyncCounts: { created: number; updated: number; trashed: number; skipped: number } | null; excludeFolderIds: string[] } | null;
 
-export function DrivePanel({ slug, conn, serviceEmail, problem }: { slug: string; conn: Conn; serviceEmail: string | null; problem?: string | null }) {
+export function DrivePanel({ slug, conn, serviceEmail, problem, isAppAdmin }: { slug: string; conn: Conn; serviceEmail: string | null; problem?: string | null; isAppAdmin: boolean }) {
+  const [keyText, setKeyText] = useState("");
+  const [keyMsg, setKeyMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [link, setLink] = useState("");
   const [exclude, setExclude] = useState(conn?.excludeFolderIds.join(", ") ?? "");
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [busy, start] = useTransition();
   const [copied, setCopied] = useState(false);
 
+  const keyForm = isAppAdmin && (
+    <form
+      className="rounded-xl border border-line p-4"
+      onSubmit={(e) => {
+        e.preventDefault();
+        start(async () => {
+          const r = await saveDriveKeyAction(keyText);
+          setKeyMsg(r.ok ? { ok: true, text: r.message ?? "Saved." } : { ok: false, text: r.error });
+          if (r.ok) setKeyText("");
+        });
+      }}
+    >
+      <div className="font-medium">{serviceEmail ? "Replace the Google key" : "Paste the Google key"}</div>
+      <p className="mt-1 text-xs text-ink-soft">Open the .json file you downloaded from Google Cloud in TextEdit or Notepad, select all, copy, and paste it here. Orbit checks it immediately. It&apos;s stored on the server and never shown again.</p>
+      <textarea value={keyText} onChange={(e) => setKeyText(e.target.value)} rows={4} placeholder='{ "type": "service_account", ... }' className="mt-2 w-full rounded-lg border border-line bg-paper px-3 py-2 font-mono text-xs" />
+      <div className="mt-2 flex items-center gap-3">
+        <button disabled={busy || !keyText.trim()} className="rounded-lg bg-accent px-3 py-1.5 text-xs font-medium text-paper disabled:opacity-50">
+          {busy ? "Checking…" : "Save key"}
+        </button>
+        {keyMsg && <span className={keyMsg.ok ? "text-ok" : "text-danger"}>{keyMsg.text}</span>}
+      </div>
+    </form>
+  );
+
   if (!serviceEmail)
     return (
-      <div className="mt-3 rounded-xl border border-dashed border-line p-4 text-sm text-ink-soft">
-        {problem ? (
-          <>
-            <div className="font-medium text-warn">The Google key is set in Railway but Orbit can&apos;t read it.</div>
-            <div className="mt-1">{problem}</div>
-            <div className="mt-2 text-xs text-ink-faint">After fixing the value in Railway → Variables, click Deploy and reload this page.</div>
-          </>
-        ) : (
-          <>
-            Google Drive sync isn&apos;t set up on the server yet: the <code>GOOGLE_SERVICE_ACCOUNT_JSON</code> variable is missing in Railway, or Railway hasn&apos;t been redeployed since it was added. Add it under web → Variables, then click Deploy.
-          </>
-        )}
+      <div className="mt-3 space-y-4 text-sm">
+        <div className="rounded-xl border border-dashed border-line p-4 text-ink-soft">
+          {problem ? (
+            <>
+              <div className="font-medium text-warn">A Google key is set but Orbit can&apos;t read it.</div>
+              <div className="mt-1">{problem}</div>
+            </>
+          ) : (
+            <>Google Drive sync isn&apos;t set up yet. Paste the service account key below to turn it on.</>
+          )}
+        </div>
+        {keyForm}
       </div>
     );
 
@@ -99,6 +125,10 @@ export function DrivePanel({ slug, conn, serviceEmail, problem }: { slug: string
         </div>
       </form>
       {msg && <p className={`rounded-lg px-3 py-2 ${msg.ok ? "bg-ok-soft text-ok" : "bg-danger-soft text-danger"}`}>{msg.text}</p>}
+      <details>
+        <summary className="cursor-pointer text-xs text-ink-faint">Replace the Google key</summary>
+        <div className="mt-2">{keyForm}</div>
+      </details>
     </div>
   );
 }
