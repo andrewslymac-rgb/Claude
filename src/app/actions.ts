@@ -16,6 +16,7 @@ import * as taskSvc from "@/lib/services/tasks";
 import * as flagSvc from "@/lib/services/flags";
 import { todayISO } from "@/lib/recurrence";
 import * as aiAuth from "@/lib/services/ai-auth";
+import * as proposals from "@/lib/services/ai-proposals";
 
 const userActor = (userId: string): Actor => ({ type: "user", userId });
 const uuid = z.string().uuid();
@@ -362,4 +363,24 @@ export async function undoAiActivityAction(slug: string, id: string) {
   }
   await aiAuth.markUndone(workspace.id, a.id);
   revalidatePath(`/w/${slug}`, "layout");
+}
+
+// ---------------------------------------------------------------- AI approval queue
+
+export async function approveProposalAction(slug: string, id: string, note?: string) {
+  const { user, workspace } = await requireAbility(slug, "manage_dashboard");
+  await proposals.approveProposal(workspace.id, uuid.parse(id), user.id, note);
+  revalidatePath(`/w/${slug}`, "layout");
+}
+
+export async function rejectProposalAction(slug: string, id: string, note?: string) {
+  const { user, workspace } = await requireAbility(slug, "manage_dashboard");
+  await proposals.rejectProposal(workspace.id, uuid.parse(id), user.id, note);
+  revalidatePath(`/w/${slug}`, "layout");
+}
+
+export async function setApprovalRuleAction(slug: string, rule: "sops" | "all" | "none") {
+  const { workspace } = await requireAbility(slug, "manage_members");
+  await proposals.setApprovalRule(workspace.id, z.enum(["sops", "all", "none"]).parse(rule));
+  revalidatePath(`/w/${slug}/settings`);
 }

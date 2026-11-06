@@ -3,6 +3,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import type { AiPrincipal } from "@/lib/services/ai-auth";
 import { logActivity } from "@/lib/services/ai-auth";
+import { createProposal, needsApproval } from "@/lib/services/ai-proposals";
 import * as pagesSvc from "@/lib/services/pages";
 import * as tasksSvc from "@/lib/services/tasks";
 import * as flagsSvc from "@/lib/services/flags";
@@ -23,11 +24,12 @@ const fail = (s: string) => ({ content: [{ type: "text" as const, text: s }], is
  * even sees a capability it isn't allowed to use.
  */
 export function buildServer(p: AiPrincipal) {
-  const server = new McpServer({ name: "Orbit", version: "0.4.0" }, { instructions: `You are connected to Orbit, the company headquarters for ${p.workspaceName}. Pages hold SOPs, policies and company knowledge. Tasks are recurring operations work. Always search before answering questions about policy, and cite the page title. Pages marked "Needs review" or "Draft" may not be approved.` });
+  const server = new McpServer({ name: "Orbit", version: "0.4.0" }, { instructions: `You are connected to Orbit, the company headquarters for ${p.workspaceName}. Pages hold SOPs, policies and company knowledge. Tasks are recurring operations work. Always search before answering questions about policy, and cite the page title. Pages marked "Needs review" or "Draft" may not be approved. Edits to SOPs and policies go to an approval queue for a person to review before they apply; tell the user when that happens.` });
   const actor: Actor = { type: "ai", tokenId: p.grantId, userId: p.userId };
   const ws = p.workspaceId;
   const can = (s: string) => (p.scopes as string[]).includes(s);
   const link = (id: string) => `${process.env.APP_URL ?? ""}/w/${p.workspaceSlug}/p/${id}`;
+  const queued = (what: string) => text(`${what} was sent to Orbit's approval queue because it touches an SOP or policy. An admin will review it under AI activity → Needs approval. Nothing has changed yet.`);
 
   // ------------------------------------------------------------------ read
   server.registerTool(
@@ -96,6 +98,10 @@ export function buildServer(p: AiPrincipal) {
       "create_page",
       { title: "Create a page", description: "Creates a page from Markdown. Optionally nest it under a parent page and mark it as an SOP.", inputSchema: { title: z.string().min(1).max(200), markdown: z.string().max(MAX_WRITE_CHARS), parent_id: z.string().uuid().optional(), is_sop: z.boolean().optional(), reason: z.string().max(300).optional() } },
       async ({ title, markdown, parent_id, is_sop, reason }) => {
+        if (await needsApproval(ws, { isSop: is_sop })) {
+          await createProposal(ws, p.grantId, { tool: "create_page", parentId: parent_id ?? null, title, markdown, isSop: Boolean(is_sop), reason: reason ?? "Created by AI" });
+          return queued(`Creating "${title}"`);
+        }
         const page = await pagesSvc.createPage(ws, { parentId: parent_id ?? null, title }, actor);
         const blocks = await markdownToBlocks(markdown);
         await pagesSvc.updatePage(ws, page.id, { content: blocks, contentText: markdown }, actor, reason ?? "Created by AI");
@@ -112,6 +118,10 @@ export function buildServer(p: AiPrincipal) {
         const before = await pagesSvc.getPage(ws, page_id);
         if (!before || before.archivedAt) return fail("Page not found.");
         if (before.source === "gdrive") return fail("This page is synced from Google Drive. Edit the Google Doc instead.");
+        if (await needsApproval(ws, { pageId: page_id })) {
+          await createProposal(ws, p.grantId, { tool: "update_page", pageId: page_id, title: title ?? null, markdown, reason });
+          return queued(`Rewriting "${before.title}"`);
+        }
         const prev = (await pagesSvc.listVersions(page_id))[0];
         const blocks = await markdownToBlocks(markdown);
         await pagesSvc.updatePage(ws, page_id, { content: blocks, contentText: markdown, title }, actor, reason);
@@ -127,6 +137,10 @@ export function buildServer(p: AiPrincipal) {
         const before = await pagesSvc.getPage(ws, page_id);
         if (!before || before.archivedAt) return fail("Page not found.");
         if (before.source === "gdrive") return fail("This page is synced from Google Drive. Edit the Google Doc instead.");
+        if (await needsApproval(ws, { pageId: page_id })) {
+          await createProposal(ws, p.grantId, { tool: "append_to_page", pageId: page_id, markdown, reason });
+          return queued(`Adding to "${before.title}"`);
+        }
         const prev = (await pagesSvc.listVersions(page_id))[0];
         const added = await markdownToBlocks(markdown);
         const content = [...before.content, ...added];

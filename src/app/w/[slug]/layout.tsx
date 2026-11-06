@@ -5,11 +5,12 @@ import { Sidebar } from "@/components/Sidebar";
 import { MobileShell } from "@/components/MobileShell";
 import { listTasks } from "@/lib/services/tasks";
 import { listFlags } from "@/lib/services/flags";
+import { countPending } from "@/lib/services/ai-proposals";
 
 export default async function WorkspaceLayout({ children, params }: { children: React.ReactNode; params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const { user, workspace, role } = await requireWorkspacePage(slug);
-  const [tree, workspaces, tasks, flags] = await Promise.all([listTree(workspace.id), listWorkspacesForUser(user), listTasks(workspace.id), listFlags(workspace.id)]);
+  const [tree, workspaces, tasks, flags, pendingAi] = await Promise.all([listTree(workspace.id), listWorkspacesForUser(user), listTasks(workspace.id), listFlags(workspace.id), countPending(workspace.id)]);
   const attention = tasks.filter((t) => t.state === "overdue" || t.state === "today").length;
   const openFlags = flags.filter((f) => f.status === "open").length;
 
@@ -25,6 +26,7 @@ export default async function WorkspaceLayout({ children, params }: { children: 
         canManage={can(role, "manage_members")}
         attention={attention}
         openFlags={openFlags}
+        pendingAi={pendingAi}
       />
       }>
         {children}

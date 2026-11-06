@@ -2,14 +2,15 @@
 
 import { useState, useTransition } from "react";
 import { Bot, Copy, Check, Plus } from "lucide-react";
-import { createApiKeyAction, revokeGrantAction } from "@/app/actions";
+import { createApiKeyAction, revokeGrantAction, setApprovalRuleAction } from "@/app/actions";
 
 type Grant = { id: string; name: string; scopes: string[]; createdAt: string; lastUsedAt: string | null; revokedAt: string | null; clientName: string | null; userName: string | null };
 type Scope = { key: string; label: string; help: string };
 
 const ago = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) : "never");
 
-export function AiAccessPanel({ slug, grants, scopeInfo, mcpUrl }: { slug: string; grants: Grant[]; scopeInfo: Scope[]; mcpUrl: string }) {
+export function AiAccessPanel({ slug, grants, scopeInfo, mcpUrl, approvalRule }: { slug: string; grants: Grant[]; scopeInfo: Scope[]; mcpUrl: string; approvalRule: "sops" | "all" | "none" }) {
+  const [rule, setRule] = useState(approvalRule);
   const [creating, setCreating] = useState(false);
   const [name, setName] = useState("");
   const [scopes, setScopes] = useState<string[]>(["read"]);
@@ -35,6 +36,18 @@ export function AiAccessPanel({ slug, grants, scopeInfo, mcpUrl }: { slug: strin
               </button>
             </div>
           </div>
+        </div>
+      </div>
+
+      <div className="rounded-xl border border-line p-4 text-sm">
+        <div className="font-medium">When an AI tool edits a page</div>
+        <div className="mt-2 space-y-1.5">
+          {([["sops", "SOPs and documents wait for approval; other pages apply right away (recommended)"], ["all", "Every page edit waits for approval"], ["none", "Apply everything right away (you can still undo)"]] as const).map(([k, label]) => (
+            <label key={k} className="flex items-start gap-2">
+              <input type="radio" name="rule" checked={rule === k} onChange={() => (setRule(k), start(() => setApprovalRuleAction(slug, k)))} className="mt-1" />
+              <span>{label}</span>
+            </label>
+          ))}
         </div>
       </div>
 

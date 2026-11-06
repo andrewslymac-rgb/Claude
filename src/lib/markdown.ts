@@ -2,8 +2,21 @@ import "server-only";
 import { ServerBlockNoteEditor } from "@blocknote/server-util";
 import { getDocument } from "@blocknote/server-util/dom";
 
-let editor: ServerBlockNoteEditor | null = null;
-const get = () => (editor ??= ServerBlockNoteEditor.create({}, getDocument()));
+/**
+ * One shared DOM for the whole process. Next.js bundles this file separately for
+ * route handlers and server actions, so we keep the editor on globalThis instead
+ * of in module scope; otherwise two documents fight over window/document.
+ */
+type G = typeof globalThis & { __orbitEditor?: ServerBlockNoteEditor; document?: Document };
+const g = globalThis as G;
+
+function get() {
+  if (!g.__orbitEditor) {
+    const doc = g.document?.defaultView ? g.document : getDocument();
+    g.__orbitEditor = ServerBlockNoteEditor.create({}, doc);
+  }
+  return g.__orbitEditor;
+}
 
 /** Markdown → editor blocks (what pages store). */
 export async function markdownToBlocks(md: string): Promise<unknown[]> {

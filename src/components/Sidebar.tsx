@@ -12,7 +12,7 @@ import { OrbitLogo } from "./OrbitLogo";
 type Ws = { slug: string; name: string; icon: string; color: string };
 type Node = { id: string; parentId: string | null; title: string; icon: string | null; position: number; isSop: boolean; source: string };
 
-export function Sidebar(props: { workspace: Ws; workspaces: Ws[]; tree: Node[]; user: { name: string; email: string; isAppAdmin: boolean }; canEdit: boolean; canManage: boolean; attention?: number; openFlags?: number }) {
+export function Sidebar(props: { workspace: Ws; workspaces: Ws[]; tree: Node[]; user: { name: string; email: string; isAppAdmin: boolean }; canEdit: boolean; canManage: boolean; attention?: number; openFlags?: number; pendingAi?: number }) {
   const { workspace, tree, canEdit } = props;
   const router = useRouter();
   const pathname = usePathname();
@@ -76,7 +76,7 @@ export function Sidebar(props: { workspace: Ws; workspaces: Ws[]; tree: Node[]; 
       </div>
 
       <div className="space-y-0.5 border-t border-line px-2 py-2">
-        <NavItem href={`${base}/ai`} icon={<Bot size={16} />} label="AI activity" active={pathname === `${base}/ai`} />
+        <NavItem href={`${base}/ai`} icon={<Bot size={16} />} label="AI" active={pathname === `${base}/ai`} badge={props.pendingAi || undefined} />
         <NavItem href={`${base}/trash`} icon={<Trash2 size={16} />} label="Trash" active={pathname === `${base}/trash`} />
         <NavItem href={`${base}/settings`} icon={<Settings size={16} />} label={props.canManage ? "Settings & people" : "Settings"} active={pathname === `${base}/settings`} />
         <form action={signOutAction}>
