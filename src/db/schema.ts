@@ -358,3 +358,92 @@ export const loginTokens = pgTable(
   },
   (t) => [index("login_tokens_email_idx").on(t.email, t.createdAt)],
 );
+
+// ---------------------------------------------------------------------------
+// AI access (Milestone 4): OAuth clients, grants (what a person approved),
+// tokens, and an activity log so every AI action is visible and reversible.
+// ---------------------------------------------------------------------------
+
+export const AI_SCOPES = ["read", "write:pages", "write:tasks"] as const;
+export type AiScope = (typeof AI_SCOPES)[number];
+
+/** An app that registered itself (claude.ai, Claude Code, ...) via dynamic client registration. */
+export const aiClients = pgTable("ai_clients", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  redirectUris: jsonb("redirect_uris").$type<string[]>().notNull().default([]),
+  secretHash: text("secret_hash"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** One approval: this client (or manual key) may act on this workspace with these scopes. */
+export const aiGrants = pgTable(
+  "ai_grants",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    clientId: text("client_id").references(() => aiClients.id, { onDelete: "set null" }),
+    /** Shown in history: "Claude (claude.ai)", "Andrew's API key". */
+    name: text("name").notNull(),
+    scopes: jsonb("scopes").$type<AiScope[]>().notNull().default(["read"]),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+  },
+  (t) => [index("ai_grants_ws_idx").on(t.workspaceId)],
+);
+
+export const aiAuthCodes = pgTable("ai_auth_codes", {
+  id: text("id").primaryKey(), // sha256(code)
+  grantId: uuid("grant_id")
+    .notNull()
+    .references(() => aiGrants.id, { onDelete: "cascade" }),
+  clientId: text("client_id").notNull(),
+  redirectUri: text("redirect_uri").notNull(),
+  codeChallenge: text("code_challenge").notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  usedAt: timestamp("used_at", { withTimezone: true }),
+});
+
+export const aiTokenKindEnum = pgEnum("ai_token_kind", ["access", "refresh"]);
+
+export const aiTokens = pgTable(
+  "ai_tokens",
+  {
+    id: text("id").primaryKey(), // sha256(token)
+    grantId: uuid("grant_id")
+      .notNull()
+      .references(() => aiGrants.id, { onDelete: "cascade" }),
+    kind: aiTokenKindEnum("kind").notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("ai_tokens_grant_idx").on(t.grantId)],
+);
+
+/** Every tool call that changed something. Reads are counted on the grant only. */
+export const aiActivity = pgTable(
+  "ai_activity",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    grantId: uuid("grant_id").references(() => aiGrants.id, { onDelete: "set null" }),
+    tool: text("tool").notNull(),
+    summary: text("summary").notNull(),
+    pageId: uuid("page_id").references(() => pages.id, { onDelete: "set null" }),
+    taskId: uuid("task_id").references(() => tasks.id, { onDelete: "set null" }),
+    /** For page edits: the version to go back to if someone clicks Undo. */
+    undoVersionId: uuid("undo_version_id"),
+    undoneAt: timestamp("undone_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("ai_activity_ws_idx").on(t.workspaceId, t.createdAt)],
+);

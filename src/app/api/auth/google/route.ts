@@ -1,10 +1,11 @@
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { cookies } from "next/headers";
 import { generateCodeVerifier, generateState } from "arctic";
 import { googleClient } from "@/lib/auth/google";
-import { googleEnabled } from "@/lib/auth/session";
+import { googleEnabled, rememberNext } from "@/lib/auth/session";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  await rememberNext(req.nextUrl.searchParams.get("next") ?? "");
   if (!googleEnabled()) return NextResponse.redirect(new URL("/login?error=google_not_configured", process.env.APP_URL));
   const state = generateState();
   const verifier = generateCodeVerifier();
