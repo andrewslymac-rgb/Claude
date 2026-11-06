@@ -281,3 +281,13 @@ app/
   static/style.css
 tests/
 ```
+
+## Claude mods
+
+`mods/` holds three Claude Code mods (Business Pulse panel, guard rails, QuickBooks status line). See [mods/README.md](mods/README.md). Install:
+
+```
+/plugin install business-pulse --marketplace andrewslymac-rgb/Claude
+/plugin install guard-rails --marketplace andrewslymac-rgb/Claude
+/plugin install books-status --marketplace andrewslymac-rgb/Claude
+```
