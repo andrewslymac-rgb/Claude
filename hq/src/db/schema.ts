@@ -49,6 +49,8 @@ export const workspaces = pgTable("workspaces", {
   icon: text("icon").notNull().default("🏢"),
   /** Accent color (hex) used in the sidebar and dashboard header. */
   color: text("color").notNull().default("#6366f1"),
+  /** Which AI page edits wait for a person's approval: SOPs/documents only (default), all pages, or none. */
+  aiApproval: text("ai_approval").$type<"sops" | "all" | "none">().notNull().default("sops"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -447,3 +449,35 @@ export const aiActivity = pgTable(
   },
   (t) => [index("ai_activity_ws_idx").on(t.workspaceId, t.createdAt)],
 );
+
+// ---------------------------------------------------------------------------
+// AI approval queue: proposed edits that wait for a person to approve.
+// ---------------------------------------------------------------------------
+
+export const aiApprovalEnum = pgEnum("ai_approval", ["sops", "all", "none"]);
+export const proposalStatusEnum = pgEnum("proposal_status", ["pending", "approved", "rejected"]);
+
+export const aiProposals = pgTable(
+  "ai_proposals",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    grantId: uuid("grant_id").references(() => aiGrants.id, { onDelete: "set null" }),
+    tool: text("tool").notNull(), // create_page | update_page | append_to_page
+    pageId: uuid("page_id").references(() => pages.id, { onDelete: "cascade" }),
+    parentId: uuid("parent_id"),
+    title: text("title"),
+    markdown: text("markdown").notNull(),
+    isSop: boolean("is_sop").notNull().default(false),
+    reason: text("reason").notNull().default(""),
+    status: proposalStatusEnum("status").notNull().default("pending"),
+    reviewedById: uuid("reviewed_by_id").references(() => users.id, { onDelete: "set null" }),
+    reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+    reviewNote: text("review_note"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("ai_proposals_ws_idx").on(t.workspaceId, t.status)],
+);
+export type AiProposal = typeof aiProposals.$inferSelect;

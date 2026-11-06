@@ -37,6 +37,7 @@ export default async function Settings({ params }: { params: Promise<{ slug: str
             grants={grants.map((g) => ({ ...g, createdAt: g.createdAt.toISOString(), lastUsedAt: g.lastUsedAt?.toISOString() ?? null, revokedAt: g.revokedAt?.toISOString() ?? null }))}
             scopeInfo={Object.entries(SCOPE_LABELS).map(([key, v]) => ({ key, ...v }))}
             mcpUrl={`${appUrl()}/api/mcp`}
+            approvalRule={workspace.aiApproval}
           />
         </section>
       )}

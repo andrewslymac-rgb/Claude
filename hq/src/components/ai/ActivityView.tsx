@@ -9,15 +9,17 @@ type A = { id: string; tool: string; summary: string; pageId: string | null; tas
 
 const fmt = (iso: string) => new Date(iso).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 
-export function ActivityView({ slug, items, canUndo }: { slug: string; items: A[]; canUndo: boolean }) {
+export function ActivityView({ slug, items, canUndo, embedded }: { slug: string; items: A[]; canUndo: boolean; embedded?: boolean }) {
   const [busy, start] = useTransition();
   return (
-    <div className="mx-auto max-w-3xl px-4 py-6 md:px-10 md:py-8">
-      <h1 className="flex items-center gap-2 text-2xl font-semibold">
-        <Bot size={24} className="text-accent" /> AI activity
-      </h1>
+    <div className={embedded ? "" : "mx-auto max-w-3xl px-4 py-6 md:px-10 md:py-8"}>
+      {!embedded && (
+        <h1 className="flex items-center gap-2 text-2xl font-semibold">
+          <Bot size={24} className="text-accent" /> AI activity
+        </h1>
+      )}
       <p className="mt-1 text-sm text-ink-soft">Everything an AI tool changed in this company. Reads aren&apos;t listed. Undo puts things back the way they were.</p>
-      <ul className="mt-5 divide-y divide-line rounded-xl border border-line">
+      <ul className="mt-3 divide-y divide-line rounded-xl border border-line">
         {items.length === 0 && <li className="px-4 py-8 text-center text-sm text-ink-faint">No AI changes yet.</li>}
         {items.map((a) => (
           <li key={a.id} className={`flex items-start gap-3 px-4 py-3 text-sm ${a.undoneAt ? "opacity-50" : ""}`}>
