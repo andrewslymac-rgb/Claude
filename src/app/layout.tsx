@@ -2,8 +2,10 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Orbit",
+  title: { default: "Orbit", template: "%s · Orbit" },
   description: "Company headquarters: pages, SOPs, dashboard and tasks.",
+  applicationName: "Orbit",
+  appleWebApp: { capable: true, title: "Orbit", statusBarStyle: "black-translucent" },
 };
 
 export const viewport: Viewport = { width: "device-width", initialScale: 1, viewportFit: "cover", themeColor: "#0f1526" };
