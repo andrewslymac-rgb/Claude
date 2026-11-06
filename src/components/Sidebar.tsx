@@ -78,7 +78,7 @@ export function Sidebar(props: { workspace: Ws; workspaces: Ws[]; tree: Node[]; 
       <div className="space-y-0.5 border-t border-line px-2 py-2">
         <NavItem href={`${base}/ai`} icon={<Bot size={16} />} label="AI" active={pathname === `${base}/ai`} badge={props.pendingAi || undefined} />
         <NavItem href={`${base}/trash`} icon={<Trash2 size={16} />} label="Trash" active={pathname === `${base}/trash`} />
-        <NavItem href={`${base}/settings`} icon={<Settings size={16} />} label={props.canManage ? "Settings & people" : "Settings"} active={pathname === `${base}/settings`} />
+        <NavItem href={`${base}/settings`} icon={<Settings size={16} />} label="Settings" active={pathname.startsWith(`${base}/settings`)} />
         <form action={signOutAction}>
           <button className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-ink-soft hover:bg-hover" title={props.user.email}>
             <LogOut size={16} /> <span className="truncate">Sign out ({props.user.name})</span>
