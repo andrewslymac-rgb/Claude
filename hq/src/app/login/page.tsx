@@ -9,9 +9,9 @@ const MESSAGES: Record<string, string> = {
   google_not_configured: "Google sign-in isn't set up yet.",
 };
 
-export default async function Login({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
+export default async function Login({ searchParams }: { searchParams: Promise<{ error?: string; sent?: string }> }) {
   if (await getCurrentUser()) redirect("/");
-  const { error } = await searchParams;
+  const { error, sent } = await searchParams;
   const google = googleEnabled();
   const dev = devLoginEnabled();
 
@@ -20,9 +20,15 @@ export default async function Login({ searchParams }: { searchParams: Promise<{ 
       <div className="w-full max-w-sm rounded-2xl border border-line bg-card p-8 shadow-sm">
         <OrbitWordmark size={30} />
         <h1 className="mt-3 text-xl font-semibold">Sign in to Orbit</h1>
-        <p className="mt-1 text-sm text-ink-soft">Use your work Google account.</p>
+        <p className="mt-1 text-sm text-ink-soft">Use your Google account, or get a sign-in link by email.</p>
 
         {error && <p className="mt-4 rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger">{MESSAGES[error] ?? error}</p>}
+        {sent && (
+          <div className="mt-4 rounded-lg bg-ok-soft px-3 py-3 text-sm text-ok">
+            <div className="font-medium">Check your email</div>
+            <div className="mt-0.5 opacity-90">We sent a sign-in link to {sent}. It works for 15 minutes.</div>
+          </div>
+        )}
 
         {google && (
           <a
@@ -39,9 +45,21 @@ export default async function Login({ searchParams }: { searchParams: Promise<{ 
           </a>
         )}
 
+        {!sent && (
+          <form action="/api/auth/magic" method="post" className="mt-6 space-y-2">
+            {google && <div className="py-2 text-center text-xs text-ink-faint">or</div>}
+            <label className="block text-sm font-medium" htmlFor="magic-email">
+              Email me a sign-in link
+            </label>
+            <input id="magic-email" name="email" type="email" required placeholder="you@company.com" className="w-full rounded-lg border border-line bg-paper px-3 py-2 text-sm outline-none focus:border-ink-faint" />
+            <button className="w-full rounded-lg border border-line px-4 py-2.5 text-sm font-medium hover:bg-hover">Send link</button>
+            <p className="text-xs text-ink-faint">No password needed. Only people who&apos;ve been added to Orbit can sign in.</p>
+          </form>
+        )}
+
         {dev && (
-          <form action="/api/auth/dev" method="post" className="mt-6 space-y-2">
-            {google && <div className="py-2 text-center text-xs text-ink-faint">or, for local testing</div>}
+          <form action="/api/auth/dev" method="post" className="mt-6 space-y-2 border-t border-line pt-4">
+            <div className="pb-1 text-center text-xs text-ink-faint">for local testing only</div>
             <label className="block text-sm font-medium" htmlFor="email">
               Email (dev login)
             </label>
@@ -51,7 +69,7 @@ export default async function Login({ searchParams }: { searchParams: Promise<{ 
           </form>
         )}
 
-        {!google && !dev && <p className="mt-6 text-sm text-ink-soft">Sign-in isn&apos;t configured. Add Google credentials to the app settings.</p>}
+
       </div>
     </main>
   );

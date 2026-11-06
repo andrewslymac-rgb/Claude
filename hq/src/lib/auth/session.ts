@@ -88,3 +88,46 @@ export const devLoginEnabled = () =>
   process.env.ALLOW_DEV_LOGIN === "true" || (process.env.NODE_ENV !== "production" && process.env.ALLOW_DEV_LOGIN !== "false");
 
 export const googleEnabled = () => Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
+
+// ---------------------------------------------------------------------------
+// Email sign-in links
+// ---------------------------------------------------------------------------
+
+const { loginTokens } = schema;
+const LINK_MINUTES = 15;
+const MAX_LINKS_PER_HOUR = 5;
+
+/** Can this email get into Orbit at all? (Existing account, invite, allowed domain, or the owner.) */
+export async function emailIsAllowed(emailRaw: string) {
+  const email = emailRaw.trim().toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return false;
+  const [existing] = await db.select({ id: users.id }).from(users).where(eq(users.email, email));
+  if (existing) return true;
+  if (email === process.env.OWNER_EMAIL?.trim().toLowerCase()) return true;
+  const [{ count }] = await db.select({ count: sql<number>`count(*)::int` }).from(users);
+  if (count === 0) return true; // very first person in
+  const domains = (process.env.ALLOWED_EMAIL_DOMAINS ?? "").split(",").map((d) => d.trim().toLowerCase()).filter(Boolean);
+  if (domains.includes(email.split("@")[1])) return true;
+  const [inv] = await db.select({ id: invites.id }).from(invites).where(eq(invites.email, email));
+  return Boolean(inv);
+}
+
+/** Creates a one-time sign-in link. Returns null if this email asked too often. */
+export async function createLoginLink(emailRaw: string) {
+  const email = emailRaw.trim().toLowerCase();
+  const hourAgo = new Date(Date.now() - 3600_000);
+  const [{ recent }] = await db.select({ recent: sql<number>`count(*)::int` }).from(loginTokens).where(and(eq(loginTokens.email, email), gt(loginTokens.createdAt, hourAgo)));
+  if (recent >= MAX_LINKS_PER_HOUR) return null;
+  const token = randomBytes(32).toString("base64url");
+  await db.insert(loginTokens).values({ id: hash(token), email, expiresAt: new Date(Date.now() + LINK_MINUTES * 60_000) });
+  const appUrl = process.env.APP_URL ?? "http://localhost:3000";
+  return `${appUrl}/api/auth/magic/verify?token=${token}`;
+}
+
+/** Redeems a link. Throws SignInError if it's bad, used or expired. */
+export async function redeemLoginLink(token: string) {
+  const [row] = await db.select().from(loginTokens).where(eq(loginTokens.id, hash(token)));
+  if (!row || row.usedAt || row.expiresAt < new Date()) throw new SignInError("That sign-in link has expired or was already used. Request a new one.");
+  await db.update(loginTokens).set({ usedAt: new Date() }).where(eq(loginTokens.id, row.id));
+  return signInWithVerifiedEmail({ email: row.email });
+}
