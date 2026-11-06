@@ -9,9 +9,10 @@ const MESSAGES: Record<string, string> = {
   google_not_configured: "Google sign-in isn't set up yet.",
 };
 
-export default async function Login({ searchParams }: { searchParams: Promise<{ error?: string; sent?: string }> }) {
+export default async function Login({ searchParams }: { searchParams: Promise<{ error?: string; sent?: string; next?: string }> }) {
   if (await getCurrentUser()) redirect("/");
-  const { error, sent } = await searchParams;
+  const { error, sent, next } = await searchParams;
+  const safeNext = next && next.startsWith("/") && !next.startsWith("//") ? next : "";
   const google = googleEnabled();
   const dev = devLoginEnabled();
 
@@ -32,7 +33,7 @@ export default async function Login({ searchParams }: { searchParams: Promise<{ 
 
         {google && (
           <a
-            href="/api/auth/google"
+            href={`/api/auth/google${safeNext ? `?next=${encodeURIComponent(safeNext)}` : ""}`}
             className="mt-6 flex w-full items-center justify-center gap-3 rounded-lg border border-line bg-card px-4 py-2.5 text-sm font-medium hover:bg-hover"
           >
             <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden>
@@ -47,6 +48,7 @@ export default async function Login({ searchParams }: { searchParams: Promise<{ 
 
         {!sent && (
           <form action="/api/auth/magic" method="post" className="mt-6 space-y-2">
+            <input type="hidden" name="next" value={safeNext} />
             {google && <div className="py-2 text-center text-xs text-ink-faint">or</div>}
             <label className="block text-sm font-medium" htmlFor="magic-email">
               Email me a sign-in link
@@ -59,6 +61,7 @@ export default async function Login({ searchParams }: { searchParams: Promise<{ 
 
         {dev && (
           <form action="/api/auth/dev" method="post" className="mt-6 space-y-2 border-t border-line pt-4">
+            <input type="hidden" name="next" value={safeNext} />
             <div className="pb-1 text-center text-xs text-ink-faint">for local testing only</div>
             <label className="block text-sm font-medium" htmlFor="email">
               Email (dev login)

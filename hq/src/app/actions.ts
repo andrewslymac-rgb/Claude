@@ -15,6 +15,7 @@ import type { Actor } from "@/lib/services/actor";
 import * as taskSvc from "@/lib/services/tasks";
 import * as flagSvc from "@/lib/services/flags";
 import { todayISO } from "@/lib/recurrence";
+import * as aiAuth from "@/lib/services/ai-auth";
 
 const userActor = (userId: string): Actor => ({ type: "user", userId });
 const uuid = z.string().uuid();
@@ -327,4 +328,38 @@ export async function listMembersAction(slug: string) {
   const { workspace } = await requireAbility(slug, "read");
   const { members: m } = await members.listMembers(workspace.id);
   return m.map((x) => ({ id: x.userId, name: x.name ?? x.email }));
+}
+
+// ---------------------------------------------------------------- AI access
+
+export async function createApiKeyAction(slug: string, name: string, scopes: string[]) {
+  const { user, workspace } = await requireAbility(slug, "manage_members");
+  const grant = await aiAuth.createGrant({ workspaceId: workspace.id, userId: user.id, name: z.string().trim().min(1).max(80).parse(name), scopes: aiAuth.parseScopes(scopes.join(" ")) });
+  const key = await aiAuth.issueApiKey(grant.id);
+  revalidatePath(`/w/${slug}/settings`);
+  return key;
+}
+
+export async function revokeGrantAction(slug: string, id: string) {
+  const { workspace } = await requireAbility(slug, "manage_members");
+  await aiAuth.revokeGrant(workspace.id, uuid.parse(id));
+  revalidatePath(`/w/${slug}/settings`);
+}
+
+/** Put back whatever an AI tool changed. */
+export async function undoAiActivityAction(slug: string, id: string) {
+  const { user, workspace } = await requireAbility(slug, "edit");
+  const a = await aiAuth.getActivity(workspace.id, uuid.parse(id));
+  if (!a || a.undoneAt) return;
+  if ((a.tool === "update_page" || a.tool === "append_to_page") && a.pageId && a.undoVersionId) {
+    await pages.restoreVersion(workspace.id, a.pageId, a.undoVersionId, userActor(user.id));
+  } else if (a.tool === "create_page" && a.pageId) {
+    await pages.archivePage(workspace.id, a.pageId);
+  } else if (a.tool === "create_task" && a.taskId) {
+    await taskSvc.archiveTask(workspace.id, a.taskId);
+  } else if (a.tool === "complete_task" && a.taskId) {
+    await taskSvc.undoComplete(workspace.id, a.taskId);
+  }
+  await aiAuth.markUndone(workspace.id, a.id);
+  revalidatePath(`/w/${slug}`, "layout");
 }

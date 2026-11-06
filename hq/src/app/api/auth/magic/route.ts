@@ -1,11 +1,12 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { createLoginLink, emailIsAllowed } from "@/lib/auth/session";
+import { createLoginLink, emailIsAllowed, rememberNext } from "@/lib/auth/session";
 import { sendEmail, signInEmail } from "@/lib/email";
 
 export async function POST(req: NextRequest) {
   const base = process.env.APP_URL ?? req.nextUrl.origin;
   const form = await req.formData();
   const email = String(form.get("email") ?? "").trim().toLowerCase();
+  await rememberNext(String(form.get("next") ?? ""));
   const back = (q: string) => NextResponse.redirect(new URL(`/login?${q}`, base), 303);
   if (!email) return back("error=Enter your email");
   if (!(await emailIsAllowed(email))) return back("error=" + encodeURIComponent("You haven't been invited yet. Ask an admin to add your email."));

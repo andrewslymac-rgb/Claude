@@ -29,6 +29,13 @@
       "when": 1793928808092,
       "tag": "0003_login_tokens",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1793931978347,
+      "tag": "0004_ai_access",
+      "breakpoints": true
     }
   ]
 }

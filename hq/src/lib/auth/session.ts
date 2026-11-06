@@ -84,6 +84,22 @@ export async function signInWithVerifiedEmail(input: { email: string; name?: str
   return user;
 }
 
+const NEXT_COOKIE = "orbit_next";
+
+/** Remember where to send someone after they sign in (only same-site paths). */
+export async function rememberNext(path: string) {
+  if (!path.startsWith("/") || path.startsWith("//")) return;
+  (await cookies()).set(NEXT_COOKIE, path, { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", path: "/", maxAge: 600 });
+}
+
+/** Where to go after sign-in: the remembered path, or "/". Clears the cookie. */
+export async function consumeNext(): Promise<string> {
+  const jar = await cookies();
+  const next = jar.get(NEXT_COOKIE)?.value;
+  if (next) jar.delete(NEXT_COOKIE);
+  return next && next.startsWith("/") && !next.startsWith("//") ? next : "/";
+}
+
 export const devLoginEnabled = () =>
   process.env.ALLOW_DEV_LOGIN === "true" || (process.env.NODE_ENV !== "production" && process.env.ALLOW_DEV_LOGIN !== "false");
 

@@ -63,6 +63,15 @@ To test what a team member sees: in Settings, add another email as a Viewer or E
 
 Dev login is automatically off in production.
 
+## Connect Claude (AI access)
+
+Orbit is an MCP server at `https://myorbithq.net/api/mcp`.
+
+- **claude.ai**: Settings → Connectors → Add custom connector → paste the address → when Orbit opens, pick the company and permissions → Allow.
+- **Claude Code / scripts**: Settings → AI access → Create an API key, then `claude mcp add --transport http orbit https://myorbithq.net/api/mcp --header "Authorization: Bearer <key>"`.
+
+Every AI change is logged under **AI activity** in the sidebar with an Undo button, and shows in page history labeled with the tool's name. AI tools can't delete pages, change access, or edit Drive-synced pages. Disconnect any tool in Settings → AI access.
+
 ## Email sign-in links (and task reminders)
 
 People without a Google account can type their email on the sign-in page and get a one-time link. Orbit sends email through [Resend](https://resend.com) (free up to 3,000 emails a month):

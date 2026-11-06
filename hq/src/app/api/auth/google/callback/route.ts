@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { cookies } from "next/headers";
 import { decodeIdToken } from "arctic";
 import { googleClient } from "@/lib/auth/google";
-import { signInWithVerifiedEmail, SignInError } from "@/lib/auth/session";
+import { consumeNext, signInWithVerifiedEmail, SignInError } from "@/lib/auth/session";
 
 type GoogleClaims = { email: string; email_verified: boolean; name?: string; picture?: string };
 
@@ -28,5 +28,5 @@ export async function GET(req: NextRequest) {
     console.error("Google sign-in failed", e);
     return fail("google_failed");
   }
-  return NextResponse.redirect(new URL("/", appUrl));
+  return NextResponse.redirect(new URL(await consumeNext(), appUrl));
 }
