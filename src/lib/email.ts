@@ -29,6 +29,7 @@ export function signInEmail(link: string, appName = "Orbit") {
   const html = `<div style="font-family:Inter,Arial,sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;color:#1f1f1d">
   <div style="font-size:22px;font-weight:700;margin-bottom:16px">${appName}</div>
   <p style="font-size:16px;line-height:1.5">Click the button to sign in. The link works once and expires in 15 minutes.</p>
+  <p style="font-size:14px;line-height:1.5;color:#555">Tip: the Orbit window where you asked for this link signs in on its own as soon as you click, even if the link opens somewhere else.</p>
   <p style="margin:28px 0"><a href="${link}" style="background:#4f5fd8;color:#fff;text-decoration:none;padding:12px 22px;border-radius:8px;font-weight:600;display:inline-block">Sign in to ${appName}</a></p>
   <p style="font-size:13px;color:#777">If the button doesn't work, copy this address into your browser:<br><a href="${link}" style="color:#4f5fd8">${link}</a></p>
   <p style="font-size:13px;color:#777">If you didn't ask for this, you can ignore it.</p>

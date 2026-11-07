@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { devLoginEnabled, getCurrentUser, googleEnabled } from "@/lib/auth/session";
 import { OrbitWordmark } from "@/components/OrbitLogo";
+import { WaitForLink } from "./WaitForLink";
 
 const MESSAGES: Record<string, string> = {
   expired: "That sign-in link expired. Please try again.",
@@ -24,12 +25,7 @@ export default async function Login({ searchParams }: { searchParams: Promise<{ 
         <p className="mt-1 text-sm text-ink-soft">Use your Google account, or get a sign-in link by email.</p>
 
         {error && <p className="mt-4 rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger">{MESSAGES[error] ?? error}</p>}
-        {sent && (
-          <div className="mt-4 rounded-lg bg-ok-soft px-3 py-3 text-sm text-ok">
-            <div className="font-medium">Check your email</div>
-            <div className="mt-0.5 opacity-90">We sent a sign-in link to {sent}. It works for 15 minutes.</div>
-          </div>
-        )}
+        {sent && <WaitForLink email={sent} />}
 
         {google && (
           <a
