@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(new URL(`/login?error=${encodeURIComponent(msg)}`, base));
   }
   // Opened somewhere other than where it was requested (another Chrome profile, a phone):
-  // the original window is signing itself in, so say so instead of dropping them in here.
+  // the original window is signing itself in; this browser only signs in if they choose to.
   if (!sameBrowser) return NextResponse.redirect(new URL("/login/opened", base));
   return NextResponse.redirect(new URL(await consumeNext(), base));
 }

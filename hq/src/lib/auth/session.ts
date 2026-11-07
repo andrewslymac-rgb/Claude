@@ -149,9 +149,14 @@ export async function createLoginLink(emailRaw: string) {
   return `${appUrl}/api/auth/magic/verify?token=${token}`;
 }
 
+const OPEN_COOKIE = "orbit_login_open";
+const OPEN_MINUTES = 10;
+
 /**
  * Redeems a link in the browser that opened it. Throws SignInError if it's bad, used or expired.
- * Returns whether this is the same browser that asked for the link.
+ * If this is the browser that asked for the link, it signs in right here. If not (the link
+ * opened in another Chrome profile or on a phone), the asking window signs itself in via
+ * claimWaitingLogin and this browser only gets a session if the person chooses "Open here".
  */
 export async function redeemLoginLink(token: string) {
   const [row] = await db.select().from(loginTokens).where(eq(loginTokens.id, hash(token)));
@@ -160,9 +165,24 @@ export async function redeemLoginLink(token: string) {
   const waiting = jar.get(WAIT_COOKIE)?.value;
   const sameBrowser = Boolean(waiting && row.requesterHash && hash(waiting) === row.requesterHash);
   await db.update(loginTokens).set({ usedAt: new Date(), ...(sameBrowser ? { claimedAt: new Date() } : {}) }).where(eq(loginTokens.id, row.id));
-  if (sameBrowser) jar.delete(WAIT_COOKIE);
-  const user = await signInWithVerifiedEmail({ email: row.email });
-  return { user, sameBrowser };
+  if (sameBrowser) {
+    jar.delete(WAIT_COOKIE);
+    await signInWithVerifiedEmail({ email: row.email });
+  } else {
+    jar.set(OPEN_COOKIE, token, { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", path: "/", maxAge: OPEN_MINUTES * 60 });
+  }
+  return { sameBrowser };
+}
+
+/** "Open Orbit here" on the page a link lands on when it wasn't opened where it was asked for. */
+export async function signInWhereLinkOpened() {
+  const jar = await cookies();
+  const token = jar.get(OPEN_COOKIE)?.value;
+  if (!token) throw new SignInError("That sign-in link has expired. Request a new one.");
+  jar.delete(OPEN_COOKIE);
+  const [row] = await db.select().from(loginTokens).where(eq(loginTokens.id, hash(token)));
+  if (!row || !row.usedAt || row.usedAt < new Date(Date.now() - OPEN_MINUTES * 60_000)) throw new SignInError("That sign-in link has expired. Request a new one.");
+  await signInWithVerifiedEmail({ email: row.email });
 }
 
 /**
