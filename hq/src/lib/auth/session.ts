@@ -128,22 +128,59 @@ export async function emailIsAllowed(emailRaw: string) {
   return Boolean(inv);
 }
 
-/** Creates a one-time sign-in link. Returns null if this email asked too often. */
+/** Cookie on the browser that asked for a link. Lets that browser sign itself in once the link is clicked anywhere. */
+const WAIT_COOKIE = "orbit_login_wait";
+
+/**
+ * Creates a one-time sign-in link and marks this browser as the one waiting for it.
+ * Returns null if this email asked too often.
+ */
 export async function createLoginLink(emailRaw: string) {
   const email = emailRaw.trim().toLowerCase();
   const hourAgo = new Date(Date.now() - 3600_000);
   const [{ recent }] = await db.select({ recent: sql<number>`count(*)::int` }).from(loginTokens).where(and(eq(loginTokens.email, email), gt(loginTokens.createdAt, hourAgo)));
   if (recent >= MAX_LINKS_PER_HOUR) return null;
   const token = randomBytes(32).toString("base64url");
-  await db.insert(loginTokens).values({ id: hash(token), email, expiresAt: new Date(Date.now() + LINK_MINUTES * 60_000) });
+  const requester = randomBytes(32).toString("base64url");
+  const expiresAt = new Date(Date.now() + LINK_MINUTES * 60_000);
+  await db.insert(loginTokens).values({ id: hash(token), email, expiresAt, requesterHash: hash(requester) });
+  (await cookies()).set(WAIT_COOKIE, requester, { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", path: "/", expires: expiresAt });
   const appUrl = process.env.APP_URL ?? "http://localhost:3000";
   return `${appUrl}/api/auth/magic/verify?token=${token}`;
 }
 
-/** Redeems a link. Throws SignInError if it's bad, used or expired. */
+/**
+ * Redeems a link in the browser that opened it. Throws SignInError if it's bad, used or expired.
+ * Returns whether this is the same browser that asked for the link.
+ */
 export async function redeemLoginLink(token: string) {
   const [row] = await db.select().from(loginTokens).where(eq(loginTokens.id, hash(token)));
   if (!row || row.usedAt || row.expiresAt < new Date()) throw new SignInError("That sign-in link has expired or was already used. Request a new one.");
-  await db.update(loginTokens).set({ usedAt: new Date() }).where(eq(loginTokens.id, row.id));
-  return signInWithVerifiedEmail({ email: row.email });
+  const jar = await cookies();
+  const waiting = jar.get(WAIT_COOKIE)?.value;
+  const sameBrowser = Boolean(waiting && row.requesterHash && hash(waiting) === row.requesterHash);
+  await db.update(loginTokens).set({ usedAt: new Date(), ...(sameBrowser ? { claimedAt: new Date() } : {}) }).where(eq(loginTokens.id, row.id));
+  if (sameBrowser) jar.delete(WAIT_COOKIE);
+  const user = await signInWithVerifiedEmail({ email: row.email });
+  return { user, sameBrowser };
+}
+
+/**
+ * Polled by the login page while it waits. Once the link has been clicked anywhere
+ * (another Chrome profile, a phone), the browser that asked gets its own session here.
+ */
+export async function claimWaitingLogin(): Promise<"waiting" | "done" | "expired"> {
+  const jar = await cookies();
+  const waiting = jar.get(WAIT_COOKIE)?.value;
+  if (!waiting) return "expired";
+  const [row] = await db.select().from(loginTokens).where(eq(loginTokens.requesterHash, hash(waiting)));
+  if (!row || row.claimedAt || row.expiresAt < new Date()) {
+    jar.delete(WAIT_COOKIE);
+    return "expired";
+  }
+  if (!row.usedAt) return "waiting";
+  await db.update(loginTokens).set({ claimedAt: new Date() }).where(eq(loginTokens.id, row.id));
+  jar.delete(WAIT_COOKIE);
+  await signInWithVerifiedEmail({ email: row.email });
+  return "done";
 }

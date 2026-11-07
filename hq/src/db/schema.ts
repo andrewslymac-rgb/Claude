@@ -356,9 +356,14 @@ export const loginTokens = pgTable(
     email: text("email").notNull(),
     expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
     usedAt: timestamp("used_at", { withTimezone: true }),
+    /** SHA-256 of the secret cookie set on the browser that asked for the link, so that
+     *  browser can sign itself in once the link is clicked anywhere (phone, other Chrome profile). */
+    requesterHash: text("requester_hash"),
+    /** When the requesting browser picked up its session. */
+    claimedAt: timestamp("claimed_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [index("login_tokens_email_idx").on(t.email, t.createdAt)],
+  (t) => [index("login_tokens_email_idx").on(t.email, t.createdAt), index("login_tokens_requester_idx").on(t.requesterHash)],
 );
 
 // ---------------------------------------------------------------------------
