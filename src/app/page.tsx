@@ -37,7 +37,7 @@ export default async function Hub() {
       <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
         {list.map((w) => (
           <Link key={w.slug} href={`/w/${w.slug}`} className="group rounded-2xl border border-line bg-card p-6 transition hover:border-accent/60 hover:bg-hover">
-            <span className="flex h-11 w-11 items-center justify-center rounded-xl text-2xl" style={{ background: `${w.color}2e` }}>
+            <span className="flex h-11 w-11 items-center justify-center rounded-xl text-2xl" style={{ background: `${w.color}40`, boxShadow: `inset 0 0 0 1px ${w.color}99` }}>
               {w.icon}
             </span>
             <div className="mt-6 text-xl font-semibold">{w.name}</div>

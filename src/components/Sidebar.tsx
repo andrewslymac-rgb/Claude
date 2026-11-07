@@ -113,7 +113,7 @@ function WorkspaceSwitcher({ current, all, canCreate }: { current: Ws; all: Ws[]
   return (
     <div ref={ref} className="relative p-2">
       <button onClick={() => setOpen((o) => !o)} className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-left hover:bg-hover">
-        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-base" style={{ background: `${current.color}22` }}>
+        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-base ring-1" style={{ background: `${current.color}40`, ["--tw-ring-color" as string]: `${current.color}99` }}>
           {current.icon}
         </span>
         <span className="flex-1 truncate font-semibold">{current.name}</span>
@@ -124,7 +124,7 @@ function WorkspaceSwitcher({ current, all, canCreate }: { current: Ws; all: Ws[]
           <Link href="/" onClick={() => setOpen(false)} className="block rounded-md px-2 py-1.5 text-xs text-ink-faint hover:bg-hover">← All companies</Link>
           {all.map((w) => (
             <Link key={w.slug} href={`/w/${w.slug}`} onClick={() => setOpen(false)} className={`flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-hover ${w.slug === current.slug ? "bg-hover" : ""}`}>
-              <span className="flex h-6 w-6 items-center justify-center rounded text-sm" style={{ background: `${w.color}22` }}>
+              <span className="flex h-6 w-6 items-center justify-center rounded text-sm" style={{ background: `${w.color}40` }}>
                 {w.icon}
               </span>
               <span className="truncate">{w.name}</span>
