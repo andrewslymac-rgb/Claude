@@ -15,7 +15,15 @@ export default async function WorkspaceLayout({ children, params }: { children: 
   const openFlags = flags.filter((f) => f.status === "open").length;
 
   return (
-    <div style={{ ["--ws-accent" as string]: workspace.color }}>
+    // The company's color becomes the accent for everything inside it: buttons, active
+    // links, badges, the icon tile. Lightened a touch so it reads well on the dark theme.
+    <div
+      style={{
+        ["--ws-accent" as string]: workspace.color,
+        ["--color-accent" as string]: `color-mix(in oklab, ${workspace.color} 72%, white)`,
+        ["--color-accent-soft" as string]: `color-mix(in srgb, ${workspace.color} 22%, transparent)`,
+      }}
+    >
       <MobileShell title={workspace.name} icon={workspace.icon} sidebar={
       <Sidebar
         workspace={{ slug: workspace.slug, name: workspace.name, icon: workspace.icon, color: workspace.color }}

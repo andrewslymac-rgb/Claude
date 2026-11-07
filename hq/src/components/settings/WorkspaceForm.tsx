@@ -18,7 +18,7 @@ export function WorkspaceForm({ slug, name: n0, icon: i0, color: c0 }: { slug: s
         e.preventDefault();
         start(async () => {
           const r = await updateWorkspaceAction(slug, { name, icon, color });
-          setMsg(r.ok ? "Saved." : r.error);
+          setMsg(r.ok ? "Saved. The sidebar, buttons and badges now use this color." : r.error);
         });
       }}
     >
