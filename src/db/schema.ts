@@ -124,6 +124,8 @@ export const pages = pgTable(
     source: pageSourceEnum("source").notNull().default("local"),
     driveFileId: text("drive_file_id"),
     driveModifiedAt: timestamp("drive_modified_at", { withTimezone: true }),
+    /** Which document area (drive_connections row) this synced page belongs to. */
+    driveConnectionId: uuid("drive_connection_id"),
     version: integer("version").notNull().default(1),
     // --- Document info (compliance) --------------------------------------
     docType: text("doc_type"),
@@ -198,9 +200,14 @@ export const widgetTypeEnum = pgEnum("widget_type", [
   "recent", // recently updated pages
   "tasks", // overdue / today / this week
   "reviews", // documents needing review
+  "tools", // command-center launcher: big buttons to Jobber, QuickBooks, Slack…
+  "stats", // live numbers strip: overdue tasks, flags, reviews, Jobber today
+  "jobber", // live Jobber tile: today's schedule, new requests, quotes, overdue invoices
+  "collections", // document areas (SOPs, Legal, Licensing…) with counts
+  "flags", // open flags
 ]);
 
-export type LinkItem = { label: string; url: string; emoji?: string };
+export type LinkItem = { label: string; url: string; emoji?: string; color?: string };
 export type WidgetConfig = {
   text?: string; // welcome
   links?: LinkItem[]; // links
@@ -491,21 +498,62 @@ export type AiProposal = typeof aiProposals.$inferSelect;
 // Google Drive sync (Milestone 3): one connected folder per workspace.
 // ---------------------------------------------------------------------------
 
-export const driveConnections = pgTable("drive_connections", {
-  workspaceId: uuid("workspace_id")
-    .primaryKey()
-    .references(() => workspaces.id, { onDelete: "cascade" }),
-  folderId: text("folder_id").notNull(),
-  folderName: text("folder_name").notNull().default(""),
-  /** Orbit page that synced pages live under. */
-  rootPageId: uuid("root_page_id").references(() => pages.id, { onDelete: "set null" }),
-  /** Folder ids to skip (e.g. a duplicate folder). */
-  excludeFolderIds: jsonb("exclude_folder_ids").$type<string[]>().notNull().default([]),
-  lastSyncAt: timestamp("last_sync_at", { withTimezone: true }),
-  lastSyncStatus: text("last_sync_status"),
-  lastSyncCounts: jsonb("last_sync_counts").$type<{ created: number; updated: number; trashed: number; skipped: number }>(),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+export const COLLECTION_KINDS = ["sop", "legal", "licensing", "hr", "other"] as const;
+export type CollectionKind = (typeof COLLECTION_KINDS)[number];
+
+/**
+ * A document area synced from one or more Google Drive folders: "SOPs", "Legal",
+ * "Licensing"… Each gets its own root page in Orbit and its own entry in the sidebar.
+ */
+export const driveConnections = pgTable(
+  "drive_connections",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    label: text("label").notNull().default(""),
+    icon: text("icon").notNull().default("📁"),
+    kind: text("kind").$type<CollectionKind>().notNull().default("other"),
+    /** Drive folder ids that make up this area (their contents are merged under the root page). */
+    folderIds: jsonb("folder_ids").$type<string[]>().notNull().default([]),
+    /** Display names of those folders, same order. */
+    folderNames: jsonb("folder_names").$type<string[]>().notNull().default([]),
+    /** Orbit page that synced pages live under. */
+    rootPageId: uuid("root_page_id").references(() => pages.id, { onDelete: "set null" }),
+    /** Folder ids to skip (e.g. a subfolder that belongs to another area). */
+    excludeFolderIds: jsonb("exclude_folder_ids").$type<string[]>().notNull().default([]),
+    position: doublePrecision("position").notNull().default(0),
+    lastSyncAt: timestamp("last_sync_at", { withTimezone: true }),
+    lastSyncStatus: text("last_sync_status"),
+    lastSyncCounts: jsonb("last_sync_counts").$type<{ created: number; updated: number; trashed: number; skipped: number }>(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("drive_connections_ws_idx").on(t.workspaceId)],
+);
+
+/** OAuth connections to outside tools (Jobber today; Slack next). One per tool per company. */
+export const integrations = pgTable(
+  "integrations",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    provider: text("provider").notNull(),
+    accessToken: text("access_token").notNull(),
+    refreshToken: text("refresh_token"),
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
+    /** e.g. the Jobber account name, so Settings can say who it's connected as. */
+    accountName: text("account_name"),
+    meta: jsonb("meta").$type<Record<string, unknown>>().notNull().default({}),
+    connectedById: uuid("connected_by_id").references(() => users.id, { onDelete: "set null" }),
+    lastError: text("last_error"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("integrations_ws_provider_idx").on(t.workspaceId, t.provider)],
+);
 
 /** App-wide settings that are easier to paste into Orbit than into Railway (e.g. the Drive key). */
 export const appSettings = pgTable("app_settings", {

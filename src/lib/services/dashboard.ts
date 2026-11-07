@@ -1,38 +1,77 @@
 import "server-only";
 import { and, asc, eq, max } from "drizzle-orm";
 import { db, schema } from "@/db";
-import type { WidgetConfig, WidgetType } from "@/db/schema";
+import type { LinkItem, WidgetConfig, WidgetType } from "@/db/schema";
 
 const { dashboardWidgets } = schema;
 
-export const WIDGET_CATALOG: Record<WidgetType, { title: string; description: string; emoji: string; available: boolean }> = {
-  welcome: { title: "Announcement", description: "A greeting or note for the team", emoji: "📣", available: true },
-  links: { title: "Quick links", description: "Buttons to the tools you use every day", emoji: "🔗", available: true },
-  sops: { title: "SOPs & Policies", description: "Every page marked as an SOP", emoji: "📚", available: true },
-  pages: { title: "Pinned pages", description: "Pages you pick", emoji: "📌", available: true },
-  recent: { title: "Recently updated", description: "What changed lately", emoji: "🕒", available: true },
-  tasks: { title: "Tasks", description: "Overdue, due today and coming up this week", emoji: "✅", available: true },
-  reviews: { title: "Reviews due", description: "Documents that need a review", emoji: "📋", available: true },
+export const WIDGET_CATALOG: Record<WidgetType, { title: string; description: string; emoji: string; available: boolean; width: number }> = {
+  stats: { title: "At a glance", description: "Live numbers: overdue tasks, flags, reviews due, today's jobs", emoji: "📊", available: true, width: 3 },
+  tools: { title: "Tools", description: "Big buttons to Jobber, QuickBooks, Slack and everything else you use", emoji: "🧰", available: true, width: 3 },
+  jobber: { title: "Jobber today", description: "Today's schedule, new requests, quotes waiting, overdue invoices", emoji: "🗓️", available: true, width: 2 },
+  collections: { title: "Documents", description: "SOPs, Legal, Licensing and other document areas", emoji: "🗂️", available: true, width: 1 },
+  tasks: { title: "Tasks", description: "Overdue, due today and coming up this week", emoji: "✅", available: true, width: 1 },
+  flags: { title: "Open flags", description: "Things the team flagged that need a decision", emoji: "🚩", available: true, width: 1 },
+  reviews: { title: "Reviews due", description: "Documents that need a review", emoji: "📋", available: true, width: 1 },
+  recent: { title: "Recently updated", description: "What changed lately", emoji: "🕒", available: true, width: 1 },
+  welcome: { title: "Announcement", description: "A greeting or note for the team", emoji: "📣", available: true, width: 3 },
+  links: { title: "Quick links", description: "A small row of links", emoji: "🔗", available: true, width: 1 },
+  sops: { title: "SOPs & Policies", description: "Every page marked as an SOP", emoji: "📚", available: true, width: 1 },
+  pages: { title: "Pinned pages", description: "Pages you pick", emoji: "📌", available: true, width: 1 },
 };
+
+/** Starter launcher for a service business. People edit it from the dashboard. */
+export const DEFAULT_TOOLS: LinkItem[] = [
+  { label: "Jobber", url: "https://secure.getjobber.com/", emoji: "🗓️", color: "#7db00e" },
+  { label: "QuickBooks", url: "https://app.qbo.intuit.com/", emoji: "💵", color: "#2ca01c" },
+  { label: "Gusto", url: "https://app.gusto.com/", emoji: "🧾", color: "#f45d48" },
+  { label: "Slack", url: "https://slack.com/", emoji: "💬", color: "#4a154b" },
+  { label: "Google Drive", url: "https://drive.google.com/", emoji: "📁", color: "#fbbc04" },
+  { label: "Gmail", url: "https://mail.google.com/", emoji: "✉️", color: "#ea4335" },
+  { label: "Calendar", url: "https://calendar.google.com/", emoji: "📆", color: "#4285f4" },
+  { label: "Quo", url: "https://app.openphone.com/", emoji: "📞", color: "#6b4eff" },
+];
 
 export async function listWidgets(workspaceId: string) {
   return db.select().from(dashboardWidgets).where(eq(dashboardWidgets.workspaceId, workspaceId)).orderBy(asc(dashboardWidgets.position));
 }
 
+function defaultsFor(type: WidgetType): WidgetConfig {
+  if (type === "links") return { links: [] };
+  if (type === "tools") return { links: DEFAULT_TOOLS };
+  if (type === "pages") return { pageIds: [] };
+  if (type === "welcome") return { text: "Write something for the team…" };
+  return { limit: 6 };
+}
+
 export async function addWidget(workspaceId: string, type: WidgetType) {
   const [{ top }] = await db.select({ top: max(dashboardWidgets.position) }).from(dashboardWidgets).where(eq(dashboardWidgets.workspaceId, workspaceId));
-  const defaults: WidgetConfig = type === "links" ? { links: [] } : type === "pages" ? { pageIds: [] } : type === "welcome" ? { text: "Write something for the team…" } : { limit: 6 };
   const [w] = await db
     .insert(dashboardWidgets)
-    .values({ workspaceId, type, title: WIDGET_CATALOG[type].title, config: defaults, width: type === "welcome" ? 2 : 1, position: (top ?? 0) + 1 })
+    .values({ workspaceId, type, title: WIDGET_CATALOG[type].title, config: defaultsFor(type), width: WIDGET_CATALOG[type].width, position: (top ?? 0) + 1 })
     .returning();
   return w;
+}
+
+/**
+ * Replace the dashboard with the command-center layout: numbers strip, tools,
+ * Jobber, documents, tasks, flags, reviews, recent. Existing tools/links are kept.
+ */
+export async function setupCommandCenter(workspaceId: string) {
+  const existing = await listWidgets(workspaceId);
+  const keepTools = existing.find((w) => w.type === "tools")?.config.links ?? existing.find((w) => w.type === "links")?.config.links;
+  await db.delete(dashboardWidgets).where(eq(dashboardWidgets.workspaceId, workspaceId));
+  const order: WidgetType[] = ["stats", "tools", "jobber", "collections", "tasks", "flags", "reviews", "recent"];
+  for (const [i, type] of order.entries()) {
+    const config = type === "tools" && keepTools?.length ? { links: keepTools } : defaultsFor(type);
+    await db.insert(dashboardWidgets).values({ workspaceId, type, title: WIDGET_CATALOG[type].title, config, width: WIDGET_CATALOG[type].width, position: i + 1 });
+  }
 }
 
 export async function updateWidget(workspaceId: string, id: string, patch: { title?: string; config?: WidgetConfig; width?: number }) {
   await db
     .update(dashboardWidgets)
-    .set({ ...patch, width: patch.width === undefined ? undefined : Math.min(2, Math.max(1, patch.width)) })
+    .set({ ...patch, width: patch.width === undefined ? undefined : Math.min(3, Math.max(1, patch.width)) })
     .where(and(eq(dashboardWidgets.workspaceId, workspaceId), eq(dashboardWidgets.id, id)));
 }
 

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
-import { ChevronDown, ChevronRight, Home, LogOut, MoreHorizontal, Plus, Search, Settings, Trash2, CheckSquare, BookOpen, Library, Flag, Bot } from "lucide-react";
+import { ChevronDown, ChevronRight, Home, LogOut, MoreHorizontal, Plus, Search, Settings, Trash2, CheckSquare, BookOpen, Library, Flag, Bot, FolderOpen } from "lucide-react";
 import { archivePageAction, createPageAction, movePageAction, signOutAction } from "@/app/actions";
 import { SearchPalette } from "./SearchPalette";
 import { NewWorkspaceDialog } from "./NewWorkspaceForm";
@@ -11,9 +11,25 @@ import { OrbitLogo } from "./OrbitLogo";
 
 type Ws = { slug: string; name: string; icon: string; color: string };
 type Node = { id: string; parentId: string | null; title: string; icon: string | null; position: number; isSop: boolean; source: string };
+export type CollectionNav = { id: string; label: string; icon: string; count: number; rootPageId: string | null };
 
-export function Sidebar(props: { workspace: Ws; workspaces: Ws[]; tree: Node[]; user: { name: string; email: string; isAppAdmin: boolean }; canEdit: boolean; canManage: boolean; attention?: number; openFlags?: number; pendingAi?: number }) {
-  const { workspace, tree, canEdit } = props;
+export function Sidebar(props: { workspace: Ws; workspaces: Ws[]; tree: Node[]; collections: CollectionNav[]; user: { name: string; email: string; isAppAdmin: boolean }; canEdit: boolean; canManage: boolean; attention?: number; openFlags?: number; pendingAi?: number }) {
+  const { workspace, canEdit, collections } = props;
+  // Document areas have their own section; keep their synced pages out of the free-form Pages tree.
+  const tree = useMemo(() => {
+    const roots = new Set(collections.map((c) => c.rootPageId).filter(Boolean) as string[]);
+    if (!roots.size) return props.tree;
+    const byId = new Map(props.tree.map((n) => [n.id, n]));
+    const hidden = (n: Node): boolean => {
+      let cur: Node | undefined = n;
+      while (cur) {
+        if (roots.has(cur.id)) return true;
+        cur = cur.parentId ? byId.get(cur.parentId) : undefined;
+      }
+      return false;
+    };
+    return props.tree.filter((n) => !hidden(n));
+  }, [props.tree, collections]);
   const router = useRouter();
   const pathname = usePathname();
   const [searchOpen, setSearchOpen] = useState(false);
@@ -55,6 +71,25 @@ export function Sidebar(props: { workspace: Ws; workspaces: Ws[]; tree: Node[]; 
         <NavItem href={`${base}/library`} icon={<Library size={16} />} label="Document Library" active={pathname.startsWith(`${base}/library`)} />
         <NavItem href={`${base}/flags`} icon={<Flag size={16} />} label="Flags" active={pathname.startsWith(`${base}/flags`)} badge={props.openFlags || undefined} />
       </nav>
+
+      {collections.length > 0 && (
+        <>
+          <div className="flex items-center justify-between px-4 pb-1 pt-3 text-xs font-medium text-ink-faint">
+            <span className="flex items-center gap-1">
+              <FolderOpen size={12} /> Documents
+            </span>
+          </div>
+          <nav className="space-y-0.5 px-2">
+            {collections.map((c) => (
+              <Link key={c.id} href={`${base}/docs/${c.id}`} className={`flex min-h-10 items-center gap-2 rounded-md px-2 py-1.5 md:min-h-0 ${pathname.startsWith(`${base}/docs/${c.id}`) ? "bg-hover font-medium text-ink" : "text-ink-soft hover:bg-hover"}`}>
+                <span className="w-5 shrink-0 text-center">{c.icon}</span>
+                <span className="flex-1 truncate">{c.label}</span>
+                <span className="text-[11px] text-ink-faint">{c.count}</span>
+              </Link>
+            ))}
+          </nav>
+        </>
+      )}
 
       <div className="flex items-center justify-between px-4 pb-1 pt-3 text-xs font-medium text-ink-faint">
         <span className="flex items-center gap-1">

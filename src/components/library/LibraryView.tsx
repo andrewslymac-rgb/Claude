@@ -21,7 +21,9 @@ export type Doc = {
   source: string;
   isSop: boolean;
   updatedAt: string;
+  driveConnectionId: string | null;
 };
+export type CollectionOpt = { id: string; label: string; icon: string };
 type LogEntry = { id: string; pageId: string; pageTitle: string; pageIcon: string | null; version: number; note: string | null; why: string | null; teamTold: boolean; actorType: string; actorName: string | null; createdAt: string };
 
 export const STATUS_LABELS: Record<DocStatus, { label: string; cls: string }> = {
@@ -33,9 +35,10 @@ export const STATUS_LABELS: Record<DocStatus, { label: string; cls: string }> = 
 };
 const TONE: Record<string, string> = { danger: "text-danger", warn: "text-warn", accent: "text-accent", muted: "text-ink-faint", ok: "text-ok" };
 
-export function LibraryView({ slug, docs, log, types, areas }: { slug: string; docs: Doc[]; log: LogEntry[]; types: readonly string[]; areas: readonly string[] }) {
+export function LibraryView({ slug, docs, log, types, areas, collections }: { slug: string; docs: Doc[]; log: LogEntry[]; types: readonly string[]; areas: readonly string[]; collections: CollectionOpt[] }) {
   const [tab, setTab] = useState<"docs" | "log">("docs");
   const [q, setQ] = useState("");
+  const [coll, setColl] = useState("");
   const [type, setType] = useState("");
   const [area, setArea] = useState("");
   const [status, setStatus] = useState("");
@@ -45,8 +48,16 @@ export function LibraryView({ slug, docs, log, types, areas }: { slug: string; d
     () =>
       docs
         .map((d) => ({ ...d, review: reviewState(d.reviewCycle, d.lastReviewedOn), next: nextReviewOn(d.reviewCycle, d.lastReviewedOn) }))
-        .filter((d) => (!q || d.title.toLowerCase().includes(q.toLowerCase())) && (!type || d.docType === type) && (!area || d.area === area) && (!status || d.docStatus === status) && (!review || d.review === review)),
-    [docs, q, type, area, status, review],
+        .filter(
+          (d) =>
+            (!q || d.title.toLowerCase().includes(q.toLowerCase())) &&
+            (!coll || (coll === "orbit" ? !d.driveConnectionId : d.driveConnectionId === coll)) &&
+            (!type || d.docType === type) &&
+            (!area || d.area === area) &&
+            (!status || d.docStatus === status) &&
+            (!review || d.review === review),
+        ),
+    [docs, q, coll, type, area, status, review],
   );
   const dueCount = docs.filter((d) => ["first", "overdue", "due_soon"].includes(reviewState(d.reviewCycle, d.lastReviewedOn))).length;
 
@@ -74,6 +85,17 @@ export function LibraryView({ slug, docs, log, types, areas }: { slug: string; d
         <>
           <div className="mt-5 flex flex-wrap gap-2">
             <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search…" className={`${sel} min-w-40 flex-1`} />
+            {collections.length > 0 && (
+              <select value={coll} onChange={(e) => setColl(e.target.value)} className={sel}>
+                <option value="">All document areas</option>
+                {collections.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.icon} {c.label}
+                  </option>
+                ))}
+                <option value="orbit">Written in Orbit</option>
+              </select>
+            )}
             <select value={type} onChange={(e) => setType(e.target.value)} className={sel}>
               <option value="">All types</option>
               {types.map((t) => (

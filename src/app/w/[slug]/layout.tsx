@@ -6,11 +6,12 @@ import { MobileShell } from "@/components/MobileShell";
 import { listTasks } from "@/lib/services/tasks";
 import { listFlags } from "@/lib/services/flags";
 import { countPending } from "@/lib/services/ai-proposals";
+import { collectionCounts, listCollections } from "@/lib/drive/sync";
 
 export default async function WorkspaceLayout({ children, params }: { children: React.ReactNode; params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const { user, workspace, role } = await requireWorkspacePage(slug);
-  const [tree, workspaces, tasks, flags, pendingAi] = await Promise.all([listTree(workspace.id), listWorkspacesForUser(user), listTasks(workspace.id), listFlags(workspace.id), countPending(workspace.id)]);
+  const [tree, workspaces, tasks, flags, pendingAi, collections, counts] = await Promise.all([listTree(workspace.id), listWorkspacesForUser(user), listTasks(workspace.id), listFlags(workspace.id), countPending(workspace.id), listCollections(workspace.id), collectionCounts(workspace.id)]);
   const attention = tasks.filter((t) => t.state === "overdue" || t.state === "today").length;
   const openFlags = flags.filter((f) => f.status === "open").length;
 
@@ -29,6 +30,7 @@ export default async function WorkspaceLayout({ children, params }: { children: 
         workspace={{ slug: workspace.slug, name: workspace.name, icon: workspace.icon, color: workspace.color }}
         workspaces={workspaces.map((w) => ({ slug: w.slug, name: w.name, icon: w.icon, color: w.color }))}
         tree={tree}
+        collections={collections.map((c) => ({ id: c.id, label: c.label, icon: c.icon, rootPageId: c.rootPageId, count: counts.get(c.id) ?? 0 }))}
         user={{ name: user.name ?? user.email, email: user.email, isAppAdmin: user.isAppAdmin }}
         canEdit={can(role, "edit")}
         canManage={can(role, "manage_members")}

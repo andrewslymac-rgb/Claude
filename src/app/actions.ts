@@ -18,6 +18,7 @@ import { todayISO } from "@/lib/recurrence";
 import * as aiAuth from "@/lib/services/ai-auth";
 import * as proposals from "@/lib/services/ai-proposals";
 import * as driveSync from "@/lib/drive/sync";
+import { COLLECTION_KINDS } from "@/db/schema";
 
 const userActor = (userId: string): Actor => ({ type: "user", userId });
 const uuid = z.string().uuid();
@@ -106,16 +107,23 @@ export async function addWidgetAction(slug: string, type: WidgetType) {
   revalidatePath(`/w/${slug}`);
 }
 
-const linkSchema = z.object({ label: z.string().min(1).max(60), url: z.string().url().max(2000), emoji: z.string().max(8).optional() });
+const linkSchema = z.object({ label: z.string().min(1).max(60), url: z.string().url().max(2000), emoji: z.string().max(8).optional(), color: z.string().max(12).optional() });
 const widgetPatch = z.object({
   title: z.string().min(1).max(80).optional(),
-  width: z.number().int().min(1).max(2).optional(),
+  width: z.number().int().min(1).max(3).optional(),
   config: z.object({ text: z.string().max(2000).optional(), links: z.array(linkSchema).max(40).optional(), pageIds: z.array(uuid).max(40).optional(), limit: z.number().int().min(1).max(30).optional() }).optional(),
 });
 
 export async function updateWidgetAction(slug: string, id: string, patch: { title?: string; width?: number; config?: WidgetConfig }) {
   const { workspace } = await requireAbility(slug, "manage_dashboard");
   await dash.updateWidget(workspace.id, uuid.parse(id), widgetPatch.parse(patch));
+  revalidatePath(`/w/${slug}`);
+}
+
+/** Swap the dashboard for the command-center layout. */
+export async function setupCommandCenterAction(slug: string) {
+  const { workspace } = await requireAbility(slug, "manage_dashboard");
+  await dash.setupCommandCenter(workspace.id);
   revalidatePath(`/w/${slug}`);
 }
 
@@ -386,32 +394,87 @@ export async function setApprovalRuleAction(slug: string, rule: "sops" | "all" |
   revalidatePath(`/w/${slug}/settings`);
 }
 
-// ---------------------------------------------------------------- Google Drive
+// ---------------------------------------------------------------- Google Drive document areas
 
-export async function connectDriveAction(slug: string, folderLink: string, excludeCsv: string): Promise<Result> {
+const collectionInput = z.object({
+  label: z.string().max(60),
+  icon: z.string().max(8),
+  kind: z.enum(COLLECTION_KINDS),
+  folderLinks: z.array(z.string().max(500)).min(1).max(10),
+  excludeLinks: z.array(z.string().max(500)).max(20),
+});
+
+export async function addCollectionAction(slug: string, input: z.infer<typeof collectionInput>): Promise<Result> {
   return wrap(async () => {
     const { workspace } = await requireAbility(slug, "manage_members");
-    const exclude = excludeCsv.split(",").map((s) => s.trim()).map((s) => s.match(/folders\/([A-Za-z0-9_-]+)/)?.[1] ?? s).filter(Boolean);
-    const f = await driveSync.connectFolder(workspace.id, folderLink, exclude);
-    const c = await driveSync.syncWorkspace(workspace.id);
+    const conn = await driveSync.addCollection(workspace.id, collectionInput.parse(input));
+    const c = await driveSync.syncCollection(conn);
     revalidatePath(`/w/${slug}`, "layout");
-    return `Connected "${f.name}". Synced: ${c.created} new, ${c.updated} updated, ${c.skipped} unchanged or skipped.`;
+    return `Added "${conn.label}". Synced ${c.created} documents.`;
   });
 }
 
-export async function syncDriveAction(slug: string): Promise<Result> {
+export async function updateCollectionAction(slug: string, id: string, input: z.infer<typeof collectionInput>): Promise<Result> {
   return wrap(async () => {
     const { workspace } = await requireAbility(slug, "manage_members");
-    const c = await driveSync.syncWorkspace(workspace.id);
+    const conn = await driveSync.updateCollection(workspace.id, uuid.parse(id), collectionInput.parse(input));
+    const c = await driveSync.syncCollection(conn);
+    revalidatePath(`/w/${slug}`, "layout");
+    return `Saved "${conn.label}". Synced: ${c.created} new, ${c.updated} updated, ${c.trashed} removed.`;
+  });
+}
+
+export async function syncDriveAction(slug: string, id?: string): Promise<Result> {
+  return wrap(async () => {
+    const { workspace } = await requireAbility(slug, "manage_members");
+    let c: driveSync.SyncCounts;
+    if (id) {
+      const conn = await driveSync.getCollection(workspace.id, uuid.parse(id));
+      if (!conn) throw new Error("That document area no longer exists.");
+      c = await driveSync.syncCollection(conn, { force: true });
+    } else c = await driveSync.syncWorkspace(workspace.id);
     revalidatePath(`/w/${slug}`, "layout");
     return `Synced: ${c.created} new, ${c.updated} updated, ${c.trashed} removed, ${c.skipped} unchanged.`;
   });
 }
 
-export async function disconnectDriveAction(slug: string) {
+export async function removeCollectionAction(slug: string, id: string) {
   const { workspace } = await requireAbility(slug, "manage_members");
-  await driveSync.disconnect(workspace.id);
-  revalidatePath(`/w/${slug}/settings`);
+  await driveSync.removeCollection(workspace.id, uuid.parse(id));
+  revalidatePath(`/w/${slug}`, "layout");
+}
+
+// ---------------------------------------------------------------- Integrations (Jobber)
+
+export async function saveJobberAppAction(clientId: string, clientSecret: string): Promise<Result> {
+  return wrap(async () => {
+    const user = await getCurrentUser();
+    if (!user?.isAppAdmin) throw new ForbiddenError("Only an app admin can set the Jobber app keys.");
+    const { JOBBER_ID_SETTING, JOBBER_SECRET_SETTING } = await import("@/lib/integrations/jobber");
+    const { setSetting } = await import("@/lib/services/app-settings");
+    if (!clientId.trim() || !clientSecret.trim()) throw new Error("Paste both the client ID and the client secret.");
+    await setSetting(JOBBER_ID_SETTING, clientId.trim());
+    await setSetting(JOBBER_SECRET_SETTING, clientSecret.trim());
+    revalidatePath("/", "layout");
+    return "Jobber app keys saved. Now click Connect Jobber.";
+  });
+}
+
+export async function disconnectJobberAction(slug: string) {
+  const { workspace } = await requireAbility(slug, "manage_workspace");
+  const { disconnect } = await import("@/lib/integrations/jobber");
+  await disconnect(workspace.id);
+  revalidatePath(`/w/${slug}`, "layout");
+}
+
+export async function testJobberAction(slug: string): Promise<Result> {
+  return wrap(async () => {
+    const { workspace } = await requireAbility(slug, "manage_workspace");
+    const { snapshot } = await import("@/lib/integrations/jobber");
+    const s = await snapshot(workspace.id, true);
+    if (s.errors.length) throw new Error(`Connected, but some data couldn't load: ${s.errors.join(" | ")}`);
+    return `Connected to ${s.account ?? "Jobber"}: ${s.today.length} visits today, ${s.requestsNew} new requests, ${s.quotesAwaiting.count} quotes waiting, ${s.invoicesPastDue.count} overdue invoices.`;
+  });
 }
 
 /** One-click import of the Lemon and Lavender Notion tasks and flags (app admin only). */

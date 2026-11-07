@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Building2, Users, FolderSync, Bot } from "lucide-react";
+import { Building2, Users, FolderSync, Bot, Plug } from "lucide-react";
 import { requireWorkspacePage } from "@/lib/access";
 import { can, ROLE_LABELS } from "@/lib/permissions";
 import { listMembers } from "@/lib/services/members";
@@ -10,21 +10,24 @@ import { listGrants, SCOPE_LABELS } from "@/lib/services/ai-auth";
 import { appUrl } from "@/lib/oauth-meta";
 import { DrivePanel } from "@/components/settings/DrivePanel";
 import { ImportPanel } from "@/components/settings/ImportPanel";
-import { getConnection } from "@/lib/drive/sync";
+import { collectionCounts, listCollections, KIND_INFO } from "@/lib/drive/sync";
 import { serviceAccountStatus } from "@/lib/drive/client";
+import { IntegrationsPanel } from "@/components/settings/IntegrationsPanel";
+import { getIntegration, jobberAppConfig, redirectUri } from "@/lib/integrations/jobber";
 
-type Tab = "workspace" | "people" | "sync" | "ai";
+type Tab = "workspace" | "people" | "sync" | "integrations" | "ai";
 
-export default async function Settings({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: Promise<{ tab?: string }> }) {
+export default async function Settings({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: Promise<{ tab?: string; ok?: string; error?: string }> }) {
   const { slug } = await params;
-  const { tab: rawTab } = await searchParams;
+  const { tab: rawTab, ok, error } = await searchParams;
   const { user, workspace, role } = await requireWorkspacePage(slug);
   const admin = can(role, "manage_members");
 
   const tabs: { key: Tab; label: string; icon: React.ReactNode; show: boolean }[] = [
     { key: "workspace" as Tab, label: "Workspace", icon: <Building2 size={15} />, show: can(role, "manage_workspace") },
     { key: "people" as Tab, label: "People", icon: <Users size={15} />, show: true },
-    { key: "sync" as Tab, label: "Import & sync", icon: <FolderSync size={15} />, show: admin },
+    { key: "sync" as Tab, label: "Documents & sync", icon: <FolderSync size={15} />, show: admin },
+    { key: "integrations" as Tab, label: "Integrations", icon: <Plug size={15} />, show: can(role, "manage_workspace") },
     { key: "ai" as Tab, label: "AI", icon: <Bot size={15} />, show: admin },
   ].filter((t) => t.show);
   const tab: Tab = tabs.some((t) => t.key === rawTab) ? (rawTab as Tab) : tabs[0].key;
@@ -59,7 +62,7 @@ export default async function Settings({ params, searchParams }: { params: Promi
           <div className="space-y-8">
             <section>
               <h2 className="text-lg font-semibold">Google Drive</h2>
-              <p className="mt-1 text-sm text-ink-soft">Keep SOPs and policies in Drive; Orbit mirrors them as read-only pages.</p>
+              <p className="mt-1 text-sm text-ink-soft">Keep documents in Drive; Orbit mirrors each area (SOPs, Legal, Licensing…) as read-only pages with its own spot in the sidebar.</p>
               <DriveTab slug={slug} workspaceId={workspace.id} isAppAdmin={user.isAppAdmin} />
             </section>
             {user.isAppAdmin && workspace.slug === "lemon-and-lavender" && (
@@ -69,6 +72,14 @@ export default async function Settings({ params, searchParams }: { params: Promi
               </section>
             )}
           </div>
+        )}
+
+        {tab === "integrations" && can(role, "manage_workspace") && (
+          <section>
+            <h2 className="text-lg font-semibold">Integrations</h2>
+            <p className="mt-1 text-sm text-ink-soft">Connect the tools you run the business in, so the dashboard shows live numbers.</p>
+            <IntegrationsTab slug={slug} workspaceId={workspace.id} isAppAdmin={user.isAppAdmin} notice={ok === "jobber" ? "Jobber connected. The dashboard tile is live." : undefined} error={error} />
+          </section>
         )}
 
         {tab === "ai" && admin && (
@@ -103,14 +114,29 @@ async function PeopleTab({ slug, workspaceId, role, userId }: { slug: string; wo
 }
 
 async function DriveTab({ slug, workspaceId, isAppAdmin }: { slug: string; workspaceId: string; isAppAdmin: boolean }) {
-  const [conn, saStatus] = await Promise.all([getConnection(workspaceId), serviceAccountStatus()]);
+  const [conns, counts, saStatus] = await Promise.all([listCollections(workspaceId), collectionCounts(workspaceId), serviceAccountStatus()]);
   return (
     <DrivePanel
       slug={slug}
       serviceEmail={saStatus.state === "ok" ? saStatus.email : null}
       problem={saStatus.state === "invalid" ? saStatus.reason : null}
       isAppAdmin={isAppAdmin}
-      conn={conn ? { ...conn, lastSyncAt: conn.lastSyncAt?.toISOString() ?? null } : null}
+      kinds={Object.fromEntries(Object.entries(KIND_INFO).map(([k, v]) => [k, { label: v.label, icon: v.icon, hint: v.hint }])) as Parameters<typeof DrivePanel>[0]["kinds"]}
+      collections={conns.map((c) => ({ id: c.id, label: c.label, icon: c.icon, kind: c.kind, folderIds: c.folderIds, folderNames: c.folderNames, excludeFolderIds: c.excludeFolderIds, lastSyncAt: c.lastSyncAt?.toISOString() ?? null, lastSyncStatus: c.lastSyncStatus, lastSyncCounts: c.lastSyncCounts, count: counts.get(c.id) ?? 0 }))}
+    />
+  );
+}
+
+async function IntegrationsTab({ slug, workspaceId, isAppAdmin, notice, error }: { slug: string; workspaceId: string; isAppAdmin: boolean; notice?: string; error?: string }) {
+  const [row, cfg] = await Promise.all([getIntegration(workspaceId), jobberAppConfig()]);
+  return (
+    <IntegrationsPanel
+      slug={slug}
+      isAppAdmin={isAppAdmin}
+      redirectUri={redirectUri()}
+      notice={notice}
+      error={error}
+      jobber={{ connected: Boolean(row), accountName: row?.accountName ?? null, connectedAt: row?.createdAt.toISOString() ?? null, lastError: row?.lastError ?? null, appConfigured: Boolean(cfg) }}
     />
   );
 }
