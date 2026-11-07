@@ -299,6 +299,7 @@ export async function listLibrary(workspaceId: string) {
       source: pages.source,
       isSop: pages.isSop,
       updatedAt: pages.updatedAt,
+      driveConnectionId: pages.driveConnectionId,
     })
     .from(pages)
     .leftJoin(users, eq(users.id, pages.ownerId))

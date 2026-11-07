@@ -5,16 +5,18 @@ import { useEffect, useState, useTransition } from "react";
 import { DndContext, closestCenter, PointerSensor, KeyboardSensor, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
 import { SortableContext, arrayMove, rectSortingStrategy, useSortable, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { GripVertical, Pencil, Plus, Trash2, Maximize2, Minimize2, X } from "lucide-react";
-import { addWidgetAction, removeWidgetAction, reorderWidgetsAction, updateWidgetAction } from "@/app/actions";
+import { GripVertical, Pencil, Plus, Trash2, Maximize2, Minimize2, X, LayoutDashboard } from "lucide-react";
+import { addWidgetAction, removeWidgetAction, reorderWidgetsAction, setupCommandCenterAction, updateWidgetAction } from "@/app/actions";
 import type { LinkItem, WidgetConfig, WidgetType } from "@/db/schema";
+import { JobberTile } from "./JobberTile";
 
-type Item = { id: string; title: string; icon: string | null; updatedAt?: string; updatedBy?: string | null; source?: string; state?: string; nextDueOn?: string | null; review?: string };
-export type WidgetData = { id: string; type: WidgetType; title: string; width: number; config: WidgetConfig; items: Item[] };
-type Catalog = Record<WidgetType, { title: string; description: string; emoji: string; available: boolean }>;
+type Item = { id: string; title: string; icon: string | null; updatedAt?: string; updatedBy?: string | null; source?: string; state?: string; nextDueOn?: string | null; review?: string; count?: number; kind?: string };
+export type WidgetData = { id: string; type: WidgetType; title: string; width: number; config: WidgetConfig; items: Item[]; connected?: boolean };
+export type Stat = { key: string; label: string; value: number; href: string; tone: "danger" | "warn" | "accent" | "ok" | "muted" };
+type Catalog = Record<WidgetType, { title: string; description: string; emoji: string; available: boolean; width: number }>;
 type PageOpt = { id: string; title: string; icon: string | null };
 
-export function Dashboard({ slug, widgets: initial, canCustomize, catalog, allPages }: { slug: string; widgets: WidgetData[]; canCustomize: boolean; catalog: Catalog; allPages: PageOpt[] }) {
+export function Dashboard({ slug, widgets: initial, stats, canCustomize, catalog, allPages }: { slug: string; widgets: WidgetData[]; stats: Stat[]; canCustomize: boolean; catalog: Catalog; allPages: PageOpt[] }) {
   const [widgets, setWidgets] = useState(initial);
   const [editing, setEditing] = useState(false);
   const [adding, setAdding] = useState(false);
@@ -36,10 +38,18 @@ export function Dashboard({ slug, widgets: initial, canCustomize, catalog, allPa
   return (
     <div className="mt-8">
       {canCustomize && (
-        <div className="mb-3 flex justify-end gap-2">
+        <div className="mb-3 flex flex-wrap justify-end gap-2">
           {editing && (
             <button onClick={() => setAdding(true)} className="flex items-center gap-1 rounded-lg border border-line px-3 py-1.5 text-sm hover:bg-hover">
               <Plus size={14} /> Add widget
+            </button>
+          )}
+          {editing && (
+            <button
+              onClick={() => confirm("Replace the current dashboard with the command-center layout? Your tool buttons are kept.") && start(() => setupCommandCenterAction(slug))}
+              className="flex items-center gap-1 rounded-lg border border-line px-3 py-1.5 text-sm hover:bg-hover"
+            >
+              <LayoutDashboard size={14} /> Command-center layout
             </button>
           )}
           <button onClick={() => setEditing((e) => !e)} className={`rounded-lg px-3 py-1.5 text-sm ${editing ? "bg-accent text-paper" : "border border-line text-ink-soft hover:bg-hover"}`}>
@@ -51,16 +61,18 @@ export function Dashboard({ slug, widgets: initial, canCustomize, catalog, allPa
 
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
         <SortableContext items={widgets.map((w) => w.id)} strategy={rectSortingStrategy}>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
             {widgets.map((w) => (
               <Tile
                 key={w.id}
                 w={w}
                 slug={slug}
+                stats={stats}
+                canCustomize={canCustomize}
                 editing={editing}
                 onConfigure={() => setConfiguring(w)}
                 onResize={() => {
-                  const width = w.width === 2 ? 1 : 2;
+                  const width = w.width >= 3 ? 1 : w.width + 1;
                   setWidgets((ws) => ws.map((x) => (x.id === w.id ? { ...x, width } : x)));
                   start(() => updateWidgetAction(slug, w.id, { width }));
                 }}
@@ -77,7 +89,14 @@ export function Dashboard({ slug, widgets: initial, canCustomize, catalog, allPa
 
       {widgets.length === 0 && (
         <div className="rounded-xl border border-dashed border-line p-10 text-center text-sm text-ink-faint">
-          The dashboard is empty.{canCustomize && " Click Customize → Add widget to get started."}
+          The dashboard is empty.
+          {canCustomize && (
+            <div className="mt-3">
+              <button onClick={() => start(() => setupCommandCenterAction(slug))} className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-paper">
+                Set up the command center
+              </button>
+            </div>
+          )}
         </div>
       )}
 
@@ -121,14 +140,16 @@ export function Dashboard({ slug, widgets: initial, canCustomize, catalog, allPa
   );
 }
 
-function Tile({ w, slug, editing, onConfigure, onResize, onRemove }: { w: WidgetData; slug: string; editing: boolean; onConfigure: () => void; onResize: () => void; onRemove: () => void }) {
+const SPAN: Record<number, string> = { 1: "", 2: "md:col-span-2", 3: "md:col-span-2 lg:col-span-3" };
+
+function Tile({ w, slug, stats, canCustomize, editing, onConfigure, onResize, onRemove }: { w: WidgetData; slug: string; stats: Stat[]; canCustomize: boolean; editing: boolean; onConfigure: () => void; onResize: () => void; onRemove: () => void }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: w.id, disabled: !editing });
-  const configurable = w.type === "links" || w.type === "pages" || w.type === "welcome";
+  const configurable = w.type === "links" || w.type === "tools" || w.type === "pages" || w.type === "welcome";
   return (
     <section
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={`rounded-xl border bg-card p-5 ${w.width === 2 ? "md:col-span-2" : ""} ${isDragging ? "z-10 shadow-xl" : ""} ${editing ? "border-dashed border-ink-faint" : "border-line"}`}
+      className={`rounded-xl border bg-card p-4 md:p-5 ${SPAN[w.width] ?? ""} ${isDragging ? "z-10 shadow-xl" : ""} ${editing ? "border-dashed border-ink-faint" : "border-line"}`}
     >
       <header className="mb-3 flex items-center gap-2">
         {editing && (
@@ -144,8 +165,8 @@ function Tile({ w, slug, editing, onConfigure, onResize, onRemove }: { w: Widget
                 <Pencil size={14} />
               </button>
             )}
-            <button onClick={onResize} className="hidden rounded p-1 hover:bg-hover hover:text-ink md:block" title={w.width === 2 ? "Make narrow" : "Make wide"}>
-              {w.width === 2 ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+            <button onClick={onResize} className="hidden rounded p-1 hover:bg-hover hover:text-ink md:block" title={w.width >= 3 ? "Make narrow" : "Make wider"}>
+              {w.width >= 3 ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
             </button>
             <button onClick={onRemove} className="rounded p-1 hover:bg-danger-soft hover:text-danger" title="Remove">
               <Trash2 size={14} />
@@ -153,7 +174,7 @@ function Tile({ w, slug, editing, onConfigure, onResize, onRemove }: { w: Widget
           </div>
         )}
       </header>
-      <WidgetBody w={w} slug={slug} />
+      <WidgetBody w={w} slug={slug} stats={stats} canCustomize={canCustomize} />
     </section>
   );
 }
@@ -167,8 +188,83 @@ const ago = (iso?: string) => {
   return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 };
 
-function WidgetBody({ w, slug }: { w: WidgetData; slug: string }) {
+const STAT_TONE: Record<Stat["tone"], string> = { danger: "text-danger", warn: "text-warn", accent: "text-accent", ok: "text-ok", muted: "text-ink-faint" };
+
+function WidgetBody({ w, slug, stats, canCustomize }: { w: WidgetData; slug: string; stats: Stat[]; canCustomize: boolean }) {
   if (w.type === "welcome") return <p className="whitespace-pre-wrap text-[15px] leading-relaxed">{w.config.text}</p>;
+
+  if (w.type === "stats")
+    return (
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+        {stats.map((s) => (
+          <Link key={s.key} href={s.href} className="rounded-lg border border-line bg-side px-3 py-2 hover:border-ink-faint">
+            <div className="text-[11px] uppercase tracking-wide text-ink-faint">{s.label}</div>
+            <div className={`text-2xl font-semibold ${STAT_TONE[s.tone]}`}>{s.value}</div>
+          </Link>
+        ))}
+      </div>
+    );
+
+  if (w.type === "tools") {
+    const links = w.config.links ?? [];
+    if (!links.length) return <Empty>No tools yet. Click Customize → ✏️ to add Jobber, QuickBooks, Slack…</Empty>;
+    return (
+      <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8">
+        {links.map((l, i) => (
+          <a key={i} href={l.url} target="_blank" rel="noreferrer" className="group flex flex-col items-center gap-1.5 rounded-xl border border-line bg-side px-2 py-3 text-center hover:border-ink-faint hover:bg-hover">
+            <span className="flex h-11 w-11 items-center justify-center rounded-xl text-2xl" style={{ background: `${l.color ?? "#6366f1"}33`, boxShadow: `inset 0 0 0 1px ${l.color ?? "#6366f1"}66` }}>
+              {l.emoji ?? "🔗"}
+            </span>
+            <span className="w-full truncate text-xs font-medium">{l.label}</span>
+          </a>
+        ))}
+      </div>
+    );
+  }
+
+  if (w.type === "jobber") return <JobberTile slug={slug} connected={Boolean(w.connected)} canManage={canCustomize} />;
+
+  if (w.type === "collections") {
+    if (!w.items.length) return <Empty>No document areas yet. Add them in Settings → Import &amp; sync.</Empty>;
+    return (
+      <div className="grid grid-cols-2 gap-2">
+        {w.items.map((c) => (
+          <Link key={c.id} href={`/w/${slug}/docs/${c.id}`} className="flex items-center gap-2 rounded-lg border border-line bg-side px-3 py-2.5 hover:border-ink-faint hover:bg-hover">
+            <span className="text-xl">{c.icon}</span>
+            <span className="min-w-0">
+              <span className="block truncate text-sm font-medium">{c.title}</span>
+              <span className="block text-xs text-ink-faint">{c.count} documents</span>
+            </span>
+          </Link>
+        ))}
+        <Link href={`/w/${slug}/library`} className="col-span-2 px-1 pt-1 text-xs text-accent hover:underline">
+          Document Library →
+        </Link>
+      </div>
+    );
+  }
+
+  if (w.type === "flags") {
+    if (!w.items.length) return <Empty>No open flags. 🎉</Empty>;
+    const tone: Record<string, string> = { high: "bg-danger-soft text-danger", medium: "bg-warn-soft text-warn", low: "bg-hover text-ink-soft" };
+    return (
+      <ul className="-mx-2">
+        {w.items.map((f) => (
+          <li key={f.id}>
+            <Link href={`/w/${slug}/flags`} className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-hover">
+              <span className="flex-1 truncate">{f.title}</span>
+              <span className={`shrink-0 rounded px-1.5 py-0.5 text-[11px] font-medium capitalize ${tone[f.state ?? ""] ?? ""}`}>{f.state}</span>
+            </Link>
+          </li>
+        ))}
+        <li>
+          <Link href={`/w/${slug}/flags`} className="block px-2 pt-2 text-xs text-accent hover:underline">
+            All flags →
+          </Link>
+        </li>
+      </ul>
+    );
+  }
 
   if (w.type === "links") {
     const links = w.config.links ?? [];
@@ -275,7 +371,7 @@ function WidgetSettings({ w, allPages, onClose, onSave }: { w: WidgetData; allPa
   const save = () => {
     const clean = links.filter((l) => l.label.trim() || l.url.trim()).map((l) => ({ ...l, url: /^https?:\/\//.test(l.url) ? l.url : `https://${l.url}` }));
     if (clean.some((l) => !l.label.trim())) return setError("Every link needs a name.");
-    onSave({ title: title.trim() || w.title, config: w.type === "welcome" ? { text } : w.type === "links" ? { links: clean } : { pageIds } });
+    onSave({ title: title.trim() || w.title, config: w.type === "welcome" ? { text } : w.type === "links" || w.type === "tools" ? { links: clean } : { pageIds } });
   };
 
   return (
@@ -290,11 +386,12 @@ function WidgetSettings({ w, allPages, onClose, onSave }: { w: WidgetData; allPa
         </>
       )}
 
-      {w.type === "links" && (
+      {(w.type === "links" || w.type === "tools") && (
         <div className="space-y-2">
           {links.map((l, i) => (
             <div key={i} className="flex flex-wrap gap-2">
               <input value={l.emoji ?? ""} onChange={(e) => setLinks(links.map((x, j) => (j === i ? { ...x, emoji: e.target.value } : x)))} placeholder="🔗" className="w-12 rounded-lg border border-line px-2 py-2 text-center" />
+              {w.type === "tools" && <input type="color" value={l.color ?? "#6366f1"} onChange={(e) => setLinks(links.map((x, j) => (j === i ? { ...x, color: e.target.value } : x)))} className="h-10 w-10 cursor-pointer rounded-lg border border-line bg-transparent p-1" title="Color" />}
               <input value={l.label} onChange={(e) => setLinks(links.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)))} placeholder="Name" className="w-32 rounded-lg border border-line px-3 py-2" />
               <input value={l.url} onChange={(e) => setLinks(links.map((x, j) => (j === i ? { ...x, url: e.target.value } : x)))} placeholder="https://…" className="min-w-0 flex-1 rounded-lg border border-line px-3 py-2" />
               <button onClick={() => setLinks(links.filter((_, j) => j !== i))} className="rounded p-2 text-ink-faint hover:bg-danger-soft hover:text-danger" aria-label="Remove link">
