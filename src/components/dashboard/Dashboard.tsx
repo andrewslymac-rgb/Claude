@@ -11,7 +11,7 @@ import type { LinkItem, WidgetConfig, WidgetType } from "@/db/schema";
 import { JobberTile } from "./JobberTile";
 
 type Item = { id: string; title: string; icon: string | null; updatedAt?: string; updatedBy?: string | null; source?: string; state?: string; nextDueOn?: string | null; review?: string; count?: number; kind?: string };
-export type WidgetData = { id: string; type: WidgetType; title: string; width: number; config: WidgetConfig; items: Item[]; connected?: boolean };
+export type WidgetData = { id: string; type: WidgetType; title: string; width: number; config: WidgetConfig; items: Item[]; connected?: boolean; manual?: boolean };
 export type Stat = { key: string; label: string; value: number; href: string; tone: "danger" | "warn" | "accent" | "ok" | "muted" };
 type Catalog = Record<WidgetType, { title: string; description: string; emoji: string; available: boolean; width: number }>;
 type PageOpt = { id: string; title: string; icon: string | null };
@@ -222,7 +222,7 @@ function WidgetBody({ w, slug, stats, canCustomize }: { w: WidgetData; slug: str
     );
   }
 
-  if (w.type === "jobber") return <JobberTile slug={slug} connected={Boolean(w.connected)} canManage={canCustomize} />;
+  if (w.type === "jobber") return <JobberTile slug={slug} connected={Boolean(w.connected)} manual={w.manual} canManage={canCustomize} />;
 
   if (w.type === "collections") {
     if (!w.items.length) return <Empty>No document areas yet. Add them in Settings → Import &amp; sync.</Empty>;

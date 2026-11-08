@@ -13,7 +13,7 @@ import { ImportPanel } from "@/components/settings/ImportPanel";
 import { collectionCounts, listCollections, KIND_INFO } from "@/lib/drive/sync";
 import { serviceAccountStatus } from "@/lib/drive/client";
 import { IntegrationsPanel } from "@/components/settings/IntegrationsPanel";
-import { getIntegration, jobberAppConfig, redirectUri } from "@/lib/integrations/jobber";
+import { getIntegration, jobberAppConfig, redirectUri, MANUAL_TOKEN } from "@/lib/integrations/jobber";
 
 type Tab = "workspace" | "people" | "sync" | "integrations" | "ai";
 
@@ -136,7 +136,7 @@ async function IntegrationsTab({ slug, workspaceId, isAppAdmin, notice, error }:
       redirectUri={redirectUri()}
       notice={notice}
       error={error}
-      jobber={{ connected: Boolean(row), accountName: row?.accountName ?? null, connectedAt: row?.createdAt.toISOString() ?? null, lastError: row?.lastError ?? null, appConfigured: Boolean(cfg) }}
+      jobber={{ connected: Boolean(row), manual: row?.accessToken === MANUAL_TOKEN, accountName: row?.accountName ?? null, connectedAt: row?.createdAt.toISOString() ?? null, lastError: row?.lastError ?? null, appConfigured: Boolean(cfg) }}
     />
   );
 }

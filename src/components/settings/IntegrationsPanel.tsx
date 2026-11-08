@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { Copy, Check } from "lucide-react";
 import { disconnectJobberAction, saveJobberAppAction, testJobberAction } from "@/app/actions";
 
-type Jobber = { connected: boolean; accountName: string | null; connectedAt: string | null; lastError: string | null; appConfigured: boolean };
+type Jobber = { connected: boolean; manual: boolean; accountName: string | null; connectedAt: string | null; lastError: string | null; appConfigured: boolean };
 
 export function IntegrationsPanel({ slug, jobber, redirectUri, isAppAdmin, notice, error }: { slug: string; jobber: Jobber; redirectUri: string; isAppAdmin: boolean; notice?: string; error?: string }) {
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(error ? { ok: false, text: error } : notice ? { ok: true, text: notice } : null);
@@ -23,14 +23,18 @@ export function IntegrationsPanel({ slug, jobber, redirectUri, isAppAdmin, notic
           <div className="min-w-0 flex-1">
             <div className="font-medium">Jobber</div>
             <div className="text-xs text-ink-faint">
-              {jobber.connected ? `Connected${jobber.accountName ? ` as ${jobber.accountName}` : ""}${jobber.connectedAt ? ` · ${new Date(jobber.connectedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}` : ""}` : "Not connected. Powers the Jobber tile on the dashboard: today's schedule, new requests, quotes waiting, overdue invoices."}
+              {jobber.connected
+                ? jobber.manual
+                  ? `Fed by ${jobber.accountName ?? "Claude"}'s scheduled daily update. The dashboard tile shows the latest push.`
+                  : `Connected${jobber.accountName ? ` as ${jobber.accountName}` : ""}${jobber.connectedAt ? ` · ${new Date(jobber.connectedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}` : ""}`
+                : "Not connected. Powers the Jobber tile on the dashboard: today's schedule, new requests, quotes waiting, overdue invoices."}
             </div>
             {jobber.lastError && <div className="mt-1 text-xs text-warn">Last problem: {jobber.lastError}</div>}
           </div>
           {jobber.connected ? (
             <>
               <button
-                disabled={busy}
+                disabled={busy || jobber.manual}
                 onClick={() =>
                   start(async () => {
                     const r = await testJobberAction(slug);
@@ -56,8 +60,8 @@ export function IntegrationsPanel({ slug, jobber, redirectUri, isAppAdmin, notic
       </div>
 
       {isAppAdmin && (
-        <details className="rounded-xl border border-line p-4" open={!jobber.appConfigured}>
-          <summary className="cursor-pointer font-medium">{jobber.appConfigured ? "Jobber app keys (set)" : "One-time setup: create the Jobber app"}</summary>
+        <details className="rounded-xl border border-line p-4" open={!jobber.appConfigured && !jobber.connected}>
+          <summary className="cursor-pointer font-medium">{jobber.appConfigured ? "Jobber app keys (set)" : "Optional: a direct Jobber connection (needs a Jobber Developer Center app)"}</summary>
           <ol className="mt-2 list-decimal space-y-1 pl-5 text-ink-soft">
             <li>
               Go to{" "}
