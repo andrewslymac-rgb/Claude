@@ -25,12 +25,20 @@ export const WIDGET_CATALOG: Record<WidgetType, { title: string; description: st
 export const DEFAULT_TOOLS: LinkItem[] = [
   { label: "QuickBooks", url: "https://app.qbo.intuit.com/", emoji: "💵", color: "#2ca01c" },
   { label: "Gusto", url: "https://app.gusto.com/", emoji: "🧾", color: "#f45d48" },
-  { label: "Slack", url: "https://slack.com/", emoji: "💬", color: "#4a154b" },
-  { label: "Google Drive", url: "https://drive.google.com/", emoji: "📁", color: "#fbbc04" },
-  { label: "Gmail", url: "https://mail.google.com/", emoji: "✉️", color: "#ea4335" },
-  { label: "Calendar", url: "https://calendar.google.com/", emoji: "📆", color: "#4285f4" },
+  { label: "Slack", url: "https://slack.com/", emoji: "💬", color: "#4a154b", appUrl: "slack://open" },
+  { label: "Google Drive", url: "https://drive.google.com/", emoji: "📁", color: "#fbbc04", appUrl: "googledrive://" },
+  { label: "Gmail", url: "https://mail.google.com/", emoji: "✉️", color: "#ea4335", appUrl: "googlegmail://" },
+  { label: "Calendar", url: "https://calendar.google.com/", emoji: "📆", color: "#4285f4", appUrl: "googlecalendar://" },
   { label: "Quo", url: "https://app.openphone.com/", emoji: "📞", color: "#6b4eff" },
 ];
+
+/** Phone app links for the tools we know. Applied to launcher buttons that don't set their own. */
+export const KNOWN_APP_LINKS: Record<string, string> = {
+  "slack.com": "slack://open",
+  "drive.google.com": "googledrive://",
+  "mail.google.com": "googlegmail://",
+  "calendar.google.com": "googlecalendar://",
+};
 
 function toolsFor(fieldTool: FieldTool): LinkItem[] {
   const t = FIELD_TOOL_INFO[fieldTool];

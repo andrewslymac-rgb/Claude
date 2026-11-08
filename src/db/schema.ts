@@ -212,7 +212,8 @@ export const widgetTypeEnum = pgEnum("widget_type", [
   "flags", // open flags
 ]);
 
-export type LinkItem = { label: string; url: string; emoji?: string; color?: string };
+/** appUrl: a phone "deep link" such as slack://open; used on mobile, with url as the fallback. */
+export type LinkItem = { label: string; url: string; emoji?: string; color?: string; appUrl?: string };
 export type WidgetConfig = {
   text?: string; // welcome
   links?: LinkItem[]; // links
