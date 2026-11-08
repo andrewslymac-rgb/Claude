@@ -211,12 +211,12 @@ function WidgetBody({ w, slug, stats, canCustomize }: { w: WidgetData; slug: str
     return (
       <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8">
         {links.map((l, i) => (
-          <a key={i} href={l.url} target="_blank" rel="noreferrer" className="group flex flex-col items-center gap-1.5 rounded-xl border border-line bg-side px-2 py-3 text-center hover:border-ink-faint hover:bg-hover">
+          <AppLink key={i} link={l} className="group flex flex-col items-center gap-1.5 rounded-xl border border-line bg-side px-2 py-3 text-center hover:border-ink-faint hover:bg-hover">
             <span className="flex h-11 w-11 items-center justify-center rounded-xl text-2xl" style={{ background: `${l.color ?? "#6366f1"}33`, boxShadow: `inset 0 0 0 1px ${l.color ?? "#6366f1"}66` }}>
               {l.emoji ?? "🔗"}
             </span>
             <span className="w-full truncate text-xs font-medium">{l.label}</span>
-          </a>
+          </AppLink>
         ))}
       </div>
     );
@@ -272,10 +272,10 @@ function WidgetBody({ w, slug, stats, canCustomize }: { w: WidgetData; slug: str
     return (
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
         {links.map((l, i) => (
-          <a key={i} href={l.url} target="_blank" rel="noreferrer" className="flex items-center gap-2 rounded-lg border border-line px-3 py-2.5 text-sm font-medium hover:border-ink-faint hover:bg-side">
+          <AppLink key={i} link={l} className="flex items-center gap-2 rounded-lg border border-line px-3 py-2.5 text-sm font-medium hover:border-ink-faint hover:bg-side">
             <span className="text-lg">{l.emoji ?? "🔗"}</span>
             <span className="truncate">{l.label}</span>
-          </a>
+          </AppLink>
         ))}
       </div>
     );
@@ -345,6 +345,40 @@ function WidgetBody({ w, slug, stats, canCustomize }: { w: WidgetData; slug: str
 
 const Empty = ({ children }: { children: React.ReactNode }) => <p className="text-sm text-ink-faint">{children}</p>;
 
+const isPhone = () => typeof navigator !== "undefined" && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+/**
+ * On a phone, try the installed app first (slack://open and friends) and fall back to
+ * the web page if nothing picks it up within a moment. On desktop it's a plain link.
+ */
+function AppLink({ link, className, children }: { link: LinkItem; className: string; children: React.ReactNode }) {
+  const appUrl = link.appUrl?.trim();
+  return (
+    <a
+      href={link.url}
+      target="_blank"
+      rel="noreferrer"
+      className={className}
+      onClick={(e) => {
+        if (!appUrl || !isPhone()) return;
+        e.preventDefault();
+        const started = Date.now();
+        const fallback = setTimeout(() => {
+          // If the app opened, the page was hidden and this never runs in time.
+          if (document.visibilityState === "visible" && Date.now() - started < 2500) window.location.href = link.url;
+        }, 1200);
+        const clear = () => {
+          if (document.visibilityState === "hidden") clearTimeout(fallback);
+        };
+        document.addEventListener("visibilitychange", clear, { once: true });
+        window.location.href = appUrl;
+      }}
+    >
+      {children}
+    </a>
+  );
+}
+
 function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onMouseDown={onClose}>
@@ -369,7 +403,7 @@ function WidgetSettings({ w, allPages, onClose, onSave }: { w: WidgetData; allPa
   const [error, setError] = useState("");
 
   const save = () => {
-    const clean = links.filter((l) => l.label.trim() || l.url.trim()).map((l) => ({ ...l, url: /^https?:\/\//.test(l.url) ? l.url : `https://${l.url}` }));
+    const clean = links.filter((l) => l.label.trim() || l.url.trim()).map((l) => ({ ...l, url: /^https?:\/\//.test(l.url) ? l.url : `https://${l.url}`, appUrl: l.appUrl?.trim() || undefined }));
     if (clean.some((l) => !l.label.trim())) return setError("Every link needs a name.");
     onSave({ title: title.trim() || w.title, config: w.type === "welcome" ? { text } : w.type === "links" || w.type === "tools" ? { links: clean } : { pageIds } });
   };
@@ -392,6 +426,7 @@ function WidgetSettings({ w, allPages, onClose, onSave }: { w: WidgetData; allPa
             <div key={i} className="flex flex-wrap gap-2">
               <input value={l.emoji ?? ""} onChange={(e) => setLinks(links.map((x, j) => (j === i ? { ...x, emoji: e.target.value } : x)))} placeholder="🔗" className="w-12 rounded-lg border border-line px-2 py-2 text-center" />
               {w.type === "tools" && <input type="color" value={l.color ?? "#6366f1"} onChange={(e) => setLinks(links.map((x, j) => (j === i ? { ...x, color: e.target.value } : x)))} className="h-10 w-10 cursor-pointer rounded-lg border border-line bg-transparent p-1" title="Color" />}
+              {w.type === "tools" && <input value={l.appUrl ?? ""} onChange={(e) => setLinks(links.map((x, j) => (j === i ? { ...x, appUrl: e.target.value } : x)))} placeholder="Phone app link, e.g. slack://open (optional)" className="w-full rounded-lg border border-line px-3 py-2 text-xs" />}
               <input value={l.label} onChange={(e) => setLinks(links.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)))} placeholder="Name" className="w-32 rounded-lg border border-line px-3 py-2" />
               <input value={l.url} onChange={(e) => setLinks(links.map((x, j) => (j === i ? { ...x, url: e.target.value } : x)))} placeholder="https://…" className="min-w-0 flex-1 rounded-lg border border-line px-3 py-2" />
               <button onClick={() => setLinks(links.filter((_, j) => j !== i))} className="rounded p-2 text-ink-faint hover:bg-danger-soft hover:text-danger" aria-label="Remove link">

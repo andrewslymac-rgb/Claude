@@ -1,6 +1,6 @@
 import { requireWorkspacePage } from "@/lib/access";
 import { can } from "@/lib/permissions";
-import { listWidgets, WIDGET_CATALOG } from "@/lib/services/dashboard";
+import { listWidgets, WIDGET_CATALOG, KNOWN_APP_LINKS } from "@/lib/services/dashboard";
 import { getPagesByIds, listRecent, listSops, listTree, listLibrary } from "@/lib/services/pages";
 import { Dashboard, type WidgetData, type Stat } from "@/components/dashboard/Dashboard";
 import { listTasks, tasksForUser } from "@/lib/services/tasks";
@@ -9,6 +9,14 @@ import { countPending } from "@/lib/services/ai-proposals";
 import { reviewState } from "@/lib/recurrence";
 import { collectionCounts, listCollections } from "@/lib/drive/sync";
 import { getIntegration, MANUAL_TOKEN } from "@/lib/integrations/jobber";
+
+const safeHost = (u: string) => {
+  try {
+    return new URL(u).hostname;
+  } catch {
+    return "";
+  }
+};
 
 export default async function Home({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -40,7 +48,9 @@ export default async function Home({ params }: { params: Promise<{ slug: string 
 
   const data: WidgetData[] = await Promise.all(
     widgets.map(async (w): Promise<WidgetData> => {
-      const base = { id: w.id, type: w.type, title: w.title, width: w.width, config: w.config };
+      // Existing launcher buttons get the phone app links we know about, unless they set their own.
+      const config = w.type === "tools" && w.config.links ? { ...w.config, links: w.config.links.map((l) => ({ ...l, appUrl: l.appUrl || KNOWN_APP_LINKS[safeHost(l.url)] })) } : w.config;
+      const base = { id: w.id, type: w.type, title: w.title, width: w.width, config };
       switch (w.type) {
         case "recent":
           return { ...base, items: (await listRecent(workspace.id, w.config.limit ?? 6)).map((p) => ({ ...p, updatedAt: p.updatedAt.toISOString() })) };

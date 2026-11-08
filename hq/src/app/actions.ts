@@ -107,7 +107,13 @@ export async function addWidgetAction(slug: string, type: WidgetType) {
   revalidatePath(`/w/${slug}`);
 }
 
-const linkSchema = z.object({ label: z.string().min(1).max(60), url: z.string().url().max(2000), emoji: z.string().max(8).optional(), color: z.string().max(12).optional() });
+const linkSchema = z.object({
+  label: z.string().min(1).max(60),
+  url: z.string().url().max(2000),
+  emoji: z.string().max(8).optional(),
+  color: z.string().max(12).optional(),
+  appUrl: z.string().max(500).regex(/^[a-z][a-z0-9+.-]*:/i, "App links look like slack://open").optional().or(z.literal("")),
+});
 const widgetPatch = z.object({
   title: z.string().min(1).max(80).optional(),
   width: z.number().int().min(1).max(3).optional(),
