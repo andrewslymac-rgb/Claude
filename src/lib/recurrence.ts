@@ -53,11 +53,41 @@ export function nextDueAfter(frequency: Frequency, doneOn: string): string | nul
  * Compute next due for a task from its frequency, optional fixed due date and
  * last completion. Never done + no due date = due today.
  */
-export function computeNextDue(frequency: Frequency, dueOn: string | null, lastDoneOn: string | null, today = todayISO()): string | null {
-  if (frequency === "once") return lastDoneOn ? null : dueOn ?? today;
+export function computeNextDue(frequency: Frequency, dueOn: string | null, lastDoneOn: string | null, today = todayISO(), dueOverride: string | null = null): string | null {
+  if (frequency === "once") return lastDoneOn ? null : dueOverride ?? dueOn ?? today;
+  if (dueOverride && (!lastDoneOn || dueOverride > lastDoneOn)) return dueOverride;
   if (!lastDoneOn) return dueOn ?? today;
   return nextDueAfter(frequency, lastDoneOn);
 }
+
+/** First day of the current period for a frequency: today, this Monday, the 1st, quarter start, Jan 1. */
+export function periodStart(frequency: Frequency, today = todayISO()): string {
+  const [y, m, d] = today.split("-").map(Number);
+  switch (frequency) {
+    case "daily":
+    case "once":
+      return today;
+    case "weekly": {
+      const dow = new Date(Date.UTC(y, m - 1, d)).getUTCDay(); // 0 = Sunday
+      return addDays(today, -((dow + 6) % 7));
+    }
+    case "monthly":
+      return `${today.slice(0, 7)}-01`;
+    case "quarterly":
+      return `${y}-${String(Math.floor((m - 1) / 3) * 3 + 1).padStart(2, "0")}-01`;
+    case "annual":
+      return `${y}-01-01`;
+  }
+}
+
+/** Was the task completed within the current period? Drives the tracker checkbox. */
+export function doneThisPeriod(frequency: Frequency, lastDoneOn: string | null, today = todayISO()): boolean {
+  if (!lastDoneOn) return false;
+  if (frequency === "once") return true;
+  return lastDoneOn >= periodStart(frequency, today);
+}
+
+export const PERIOD_LABELS: Record<Frequency, string> = { daily: "today", weekly: "this week", monthly: "this month", quarterly: "this quarter", annual: "this year", once: "" };
 
 export type DueState = "overdue" | "today" | "soon" | "later" | "done";
 

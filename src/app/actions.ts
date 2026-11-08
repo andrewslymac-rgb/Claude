@@ -254,6 +254,14 @@ export async function completeTaskAction(slug: string, id: string, doneOn?: stri
   revalidatePath(`/w/${slug}`, "layout");
 }
 
+/** "Skip this time" / "move due date": pushes the due date without a completion. */
+export async function moveDueAction(slug: string, id: string, to?: string) {
+  const { workspace } = await requireAbility(slug, "edit");
+  const target = await taskSvc.moveDue(workspace.id, uuid.parse(id), to ? isoDate.parse(to) : undefined);
+  revalidatePath(`/w/${slug}`, "layout");
+  return target;
+}
+
 export async function undoTaskAction(slug: string, id: string) {
   const { workspace } = await requireAbility(slug, "read");
   await taskSvc.undoComplete(workspace.id, uuid.parse(id));

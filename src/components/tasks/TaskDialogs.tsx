@@ -1,30 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState, useTransition } from "react";
-import { Check, Undo2, Plus, ChevronRight, X, Trash2, History, Users } from "lucide-react";
-import { archiveTaskAction, completeTaskAction, createTaskAction, listCompletionsAction, undoTaskAction, updateTaskAction } from "@/app/actions";
+import { useState, useTransition } from "react";
+import { Check, Undo2, X, Trash2, History, CalendarClock, SkipForward } from "lucide-react";
+import { archiveTaskAction, createTaskAction, listCompletionsAction, moveDueAction, updateTaskAction } from "@/app/actions";
 import type { TaskRow } from "@/lib/services/tasks";
 import type { Frequency } from "@/db/schema";
 import { DUE_LABELS, FREQUENCY_LABELS, fmtDate } from "@/lib/recurrence";
 
-type Member = { id: string; name: string };
-type PageOpt = { id: string; title: string; icon: string | null };
-type View = "attention" | "mine" | "daily" | "weekly" | "monthly" | "quarterly" | "annual" | "once" | "all";
+export type Member = { id: string; name: string };
+export type PageOpt = { id: string; title: string; icon: string | null };
 
-const VIEWS: { key: View; label: string }[] = [
-  { key: "attention", label: "Needs attention" },
-  { key: "mine", label: "My tasks" },
-  { key: "daily", label: "Daily" },
-  { key: "weekly", label: "Weekly" },
-  { key: "monthly", label: "Monthly" },
-  { key: "quarterly", label: "Quarterly" },
-  { key: "annual", label: "Annual" },
-  { key: "once", label: "One-off" },
-  { key: "all", label: "All" },
-];
-
-const TONE: Record<string, string> = {
+export const TONE: Record<string, string> = {
   danger: "bg-danger-soft text-danger",
   warn: "bg-warn-soft text-warn",
   accent: "bg-accent-soft text-accent",
@@ -32,133 +19,7 @@ const TONE: Record<string, string> = {
   ok: "bg-ok-soft text-ok",
 };
 
-export function TasksView({ slug, tasks, members, pages, categories, me, canEdit }: { slug: string; tasks: TaskRow[]; members: Member[]; pages: PageOpt[]; categories: readonly string[]; me: string; canEdit: boolean }) {
-  const [view, setView] = useState<View>("attention");
-  const [category, setCategory] = useState<string>("");
-  const [open, setOpen] = useState<TaskRow | null>(null);
-  const [creating, setCreating] = useState(false);
-  const [, start] = useTransition();
-  // Optimistic state so Done feels instant.
-  const [local, setLocal] = useState<Record<string, Partial<TaskRow>>>({});
-  const rows = useMemo(() => tasks.map((t) => ({ ...t, ...local[t.id] })), [tasks, local]);
-
-  const filtered = rows.filter((t) => {
-    if (category && t.category !== category) return false;
-    switch (view) {
-      case "attention":
-        return t.state === "overdue" || t.state === "today" || (t.assignees.length === 0 && !t.ownerRole);
-      case "mine":
-        return t.assignees.some((a) => a.id === me);
-      case "all":
-        return true;
-      default:
-        return t.frequency === view;
-    }
-  });
-
-  const markDone = (t: TaskRow) => {
-    setLocal((l) => ({ ...l, [t.id]: { state: "done", lastDoneOn: "today", canUndo: true } }));
-    start(() => completeTaskAction(slug, t.id));
-  };
-  const undo = (t: TaskRow) => {
-    setLocal((l) => ({ ...l, [t.id]: { state: "today", canUndo: false } }));
-    start(() => undoTaskAction(slug, t.id));
-  };
-
-  const counts = { overdue: rows.filter((t) => t.state === "overdue").length, today: rows.filter((t) => t.state === "today").length };
-
-  return (
-    <div className="mx-auto max-w-5xl px-4 py-6 md:px-10 md:py-8">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold">Tasks</h1>
-          <p className="mt-1 text-sm text-ink-soft">
-            {counts.overdue > 0 && <span className="text-danger">{counts.overdue} overdue</span>}
-            {counts.overdue > 0 && counts.today > 0 && " · "}
-            {counts.today > 0 && <span className="text-warn">{counts.today} due today</span>}
-            {counts.overdue === 0 && counts.today === 0 && "Nothing overdue. Nice."}
-          </p>
-        </div>
-        {canEdit && (
-          <button onClick={() => setCreating(true)} className="flex items-center gap-1 rounded-lg bg-accent px-3 py-2 text-sm font-medium text-paper">
-            <Plus size={16} /> New task
-          </button>
-        )}
-      </div>
-
-      <div className="mt-5 flex items-center gap-1 overflow-x-auto border-b border-line pb-2 scrollbar-thin md:flex-wrap">
-        {VIEWS.map((v) => (
-          <button key={v.key} onClick={() => setView(v.key)} className={`shrink-0 rounded-md px-3 py-2 text-sm md:py-1.5 ${view === v.key ? "bg-hover font-medium text-ink" : "text-ink-soft hover:bg-hover"}`}>
-            {v.label}
-          </button>
-        ))}
-        <select value={category} onChange={(e) => setCategory(e.target.value)} className="ml-auto shrink-0 rounded-md border border-line bg-card px-2 py-1.5 text-sm">
-          <option value="">All categories</option>
-          {categories.map((c) => (
-            <option key={c}>{c}</option>
-          ))}
-        </select>
-      </div>
-
-      {filtered.length === 0 ? (
-        <div className="py-16 text-center text-sm text-ink-faint">{view === "attention" ? "Nothing needs attention right now." : "No tasks here yet."}</div>
-      ) : (
-        <ul className="mt-2 divide-y divide-line">
-          {filtered.map((t) => (
-            <li key={t.id} className="group flex min-h-14 items-center gap-3 py-2.5">
-              <button
-                onClick={() => (t.state === "done" && t.canUndo ? undo(t) : markDone(t))}
-                title={t.state === "done" ? "Undo" : "Mark done"}
-                className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border transition md:h-7 md:w-7 ${t.state === "done" ? "border-ok bg-ok-soft text-ok" : "border-ink-faint text-transparent hover:border-accent hover:text-accent"}`}
-              >
-                {t.state === "done" ? <Check size={14} /> : <Check size={14} />}
-              </button>
-              <button onClick={() => setOpen(t)} className="min-w-0 flex-1 text-left">
-                <div className={`truncate ${t.state === "done" ? "text-ink-soft" : ""}`}>{t.title}</div>
-                <div className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-ink-faint">
-                  <span>{FREQUENCY_LABELS[t.frequency]}</span>
-                  {t.whenText && <span>· {t.whenText}</span>}
-                  {t.category && <span>· {t.category}</span>}
-                  {(t.assignees.length > 0 || t.ownerRole) && (
-                    <span className="flex items-center gap-1">
-                      · <Users size={11} /> {t.assignees.map((a) => a.name.split(" ")[0]).join(", ") || t.ownerRole}
-                    </span>
-                  )}
-                </div>
-              </button>
-              <span className={`shrink-0 rounded px-2 py-0.5 text-xs font-medium ${TONE[DUE_LABELS[t.state].tone]}`}>
-                {t.state === "done" ? `Done${t.lastDoneOn === "today" ? " today" : t.lastDoneOn ? " " + fmtDate(t.lastDoneOn) : ""}` : t.state === "later" ? fmtDate(t.nextDueOn) : DUE_LABELS[t.state].label}
-              </span>
-              {t.state === "done" && t.canUndo && (
-                <button onClick={() => undo(t)} className="rounded p-2 text-ink-faint hover:bg-hover hover:text-ink md:p-1 md:opacity-0 md:group-hover:opacity-100" title="Undo">
-                  <Undo2 size={14} />
-                </button>
-              )}
-              <ChevronRight size={16} className="shrink-0 text-ink-faint" />
-            </li>
-          ))}
-        </ul>
-      )}
-
-      {open && (
-        <TaskDrawer
-          slug={slug}
-          task={rows.find((t) => t.id === open.id) ?? open}
-          members={members}
-          pages={pages}
-          categories={categories}
-          canEdit={canEdit}
-          onClose={() => setOpen(null)}
-          onDone={markDone}
-          onUndo={undo}
-        />
-      )}
-      {creating && <TaskForm slug={slug} members={members} pages={pages} categories={categories} onClose={() => setCreating(false)} />}
-    </div>
-  );
-}
-
-function TaskDrawer({ slug, task, members, pages, categories, canEdit, onClose, onDone, onUndo }: { slug: string; task: TaskRow; members: Member[]; pages: PageOpt[]; categories: readonly string[]; canEdit: boolean; onClose: () => void; onDone: (t: TaskRow) => void; onUndo: (t: TaskRow) => void }) {
+export function TaskDrawer({ slug, task, members, pages, categories, canEdit, onClose, onDone, onUndo }: { slug: string; task: TaskRow; members: Member[]; pages: PageOpt[]; categories: readonly string[]; canEdit: boolean; onClose: () => void; onDone: (t: TaskRow) => void; onUndo: (t: TaskRow) => void }) {
   const [editing, setEditing] = useState(false);
   const [history, setHistory] = useState<Awaited<ReturnType<typeof listCompletionsAction>> | null>(null);
   const [, start] = useTransition();
@@ -183,7 +44,16 @@ function TaskDrawer({ slug, task, members, pages, categories, canEdit, onClose, 
           <dt className="text-ink-faint">Owner</dt>
           <dd>{task.assignees.map((a) => a.name).join(", ") || task.ownerRole || <span className="text-ink-faint">Anyone</span>}</dd>
           <dt className="text-ink-faint">Next due</dt>
-          <dd>{task.nextDueOn ? fmtDate(task.nextDueOn) : "—"}</dd>
+          <dd className="flex items-center gap-2">
+            {task.nextDueOn ? fmtDate(task.nextDueOn) : "—"}
+            {task.dueOverride && <span className="text-xs text-ink-faint">(moved)</span>}
+            {canEdit && (
+              <label className="flex cursor-pointer items-center gap-1 text-xs text-accent hover:underline">
+                <CalendarClock size={12} /> change
+                <input type="date" className="sr-only" onChange={(e) => e.target.value && start(async () => (await moveDueAction(slug, task.id, e.target.value), onClose()))} />
+              </label>
+            )}
+          </dd>
           <dt className="text-ink-faint">Last done</dt>
           <dd>{task.lastDoneOn === "today" ? "Today" : task.lastDoneOn ? fmtDate(task.lastDoneOn) : <span className="text-ink-faint">Never</span>}</dd>
           {task.sopPageId && (
@@ -220,6 +90,11 @@ function TaskDrawer({ slug, task, members, pages, categories, canEdit, onClose, 
               Edit
             </button>
           )}
+          {canEdit && task.state !== "done" && (
+            <button onClick={() => start(async () => (await moveDueAction(slug, task.id), onClose()))} className="flex items-center gap-1 rounded-lg border border-line px-3 py-2 text-sm hover:bg-hover" title={task.frequency === "once" ? "Push a week" : "Skip this time; due again next period"}>
+              <SkipForward size={14} /> Skip
+            </button>
+          )}
           <button
             onClick={() => (history ? setHistory(null) : listCompletionsAction(slug, task.id).then(setHistory))}
             className="ml-auto flex items-center gap-1 rounded-lg px-3 py-2 text-sm text-ink-soft hover:bg-hover"
@@ -253,15 +128,15 @@ function TaskDrawer({ slug, task, members, pages, categories, canEdit, onClose, 
   );
 }
 
-const Chip = ({ children }: { children: React.ReactNode }) => <span className="rounded bg-hover px-2 py-0.5 text-ink-soft">{children}</span>;
+export const Chip = ({ children }: { children: React.ReactNode }) => <span className="rounded bg-hover px-2 py-0.5 text-ink-soft">{children}</span>;
 
-function TaskForm({ slug, task, members, pages, categories, onClose }: { slug: string; task?: TaskRow; members: Member[]; pages: PageOpt[]; categories: readonly string[]; onClose: () => void }) {
+export function TaskForm({ slug, task, members, pages, categories, preset, onClose }: { slug: string; task?: TaskRow; members: Member[]; pages: PageOpt[]; categories: readonly string[]; preset?: { frequency?: Frequency; assigneeIds?: string[] }; onClose: () => void }) {
   const [title, setTitle] = useState(task?.title ?? "");
-  const [frequency, setFrequency] = useState<Frequency>(task?.frequency ?? "weekly");
+  const [frequency, setFrequency] = useState<Frequency>(task?.frequency ?? preset?.frequency ?? "weekly");
   const [whenText, setWhenText] = useState(task?.whenText ?? "");
   const [category, setCategory] = useState(task?.category ?? "");
   const [instructions, setInstructions] = useState(task?.instructions ?? "");
-  const [assignees, setAssignees] = useState<string[]>(task?.assignees.map((a) => a.id) ?? []);
+  const [assignees, setAssignees] = useState<string[]>(task?.assignees.map((a) => a.id) ?? preset?.assigneeIds ?? []);
   const [ownerRole, setOwnerRole] = useState(task?.ownerRole ?? "");
   const [sopPageId, setSopPageId] = useState(task?.sopPageId ?? "");
   const [dueOn, setDueOn] = useState(task?.dueOn ?? "");

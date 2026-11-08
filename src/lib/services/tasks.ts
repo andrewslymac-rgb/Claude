@@ -2,7 +2,7 @@ import "server-only";
 import { and, asc, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { db, schema } from "@/db";
 import type { Frequency } from "@/db/schema";
-import { computeNextDue, dueState, todayISO, type DueState } from "@/lib/recurrence";
+import { addDays, computeNextDue, dueState, nextDueAfter, todayISO, type DueState } from "@/lib/recurrence";
 
 const { tasks, taskAssignees, taskCompletions, users, pages } = schema;
 
@@ -19,6 +19,7 @@ export type TaskRow = {
   dueOn: string | null;
   lastDoneOn: string | null;
   nextDueOn: string | null;
+  dueOverride: string | null;
   state: DueState;
   assignees: { id: string; name: string }[];
   /** True if the latest completion can be undone (done within the last 7 days). */
@@ -56,6 +57,7 @@ export async function listTasks(workspaceId: string): Promise<TaskRow[]> {
     dueOn: t.dueOn,
     lastDoneOn: t.lastDoneOn,
     nextDueOn: t.nextDueOn,
+    dueOverride: t.dueOverride,
     state: dueState(t.nextDueOn, today),
     assignees: byTask.get(t.id) ?? [],
     canUndo: Boolean(t.lastDoneOn && t.lastDoneOn >= undoCutoff),
@@ -116,7 +118,7 @@ export async function updateTask(workspaceId: string, id: string, input: Partial
       ownerRole: input.ownerRole === undefined ? t.ownerRole : input.ownerRole,
       sopPageId: input.sopPageId === undefined ? t.sopPageId : input.sopPageId,
       dueOn,
-      nextDueOn: computeNextDue(frequency, dueOn, t.lastDoneOn),
+      nextDueOn: computeNextDue(frequency, dueOn, t.lastDoneOn, undefined, t.dueOverride),
       updatedAt: new Date(),
     })
     .where(eq(tasks.id, id));
@@ -124,6 +126,16 @@ export async function updateTask(workspaceId: string, id: string, input: Partial
     await db.delete(taskAssignees).where(eq(taskAssignees.taskId, id));
     if (input.assigneeIds.length) await db.insert(taskAssignees).values(input.assigneeIds.map((userId) => ({ taskId: id, userId })));
   }
+}
+
+/** Push the next due date without marking anything done: to a given date, or one period out. */
+export async function moveDue(workspaceId: string, id: string, to?: string) {
+  const [t] = await db.select().from(tasks).where(and(eq(tasks.workspaceId, workspaceId), eq(tasks.id, id)));
+  if (!t) throw new Error("Task not found");
+  const base = t.nextDueOn ?? todayISO();
+  const target = to ?? (t.frequency === "once" ? addDays(base, 7) : nextDueAfter(t.frequency, base < todayISO() ? todayISO() : base));
+  await db.update(tasks).set({ dueOverride: target, nextDueOn: target, updatedAt: new Date() }).where(eq(tasks.id, id));
+  return target;
 }
 
 export async function archiveTask(workspaceId: string, id: string) {
@@ -137,6 +149,7 @@ export async function completeTask(workspaceId: string, id: string, userId: stri
   // Same day twice = one completion.
   const [existing] = await db.select().from(taskCompletions).where(and(eq(taskCompletions.taskId, id), eq(taskCompletions.doneOn, doneOn)));
   if (!existing) await db.insert(taskCompletions).values({ taskId: id, doneOn, doneById: userId, note });
+  await db.update(tasks).set({ dueOverride: null }).where(eq(tasks.id, id));
   await recompute(t.id);
 }
 
@@ -152,7 +165,7 @@ export async function undoComplete(workspaceId: string, id: string) {
 async function recompute(taskId: string) {
   const [t] = await db.select().from(tasks).where(eq(tasks.id, taskId));
   const [{ last }] = await db.select({ last: sql<string | null>`max(${taskCompletions.doneOn})` }).from(taskCompletions).where(eq(taskCompletions.taskId, taskId));
-  await db.update(tasks).set({ lastDoneOn: last, nextDueOn: computeNextDue(t.frequency, t.dueOn, last), updatedAt: new Date() }).where(eq(tasks.id, taskId));
+  await db.update(tasks).set({ lastDoneOn: last, nextDueOn: computeNextDue(t.frequency, t.dueOn, last, undefined, t.dueOverride), updatedAt: new Date() }).where(eq(tasks.id, taskId));
 }
 
 export async function listCompletions(workspaceId: string, taskId: string, limit = 30) {
@@ -177,4 +190,23 @@ export async function importTasks(workspaceId: string, items: TaskInput[], creat
     n++;
   }
   return n;
+}
+
+/** Resolve people by name or email (case-insensitive, first name is enough if unique) to user ids. */
+export async function resolveAssignees(workspaceId: string, names: string[]): Promise<{ ids: string[]; unknown: string[] }> {
+  const rows = await db
+    .select({ id: users.id, name: users.name, email: users.email })
+    .from(schema.memberships)
+    .innerJoin(users, eq(users.id, schema.memberships.userId))
+    .where(eq(schema.memberships.workspaceId, workspaceId));
+  const ids: string[] = [];
+  const unknown: string[] = [];
+  for (const raw of names) {
+    const q = raw.trim().toLowerCase();
+    if (!q) continue;
+    const hits = rows.filter((r) => r.email.toLowerCase() === q || (r.name ?? "").toLowerCase() === q || (r.name ?? "").toLowerCase().split(" ")[0] === q);
+    if (hits.length === 1) ids.push(hits[0].id);
+    else unknown.push(raw);
+  }
+  return { ids: Array.from(new Set(ids)), unknown };
 }
