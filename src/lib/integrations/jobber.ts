@@ -143,26 +143,26 @@ export type ManualSnapshot = Omit<Snapshot, "at" | "account" | "errors"> & { not
  * Store numbers pushed in from outside (Claude's scheduled task reads Jobber through
  * its own connector and calls the Orbit MCP tool). Shown on the tile until the next push.
  */
-export async function storeSnapshot(workspaceId: string, data: ManualSnapshot, source: string, userId: string | null) {
+export async function storeSnapshot(workspaceId: string, data: ManualSnapshot, source: string, userId: string | null, provider = "jobber") {
   const snap: Snapshot = { at: new Date().toISOString(), account: null, errors: [], today: data.today, requestsNew: data.requestsNew, quotesAwaiting: data.quotesAwaiting, invoicesPastDue: data.invoicesPastDue, invoicesAwaiting: data.invoicesAwaiting };
-  const existing = await getIntegration(workspaceId);
+  const existing = await getIntegration(workspaceId, provider);
   if (existing && existing.accessToken !== MANUAL_TOKEN) {
     // OAuth is live; keep it, just remember the push too.
     await db.update(integrations).set({ meta: { ...existing.meta, snapshot: snap, source, note: data.note ?? null }, updatedAt: new Date() }).where(eq(integrations.id, existing.id));
   } else {
     await db
       .insert(integrations)
-      .values({ workspaceId, provider: "jobber", accessToken: MANUAL_TOKEN, accountName: source, meta: { snapshot: snap, source, note: data.note ?? null }, connectedById: userId })
+      .values({ workspaceId, provider, accessToken: MANUAL_TOKEN, accountName: source, meta: { snapshot: snap, source, note: data.note ?? null }, connectedById: userId })
       .onConflictDoUpdate({ target: [integrations.workspaceId, integrations.provider], set: { accountName: source, meta: { snapshot: snap, source, note: data.note ?? null }, lastError: null, updatedAt: new Date() } });
   }
   snapshots.delete(workspaceId);
   return snap;
 }
 
-export async function snapshot(workspaceId: string, force = false): Promise<Snapshot> {
+export async function snapshot(workspaceId: string, force = false, provider = "jobber"): Promise<Snapshot> {
   const c = snapshots.get(workspaceId);
   if (c && !force && Date.now() - c.at < TTL) return c.data;
-  const row = await getIntegration(workspaceId);
+  const row = await getIntegration(workspaceId, provider);
   const out: Snapshot = { at: new Date().toISOString(), account: row?.accountName ?? null, today: [], requestsNew: 0, quotesAwaiting: { count: 0, total: 0 }, invoicesPastDue: { count: 0, total: 0 }, invoicesAwaiting: { count: 0, total: 0 }, errors: [] };
   if (!row) return out;
   if (row.accessToken === MANUAL_TOKEN) {

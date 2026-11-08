@@ -1,14 +1,15 @@
 import "server-only";
 import { and, asc, eq, max } from "drizzle-orm";
 import { db, schema } from "@/db";
-import type { LinkItem, WidgetConfig, WidgetType } from "@/db/schema";
+import type { FieldTool, LinkItem, WidgetConfig, WidgetType } from "@/db/schema";
+import { FIELD_TOOL_INFO } from "@/lib/field-tools";
 
-const { dashboardWidgets } = schema;
+const { dashboardWidgets, workspaces } = schema;
 
 export const WIDGET_CATALOG: Record<WidgetType, { title: string; description: string; emoji: string; available: boolean; width: number }> = {
   stats: { title: "At a glance", description: "Live numbers: overdue tasks, flags, reviews due, today's jobs", emoji: "📊", available: true, width: 3 },
   tools: { title: "Tools", description: "Big buttons to Jobber, QuickBooks, Slack and everything else you use", emoji: "🧰", available: true, width: 3 },
-  jobber: { title: "Jobber today", description: "Today's schedule, new requests, quotes waiting, overdue invoices", emoji: "🗓️", available: true, width: 2 },
+  jobber: { title: "Today in the field", description: "Today's schedule, new requests, quotes waiting, overdue invoices from Jobber or GorillaDesk", emoji: "🧰", available: true, width: 2 },
   collections: { title: "Documents", description: "SOPs, Legal, Licensing and other document areas", emoji: "🗂️", available: true, width: 1 },
   tasks: { title: "Tasks", description: "Overdue, due today and coming up this week", emoji: "✅", available: true, width: 1 },
   flags: { title: "Open flags", description: "Things the team flagged that need a decision", emoji: "🚩", available: true, width: 1 },
@@ -22,7 +23,6 @@ export const WIDGET_CATALOG: Record<WidgetType, { title: string; description: st
 
 /** Starter launcher for a service business. People edit it from the dashboard. */
 export const DEFAULT_TOOLS: LinkItem[] = [
-  { label: "Jobber", url: "https://secure.getjobber.com/", emoji: "🗓️", color: "#7db00e" },
   { label: "QuickBooks", url: "https://app.qbo.intuit.com/", emoji: "💵", color: "#2ca01c" },
   { label: "Gusto", url: "https://app.gusto.com/", emoji: "🧾", color: "#f45d48" },
   { label: "Slack", url: "https://slack.com/", emoji: "💬", color: "#4a154b" },
@@ -32,23 +32,35 @@ export const DEFAULT_TOOLS: LinkItem[] = [
   { label: "Quo", url: "https://app.openphone.com/", emoji: "📞", color: "#6b4eff" },
 ];
 
+function toolsFor(fieldTool: FieldTool): LinkItem[] {
+  const t = FIELD_TOOL_INFO[fieldTool];
+  const first: LinkItem[] = fieldTool === "none" ? [] : [{ label: t.label, url: t.home, emoji: t.emoji, color: t.color }];
+  if (fieldTool === "gorilladesk") first.push({ label: "LeadSprint", url: "https://app.leadsprint.io/", emoji: "🚀", color: "#f97316" });
+  return [...first, ...DEFAULT_TOOLS];
+}
+
 export async function listWidgets(workspaceId: string) {
   return db.select().from(dashboardWidgets).where(eq(dashboardWidgets.workspaceId, workspaceId)).orderBy(asc(dashboardWidgets.position));
 }
 
-function defaultsFor(type: WidgetType): WidgetConfig {
+function defaultsFor(type: WidgetType, fieldTool: FieldTool = "none"): WidgetConfig {
   if (type === "links") return { links: [] };
-  if (type === "tools") return { links: DEFAULT_TOOLS };
+  if (type === "tools") return { links: toolsFor(fieldTool) };
   if (type === "pages") return { pageIds: [] };
   if (type === "welcome") return { text: "Write something for the team…" };
   return { limit: 6 };
+}
+
+async function fieldToolOf(workspaceId: string): Promise<FieldTool> {
+  const [w] = await db.select({ fieldTool: workspaces.fieldTool }).from(workspaces).where(eq(workspaces.id, workspaceId));
+  return w?.fieldTool ?? "none";
 }
 
 export async function addWidget(workspaceId: string, type: WidgetType) {
   const [{ top }] = await db.select({ top: max(dashboardWidgets.position) }).from(dashboardWidgets).where(eq(dashboardWidgets.workspaceId, workspaceId));
   const [w] = await db
     .insert(dashboardWidgets)
-    .values({ workspaceId, type, title: WIDGET_CATALOG[type].title, config: defaultsFor(type), width: WIDGET_CATALOG[type].width, position: (top ?? 0) + 1 })
+    .values({ workspaceId, type, title: WIDGET_CATALOG[type].title, config: defaultsFor(type, await fieldToolOf(workspaceId)), width: WIDGET_CATALOG[type].width, position: (top ?? 0) + 1 })
     .returning();
   return w;
 }
@@ -60,10 +72,11 @@ export async function addWidget(workspaceId: string, type: WidgetType) {
 export async function setupCommandCenter(workspaceId: string) {
   const existing = await listWidgets(workspaceId);
   const keepTools = existing.find((w) => w.type === "tools")?.config.links ?? existing.find((w) => w.type === "links")?.config.links;
+  const fieldTool = await fieldToolOf(workspaceId);
   await db.delete(dashboardWidgets).where(eq(dashboardWidgets.workspaceId, workspaceId));
-  const order: WidgetType[] = ["stats", "tools", "jobber", "collections", "tasks", "flags", "reviews", "recent"];
+  const order: WidgetType[] = ["stats", "tools", ...(fieldTool === "none" ? [] : (["jobber"] as WidgetType[])), "collections", "tasks", "flags", "reviews", "recent"];
   for (const [i, type] of order.entries()) {
-    const config = type === "tools" && keepTools?.length ? { links: keepTools } : defaultsFor(type);
+    const config = type === "tools" && keepTools?.length ? { links: keepTools } : defaultsFor(type, fieldTool);
     await db.insert(dashboardWidgets).values({ workspaceId, type, title: WIDGET_CATALOG[type].title, config, width: WIDGET_CATALOG[type].width, position: i + 1 });
   }
 }

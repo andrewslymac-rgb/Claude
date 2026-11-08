@@ -14,6 +14,7 @@ import { collectionCounts, listCollections, KIND_INFO } from "@/lib/drive/sync";
 import { serviceAccountStatus } from "@/lib/drive/client";
 import { IntegrationsPanel } from "@/components/settings/IntegrationsPanel";
 import { getIntegration, jobberAppConfig, redirectUri, MANUAL_TOKEN } from "@/lib/integrations/jobber";
+import type { FieldTool } from "@/db/schema";
 
 type Tab = "workspace" | "people" | "sync" | "integrations" | "ai";
 
@@ -50,9 +51,9 @@ export default async function Settings({ params, searchParams }: { params: Promi
       <div className="mt-6">
         {tab === "workspace" && (
           <section>
-            <h2 className="text-lg font-semibold">Name, icon and color</h2>
-            <p className="mt-1 text-sm text-ink-soft">How this company appears in the sidebar and on the hub. Logos and more branding options are coming.</p>
-            <WorkspaceForm slug={slug} name={workspace.name} icon={workspace.icon} color={workspace.color} />
+            <h2 className="text-lg font-semibold">Name, icon, color and tools</h2>
+            <p className="mt-1 text-sm text-ink-soft">How this company appears in the sidebar and on the hub, and which software it runs on.</p>
+            <WorkspaceForm slug={slug} name={workspace.name} icon={workspace.icon} color={workspace.color} fieldTool={workspace.fieldTool} />
           </section>
         )}
 
@@ -78,7 +79,7 @@ export default async function Settings({ params, searchParams }: { params: Promi
           <section>
             <h2 className="text-lg font-semibold">Integrations</h2>
             <p className="mt-1 text-sm text-ink-soft">Connect the tools you run the business in, so the dashboard shows live numbers.</p>
-            <IntegrationsTab slug={slug} workspaceId={workspace.id} isAppAdmin={user.isAppAdmin} notice={ok === "jobber" ? "Jobber connected. The dashboard tile is live." : undefined} error={error} />
+            <IntegrationsTab slug={slug} workspaceId={workspace.id} fieldTool={workspace.fieldTool} isAppAdmin={user.isAppAdmin} notice={ok === "jobber" ? "Jobber connected. The dashboard tile is live." : undefined} error={error} />
           </section>
         )}
 
@@ -127,11 +128,12 @@ async function DriveTab({ slug, workspaceId, isAppAdmin }: { slug: string; works
   );
 }
 
-async function IntegrationsTab({ slug, workspaceId, isAppAdmin, notice, error }: { slug: string; workspaceId: string; isAppAdmin: boolean; notice?: string; error?: string }) {
-  const [row, cfg] = await Promise.all([getIntegration(workspaceId), jobberAppConfig()]);
+async function IntegrationsTab({ slug, workspaceId, fieldTool, isAppAdmin, notice, error }: { slug: string; workspaceId: string; fieldTool: FieldTool; isAppAdmin: boolean; notice?: string; error?: string }) {
+  const [row, cfg] = await Promise.all([getIntegration(workspaceId, fieldTool), jobberAppConfig()]);
   return (
     <IntegrationsPanel
       slug={slug}
+      fieldTool={fieldTool}
       isAppAdmin={isAppAdmin}
       redirectUri={redirectUri()}
       notice={notice}
