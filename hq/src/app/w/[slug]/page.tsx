@@ -8,7 +8,7 @@ import { listFlags } from "@/lib/services/flags";
 import { countPending } from "@/lib/services/ai-proposals";
 import { reviewState } from "@/lib/recurrence";
 import { collectionCounts, listCollections } from "@/lib/drive/sync";
-import { getIntegration } from "@/lib/integrations/jobber";
+import { getIntegration, MANUAL_TOKEN } from "@/lib/integrations/jobber";
 
 export default async function Home({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -59,7 +59,7 @@ export default async function Home({ params }: { params: Promise<{ slug: string 
         case "collections":
           return { ...base, items: collections.map((c) => ({ id: c.id, title: c.label, icon: c.icon, count: counts.get(c.id) ?? 0, kind: c.kind })) };
         case "jobber":
-          return { ...base, items: [], connected: Boolean(jobber) };
+          return { ...base, items: [], connected: Boolean(jobber), manual: jobber?.accessToken === MANUAL_TOKEN };
         default:
           return { ...base, items: [] };
       }

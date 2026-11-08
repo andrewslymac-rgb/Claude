@@ -1,5 +1,5 @@
 import "server-only";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { db, schema } from "@/db";
 import { addWidget } from "./dashboard";
 
@@ -21,4 +21,14 @@ export async function createWorkspace(input: { name: string; icon?: string; colo
 
 export async function updateWorkspace(id: string, patch: { name?: string; icon?: string; color?: string }) {
   await db.update(workspaces).set(patch).where(eq(workspaces.id, id));
+}
+
+/** A workspace by slug, only if this user can manage its dashboard (member admin/owner, or app admin). */
+export async function workspaceForUserBySlug(userId: string, slug: string) {
+  const [ws] = await db.select().from(workspaces).where(eq(workspaces.slug, slug));
+  if (!ws) return null;
+  const [u] = await db.select({ isAppAdmin: schema.users.isAppAdmin }).from(schema.users).where(eq(schema.users.id, userId));
+  if (u?.isAppAdmin) return ws;
+  const [m] = await db.select({ role: memberships.role }).from(memberships).where(and(eq(memberships.workspaceId, ws.id), eq(memberships.userId, userId)));
+  return m && (m.role === "owner" || m.role === "admin") ? ws : null;
 }

@@ -5,12 +5,12 @@ import { useCallback, useEffect, useState } from "react";
 import { RefreshCw, AlertCircle, CheckCircle2, Clock } from "lucide-react";
 
 type Visit = { id: string; title: string; startAt: string; endAt: string | null; completed: boolean; client: string; address: string; assignees: string[] };
-type Snapshot = { at: string; account: string | null; today: Visit[]; requestsNew: number; quotesAwaiting: { count: number; total: number }; invoicesPastDue: { count: number; total: number }; invoicesAwaiting: { count: number; total: number }; errors: string[] };
+type Snapshot = { at: string; account: string | null; note?: string; today: Visit[]; requestsNew: number; quotesAwaiting: { count: number; total: number }; invoicesPastDue: { count: number; total: number }; invoicesAwaiting: { count: number; total: number }; errors: string[] };
 
 const money = (n: number) => n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
 const time = (iso: string) => new Date(iso).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: "America/Los_Angeles" });
 
-export function JobberTile({ slug, connected, canManage }: { slug: string; connected: boolean; canManage: boolean }) {
+export function JobberTile({ slug, connected, manual, canManage }: { slug: string; connected: boolean; manual?: boolean; canManage: boolean }) {
   const [snap, setSnap] = useState<Snapshot | null>(null);
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
@@ -44,7 +44,7 @@ export function JobberTile({ slug, connected, canManage }: { slug: string; conne
     return (
       <div className="rounded-lg border border-dashed border-line p-4 text-sm text-ink-soft">
         <div className="font-medium text-ink">Jobber isn&apos;t connected yet.</div>
-        <p className="mt-1">Connect it to see today&apos;s schedule, new requests, quotes waiting and overdue invoices right here.</p>
+        <p className="mt-1">Once Claude&apos;s daily update runs (or Jobber is connected in Settings), today&apos;s schedule, new requests, quotes waiting and overdue invoices show up right here.</p>
         {canManage && (
           <Link href={`/w/${slug}/settings?tab=integrations`} className="mt-3 inline-block rounded-lg bg-accent px-3 py-1.5 text-xs font-medium text-paper">
             Connect Jobber
@@ -67,7 +67,7 @@ export function JobberTile({ slug, connected, canManage }: { slug: string; conne
         <div className="mb-1 flex items-center justify-between text-xs text-ink-faint">
           <span>Today&apos;s schedule</span>
           <button onClick={() => load(true)} className="flex items-center gap-1 rounded px-1.5 py-0.5 hover:bg-hover hover:text-ink" title="Refresh">
-            <RefreshCw size={11} className={busy ? "animate-spin" : ""} /> {s ? `updated ${time(s.at)}` : "loading…"}
+            <RefreshCw size={11} className={busy ? "animate-spin" : ""} /> {s ? (manual ? `${s.account ?? "Claude"} · ${new Date(s.at).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZone: "America/Los_Angeles" })}` : `updated ${time(s.at)}`) : "loading…"}
           </button>
         </div>
         {s && s.today.length === 0 && !err && <p className="text-sm text-ink-faint">No visits scheduled today.</p>}

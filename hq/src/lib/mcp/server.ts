@@ -12,6 +12,8 @@ import { blocksToMarkdown, markdownToBlocks } from "@/lib/markdown";
 import { fmtDate, FREQUENCY_LABELS, DUE_LABELS } from "@/lib/recurrence";
 import type { Actor } from "@/lib/services/actor";
 import type { Frequency } from "@/db/schema";
+import { storeSnapshot } from "@/lib/integrations/jobber";
+import { workspaceForUserBySlug } from "@/lib/services/workspaces";
 
 const MAX_WRITE_CHARS = 60_000;
 
@@ -170,6 +172,53 @@ export function buildServer(p: AiPrincipal) {
       await logActivity({ workspaceId: ws, grantId: p.grantId, tool: "complete_task", summary: `Marked "${t?.title ?? task_id}" done`, taskId: task_id });
       return text(`Done. ${t ? `Next due ${t.nextDueOn ? fmtDate(t.nextDueOn) : "—"}.` : ""}`);
     });
+  }
+
+  // ------------------------------------------------------------------ dashboard feeds
+  if (can("write:tasks")) {
+    const money = { count: z.number().int().min(0), total: z.number().min(0) };
+    server.registerTool(
+      "update_jobber_snapshot",
+      {
+        title: "Update the Jobber dashboard tile",
+        description:
+          "Pushes today's Jobber numbers onto the company dashboard: today's visits, new requests, quotes awaiting a response, past-due and unpaid invoices. Use it when you have read Jobber through another connector. Pass workspace (the company slug, e.g. lemon-and-lavender) to update a different company than this connection's; the signed-in person must have access to it.",
+        inputSchema: {
+          workspace: z.string().max(80).optional(),
+          today: z
+            .array(z.object({ id: z.string().max(200), title: z.string().max(200), start_at: z.string().max(40), end_at: z.string().max(40).optional(), completed: z.boolean().optional(), client: z.string().max(200).optional(), address: z.string().max(300).optional(), assignees: z.array(z.string().max(100)).max(10).optional() }))
+            .max(100),
+          requests_new: z.number().int().min(0),
+          quotes_awaiting: z.object(money),
+          invoices_past_due: z.object(money),
+          invoices_awaiting: z.object(money).optional(),
+          note: z.string().max(200).optional().describe("Shown under the tile, e.g. 'Updated by Claude at 5:40 AM'"),
+        },
+      },
+      async (a) => {
+        let target = { id: ws, slug: p.workspaceSlug, name: p.workspaceName };
+        if (a.workspace && a.workspace !== p.workspaceSlug) {
+          const other = await workspaceForUserBySlug(p.userId, a.workspace);
+          if (!other) return fail(`You don't have access to a company called "${a.workspace}".`);
+          target = { id: other.id, slug: other.slug, name: other.name };
+        }
+        const snap = await storeSnapshot(
+          target.id,
+          {
+            today: a.today.map((v) => ({ id: v.id, title: v.title, startAt: v.start_at, endAt: v.end_at ?? null, completed: v.completed ?? false, client: v.client ?? "", address: v.address ?? "", assignees: v.assignees ?? [] })),
+            requestsNew: a.requests_new,
+            quotesAwaiting: a.quotes_awaiting,
+            invoicesPastDue: a.invoices_past_due,
+            invoicesAwaiting: a.invoices_awaiting ?? { count: 0, total: 0 },
+            note: a.note,
+          },
+          `Claude (${p.name})`,
+          p.userId,
+        );
+        await logActivity({ workspaceId: target.id, grantId: p.grantId, tool: "update_jobber_snapshot", summary: `Updated the Jobber tile: ${snap.today.length} visits today, ${snap.requestsNew} new requests, ${snap.quotesAwaiting.count} quotes waiting, ${snap.invoicesPastDue.count} overdue invoices` });
+        return text(`Dashboard updated for ${target.name}: ${snap.today.length} visits today, ${snap.requestsNew} new requests, ${snap.quotesAwaiting.count} quotes waiting ($${snap.quotesAwaiting.total}), ${snap.invoicesPastDue.count} overdue invoices ($${snap.invoicesPastDue.total}).`);
+      },
+    );
   }
 
   return server;
