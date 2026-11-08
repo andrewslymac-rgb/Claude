@@ -88,7 +88,7 @@ export function JobberTile({ slug, connected, manual, canManage }: { slug: strin
           ))}
         </ul>
       </div>
-      {(err || s?.errors.length) && (
+      {(err || (s?.errors.length ?? 0) > 0) && (
         <p className="mt-2 flex items-start gap-1 text-xs text-warn">
           <AlertCircle size={12} className="mt-0.5 shrink-0" /> {err || s?.errors.join(" · ")}
         </p>
