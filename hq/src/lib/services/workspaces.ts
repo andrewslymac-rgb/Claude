@@ -1,6 +1,7 @@
 import "server-only";
 import { and, eq } from "drizzle-orm";
 import { db, schema } from "@/db";
+import type { FieldTool } from "@/db/schema";
 import { addWidget } from "./dashboard";
 
 const { workspaces, memberships } = schema;
@@ -19,7 +20,7 @@ export async function createWorkspace(input: { name: string; icon?: string; colo
   return ws;
 }
 
-export async function updateWorkspace(id: string, patch: { name?: string; icon?: string; color?: string }) {
+export async function updateWorkspace(id: string, patch: { name?: string; icon?: string; color?: string; fieldTool?: FieldTool }) {
   await db.update(workspaces).set(patch).where(eq(workspaces.id, id));
 }
 

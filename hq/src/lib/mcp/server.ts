@@ -178,11 +178,11 @@ export function buildServer(p: AiPrincipal) {
   if (can("write:tasks")) {
     const money = { count: z.number().int().min(0), total: z.number().min(0) };
     server.registerTool(
-      "update_jobber_snapshot",
+      "update_field_service_snapshot",
       {
-        title: "Update the Jobber dashboard tile",
+        title: "Update the live jobs tile on the dashboard",
         description:
-          "Pushes today's Jobber numbers onto the company dashboard: today's visits, new requests, quotes awaiting a response, past-due and unpaid invoices. Use it when you have read Jobber through another connector. Pass workspace (the company slug, e.g. lemon-and-lavender) to update a different company than this connection's; the signed-in person must have access to it.",
+          "Pushes today's field-service numbers (from Jobber or GorillaDesk, whichever the company uses) onto its dashboard: today's visits, new requests or leads, quotes or estimates awaiting a response, past-due and unpaid invoices. Use it after reading the numbers through the Jobber or LeadSprint/GorillaDesk connector. Pass workspace (the company slug, e.g. lemon-and-lavender or adapt-pest-pros) to update a different company than this connection's; the signed-in person must have access to it.",
         inputSchema: {
           workspace: z.string().max(80).optional(),
           today: z
@@ -196,12 +196,9 @@ export function buildServer(p: AiPrincipal) {
         },
       },
       async (a) => {
-        let target = { id: ws, slug: p.workspaceSlug, name: p.workspaceName };
-        if (a.workspace && a.workspace !== p.workspaceSlug) {
-          const other = await workspaceForUserBySlug(p.userId, a.workspace);
-          if (!other) return fail(`You don't have access to a company called "${a.workspace}".`);
-          target = { id: other.id, slug: other.slug, name: other.name };
-        }
+        const target = await workspaceForUserBySlug(p.userId, a.workspace ?? p.workspaceSlug);
+        if (!target) return fail(`You don't have access to a company called "${a.workspace}".`);
+        if (target.fieldTool === "none") return fail(`${target.name} has no field-service software set. Choose Jobber or GorillaDesk under Settings → Workspace first.`);
         const snap = await storeSnapshot(
           target.id,
           {
@@ -214,8 +211,9 @@ export function buildServer(p: AiPrincipal) {
           },
           `Claude (${p.name})`,
           p.userId,
+          target.fieldTool,
         );
-        await logActivity({ workspaceId: target.id, grantId: p.grantId, tool: "update_jobber_snapshot", summary: `Updated the Jobber tile: ${snap.today.length} visits today, ${snap.requestsNew} new requests, ${snap.quotesAwaiting.count} quotes waiting, ${snap.invoicesPastDue.count} overdue invoices` });
+        await logActivity({ workspaceId: target.id, grantId: p.grantId, tool: "update_field_service_snapshot", summary: `Updated the ${target.fieldTool === "gorilladesk" ? "GorillaDesk" : "Jobber"} tile: ${snap.today.length} visits today, ${snap.requestsNew} new requests, ${snap.quotesAwaiting.count} quotes waiting, ${snap.invoicesPastDue.count} overdue invoices` });
         return text(`Dashboard updated for ${target.name}: ${snap.today.length} visits today, ${snap.requestsNew} new requests, ${snap.quotesAwaiting.count} quotes waiting ($${snap.quotesAwaiting.total}), ${snap.invoicesPastDue.count} overdue invoices ($${snap.invoicesPastDue.total}).`);
       },
     );

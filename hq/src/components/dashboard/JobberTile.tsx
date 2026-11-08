@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { RefreshCw, AlertCircle, CheckCircle2, Clock } from "lucide-react";
+import type { FieldTool } from "@/db/schema";
+import { FIELD_TOOL_INFO } from "@/lib/field-tools";
 
 type Visit = { id: string; title: string; startAt: string; endAt: string | null; completed: boolean; client: string; address: string; assignees: string[] };
 type Snapshot = { at: string; account: string | null; note?: string; today: Visit[]; requestsNew: number; quotesAwaiting: { count: number; total: number }; invoicesPastDue: { count: number; total: number }; invoicesAwaiting: { count: number; total: number }; errors: string[] };
@@ -10,7 +12,8 @@ type Snapshot = { at: string; account: string | null; note?: string; today: Visi
 const money = (n: number) => n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
 const time = (iso: string) => new Date(iso).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: "America/Los_Angeles" });
 
-export function JobberTile({ slug, connected, manual, canManage }: { slug: string; connected: boolean; manual?: boolean; canManage: boolean }) {
+export function JobberTile({ slug, fieldTool, connected, manual, canManage }: { slug: string; fieldTool: FieldTool; connected: boolean; manual?: boolean; canManage: boolean }) {
+  const tool = FIELD_TOOL_INFO[fieldTool];
   const [snap, setSnap] = useState<Snapshot | null>(null);
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
@@ -40,14 +43,27 @@ export function JobberTile({ slug, connected, manual, canManage }: { slug: strin
     return () => clearInterval(t);
   }, [load]);
 
+  if (fieldTool === "none")
+    return (
+      <div className="rounded-lg border border-dashed border-line p-4 text-sm text-ink-soft">
+        <div className="font-medium text-ink">No field-service software set for this company.</div>
+        <p className="mt-1">Pick Jobber or GorillaDesk under Settings → Workspace, or remove this tile.</p>
+        {canManage && (
+          <Link href={`/w/${slug}/settings?tab=workspace`} className="mt-3 inline-block rounded-lg bg-accent px-3 py-1.5 text-xs font-medium text-paper">
+            Open workspace settings
+          </Link>
+        )}
+      </div>
+    );
+
   if (!connected)
     return (
       <div className="rounded-lg border border-dashed border-line p-4 text-sm text-ink-soft">
-        <div className="font-medium text-ink">Jobber isn&apos;t connected yet.</div>
-        <p className="mt-1">Once Claude&apos;s daily update runs (or Jobber is connected in Settings), today&apos;s schedule, new requests, quotes waiting and overdue invoices show up right here.</p>
+        <div className="font-medium text-ink">No {tool.label} numbers yet.</div>
+        <p className="mt-1">Once Claude&apos;s daily update runs, today&apos;s schedule, {tool.words.requests.toLowerCase()}, {tool.words.quotes.toLowerCase()} and overdue invoices show up right here.</p>
         {canManage && (
           <Link href={`/w/${slug}/settings?tab=integrations`} className="mt-3 inline-block rounded-lg bg-accent px-3 py-1.5 text-xs font-medium text-paper">
-            Connect Jobber
+            Set up the daily update
           </Link>
         )}
       </div>
@@ -57,10 +73,10 @@ export function JobberTile({ slug, connected, manual, canManage }: { slug: strin
   return (
     <div>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-        <Num label="Jobs today" value={s ? String(s.today.length) : "–"} sub={s ? `${s.today.filter((v) => v.completed).length} done` : ""} href="https://secure.getjobber.com/calendar" />
-        <Num label="New requests" value={s ? String(s.requestsNew) : "–"} tone={s?.requestsNew ? "warn" : undefined} href="https://secure.getjobber.com/requests" />
-        <Num label="Quotes waiting" value={s ? String(s.quotesAwaiting.count) : "–"} sub={s ? money(s.quotesAwaiting.total) : ""} href="https://secure.getjobber.com/quotes" />
-        <Num label="Overdue invoices" value={s ? String(s.invoicesPastDue.count) : "–"} sub={s ? money(s.invoicesPastDue.total) : ""} tone={s?.invoicesPastDue.count ? "danger" : undefined} href="https://secure.getjobber.com/invoices" />
+        <Num label={tool.words.visits} value={s ? String(s.today.length) : "–"} sub={s ? `${s.today.filter((v) => v.completed).length} done` : ""} href={tool.links.schedule} />
+        <Num label={tool.words.requests} value={s ? String(s.requestsNew) : "–"} tone={s?.requestsNew ? "warn" : undefined} href={tool.links.requests} />
+        <Num label={tool.words.quotes} value={s ? String(s.quotesAwaiting.count) : "–"} sub={s ? money(s.quotesAwaiting.total) : ""} href={tool.links.quotes} />
+        <Num label="Overdue invoices" value={s ? String(s.invoicesPastDue.count) : "–"} sub={s ? money(s.invoicesPastDue.total) : ""} tone={s?.invoicesPastDue.count ? "danger" : undefined} href={tool.links.invoices} />
       </div>
 
       <div className="mt-3">

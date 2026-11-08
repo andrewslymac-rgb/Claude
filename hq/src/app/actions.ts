@@ -18,7 +18,7 @@ import { todayISO } from "@/lib/recurrence";
 import * as aiAuth from "@/lib/services/ai-auth";
 import * as proposals from "@/lib/services/ai-proposals";
 import * as driveSync from "@/lib/drive/sync";
-import { COLLECTION_KINDS } from "@/db/schema";
+import { COLLECTION_KINDS, FIELD_TOOLS, type FieldTool } from "@/db/schema";
 
 const userActor = (userId: string): Actor => ({ type: "user", userId });
 const uuid = z.string().uuid();
@@ -184,9 +184,9 @@ export async function cancelInviteAction(slug: string, inviteId: string): Promis
   });
 }
 
-const wsSchema = z.object({ name: z.string().trim().min(1).max(80), icon: z.string().max(8).optional(), color: z.string().regex(/^#[0-9a-f]{6}$/i).optional() });
+const wsSchema = z.object({ name: z.string().trim().min(1).max(80), icon: z.string().max(8).optional(), color: z.string().regex(/^#[0-9a-f]{6}$/i).optional(), fieldTool: z.enum(FIELD_TOOLS).optional() });
 
-export async function updateWorkspaceAction(slug: string, patch: { name?: string; icon?: string; color?: string }): Promise<Result> {
+export async function updateWorkspaceAction(slug: string, patch: { name?: string; icon?: string; color?: string; fieldTool?: FieldTool }): Promise<Result> {
   return wrap(async () => {
     const { workspace } = await requireAbility(slug, "manage_workspace");
     await wss.updateWorkspace(workspace.id, wsSchema.partial().parse(patch));

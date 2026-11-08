@@ -10,7 +10,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ slug
   try {
     const { workspace } = await requireAbility(slug, "read");
     const force = req.nextUrl.searchParams.get("refresh") === "1";
-    return NextResponse.json(await snapshot(workspace.id, force), { headers: { "Cache-Control": "no-store" } });
+    if (workspace.fieldTool === "none") return NextResponse.json({ error: "No field-service software set for this company." }, { status: 400 });
+    return NextResponse.json(await snapshot(workspace.id, force, workspace.fieldTool), { headers: { "Cache-Control": "no-store" } });
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 400 });
   }

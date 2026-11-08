@@ -71,6 +71,13 @@
       "when": 1794094941573,
       "tag": "0009_worthless_runaways",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1794119641918,
+      "tag": "0010_bent_dexter_bennett",
+      "breakpoints": true
     }
   ]
 }

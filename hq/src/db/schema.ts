@@ -51,8 +51,13 @@ export const workspaces = pgTable("workspaces", {
   color: text("color").notNull().default("#6366f1"),
   /** Which AI page edits wait for a person's approval: SOPs/documents only (default), all pages, or none. */
   aiApproval: text("ai_approval").$type<"sops" | "all" | "none">().notNull().default("sops"),
+  /** Field-service software this company runs on; drives the live dashboard tile and tool launcher. */
+  fieldTool: text("field_tool").$type<FieldTool>().notNull().default("none"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+export const FIELD_TOOLS = ["jobber", "gorilladesk", "none"] as const;
+export type FieldTool = (typeof FIELD_TOOLS)[number];
 
 /**
  * Roles, from most to least access:

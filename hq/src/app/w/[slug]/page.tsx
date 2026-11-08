@@ -21,7 +21,7 @@ export default async function Home({ params }: { params: Promise<{ slug: string 
     listLibrary(workspace.id),
     listCollections(workspace.id),
     collectionCounts(workspace.id),
-    getIntegration(workspace.id),
+    workspace.fieldTool === "none" ? Promise.resolve(null) : getIntegration(workspace.id, workspace.fieldTool),
     countPending(workspace.id),
   ]);
   const twoDaysAgo = new Date(Date.now() - 2 * 864e5).toLocaleDateString("en-CA", { timeZone: "America/Los_Angeles" });
@@ -59,7 +59,7 @@ export default async function Home({ params }: { params: Promise<{ slug: string 
         case "collections":
           return { ...base, items: collections.map((c) => ({ id: c.id, title: c.label, icon: c.icon, count: counts.get(c.id) ?? 0, kind: c.kind })) };
         case "jobber":
-          return { ...base, items: [], connected: Boolean(jobber), manual: jobber?.accessToken === MANUAL_TOKEN };
+          return { ...base, items: [], connected: Boolean(jobber), manual: jobber?.accessToken === MANUAL_TOKEN, fieldTool: workspace.fieldTool };
         default:
           return { ...base, items: [] };
       }
