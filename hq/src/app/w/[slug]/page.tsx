@@ -1,6 +1,6 @@
 import { requireWorkspacePage } from "@/lib/access";
 import { can } from "@/lib/permissions";
-import { listWidgets, WIDGET_CATALOG, KNOWN_APP_LINKS } from "@/lib/services/dashboard";
+import { listWidgets, WIDGET_CATALOG, KNOWN_APP_LINKS, ensureTrackerWidget } from "@/lib/services/dashboard";
 import { getPagesByIds, listRecent, listSops, listTree, listLibrary } from "@/lib/services/pages";
 import { Dashboard, type WidgetData, type Stat } from "@/components/dashboard/Dashboard";
 import { listTasks, tasksForUser } from "@/lib/services/tasks";
@@ -9,6 +9,8 @@ import { countPending } from "@/lib/services/ai-proposals";
 import { reviewState } from "@/lib/recurrence";
 import { collectionCounts, listCollections } from "@/lib/drive/sync";
 import { getIntegration, MANUAL_TOKEN } from "@/lib/integrations/jobber";
+import { listMembers } from "@/lib/services/members";
+import { TASK_CATEGORIES } from "@/db/schema";
 
 const safeHost = (u: string) => {
   try {
@@ -21,6 +23,7 @@ const safeHost = (u: string) => {
 export default async function Home({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const { user, workspace, role } = await requireWorkspacePage(slug);
+  await ensureTrackerWidget(workspace.id);
   const [widgets, tree, allTasks, flags, library, collections, counts, jobber, pendingAi] = await Promise.all([
     listWidgets(workspace.id),
     listTree(workspace.id),
@@ -70,6 +73,14 @@ export default async function Home({ params }: { params: Promise<{ slug: string 
           return { ...base, items: collections.map((c) => ({ id: c.id, title: c.label, icon: c.icon, count: counts.get(c.id) ?? 0, kind: c.kind })) };
         case "jobber":
           return { ...base, items: [], connected: Boolean(jobber), manual: jobber?.accessToken === MANUAL_TOKEN, fieldTool: workspace.fieldTool };
+        case "tracker": {
+          const { members } = await listMembers(workspace.id);
+          return {
+            ...base,
+            items: [],
+            tracker: { tasks: allTasks, members: members.map((m) => ({ id: m.userId, name: m.name ?? m.email })), pages: tree.map((p) => ({ id: p.id, title: p.title || "Untitled", icon: p.icon })), categories: TASK_CATEGORIES, me: user.id, canEdit: can(role, "edit") },
+          };
+        }
         default:
           return { ...base, items: [] };
       }

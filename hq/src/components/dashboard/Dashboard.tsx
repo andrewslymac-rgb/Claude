@@ -9,9 +9,12 @@ import { GripVertical, Pencil, Plus, Trash2, Maximize2, Minimize2, X, LayoutDash
 import { addWidgetAction, removeWidgetAction, reorderWidgetsAction, setupCommandCenterAction, updateWidgetAction } from "@/app/actions";
 import type { FieldTool, LinkItem, WidgetConfig, WidgetType } from "@/db/schema";
 import { JobberTile } from "./JobberTile";
+import { Tracker } from "@/components/tasks/Tracker";
+import type { TaskRow } from "@/lib/services/tasks";
 
 type Item = { id: string; title: string; icon: string | null; updatedAt?: string; updatedBy?: string | null; source?: string; state?: string; nextDueOn?: string | null; review?: string; count?: number; kind?: string };
-export type WidgetData = { id: string; type: WidgetType; title: string; width: number; config: WidgetConfig; items: Item[]; connected?: boolean; manual?: boolean; fieldTool?: FieldTool };
+export type TrackerData = { tasks: TaskRow[]; members: { id: string; name: string }[]; pages: PageOpt[]; categories: readonly string[]; me: string; canEdit: boolean };
+export type WidgetData = { id: string; type: WidgetType; title: string; width: number; config: WidgetConfig; items: Item[]; connected?: boolean; manual?: boolean; fieldTool?: FieldTool; tracker?: TrackerData };
 export type Stat = { key: string; label: string; value: number; href: string; tone: "danger" | "warn" | "accent" | "ok" | "muted" };
 type Catalog = Record<WidgetType, { title: string; description: string; emoji: string; available: boolean; width: number }>;
 type PageOpt = { id: string; title: string; icon: string | null };
@@ -221,6 +224,8 @@ function WidgetBody({ w, slug, stats, canCustomize }: { w: WidgetData; slug: str
       </div>
     );
   }
+
+  if (w.type === "tracker" && w.tracker) return <Tracker mode="dashboard" slug={slug} tasks={w.tracker.tasks} members={w.tracker.members} pages={w.tracker.pages} categories={w.tracker.categories} me={w.tracker.me} canEdit={w.tracker.canEdit} />;
 
   if (w.type === "jobber") return <JobberTile slug={slug} fieldTool={w.fieldTool ?? "none"} connected={Boolean(w.connected)} manual={w.manual} canManage={canCustomize} />;
 

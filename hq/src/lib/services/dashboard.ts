@@ -7,6 +7,7 @@ import { FIELD_TOOL_INFO } from "@/lib/field-tools";
 const { dashboardWidgets, workspaces } = schema;
 
 export const WIDGET_CATALOG: Record<WidgetType, { title: string; description: string; emoji: string; available: boolean; width: number }> = {
+  tracker: { title: "Tracker", description: "Daily, weekly, monthly, quarterly and annual work by person. Tick it off here.", emoji: "☑️", available: true, width: 3 },
   stats: { title: "At a glance", description: "Live numbers: overdue tasks, flags, reviews due, today's jobs", emoji: "📊", available: true, width: 3 },
   tools: { title: "Tools", description: "Big buttons to Jobber, QuickBooks, Slack and everything else you use", emoji: "🧰", available: true, width: 3 },
   jobber: { title: "Today in the field", description: "Today's schedule, new requests, quotes waiting, overdue invoices from Jobber or GorillaDesk", emoji: "🧰", available: true, width: 2 },
@@ -47,6 +48,15 @@ function toolsFor(fieldTool: FieldTool): LinkItem[] {
   return [...first, ...DEFAULT_TOOLS];
 }
 
+/** Dashboards set up before the tracker existed get it slotted in after Tools, once. */
+export async function ensureTrackerWidget(workspaceId: string) {
+  const ws = await listWidgets(workspaceId);
+  if (ws.some((w) => w.type === "tracker")) return;
+  const tools = ws.find((w) => w.type === "tools");
+  if (!tools) return;
+  await db.insert(dashboardWidgets).values({ workspaceId, type: "tracker", title: WIDGET_CATALOG.tracker.title, config: {}, width: 3, position: tools.position + 0.5 });
+}
+
 export async function listWidgets(workspaceId: string) {
   return db.select().from(dashboardWidgets).where(eq(dashboardWidgets.workspaceId, workspaceId)).orderBy(asc(dashboardWidgets.position));
 }
@@ -82,7 +92,7 @@ export async function setupCommandCenter(workspaceId: string) {
   const keepTools = existing.find((w) => w.type === "tools")?.config.links ?? existing.find((w) => w.type === "links")?.config.links;
   const fieldTool = await fieldToolOf(workspaceId);
   await db.delete(dashboardWidgets).where(eq(dashboardWidgets.workspaceId, workspaceId));
-  const order: WidgetType[] = ["stats", "tools", ...(fieldTool === "none" ? [] : (["jobber"] as WidgetType[])), "collections", "tasks", "flags", "reviews", "recent"];
+  const order: WidgetType[] = ["stats", "tools", "tracker", ...(fieldTool === "none" ? [] : (["jobber"] as WidgetType[])), "collections", "flags", "reviews", "recent"];
   for (const [i, type] of order.entries()) {
     const config = type === "tools" && keepTools?.length ? { links: keepTools } : defaultsFor(type, fieldTool);
     await db.insert(dashboardWidgets).values({ workspaceId, type, title: WIDGET_CATALOG[type].title, config, width: WIDGET_CATALOG[type].width, position: i + 1 });

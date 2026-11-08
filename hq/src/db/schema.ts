@@ -210,6 +210,7 @@ export const widgetTypeEnum = pgEnum("widget_type", [
   "jobber", // live Jobber tile: today's schedule, new requests, quotes, overdue invoices
   "collections", // document areas (SOPs, Legal, Licensing…) with counts
   "flags", // open flags
+  "tracker", // daily / weekly / monthly / quarterly / annual tracker by person
 ]);
 
 /** appUrl: a phone "deep link" such as slack://open; used on mobile, with url as the fallback. */
@@ -314,6 +315,8 @@ export const tasks = pgTable(
     /** Denormalized from the latest completion. */
     lastDoneOn: date("last_done_on"),
     nextDueOn: date("next_due_on"),
+    /** One-time override of the next due date ("skip this week", "push to Friday"). Cleared on completion. */
+    dueOverride: date("due_override"),
     archivedAt: timestamp("archived_at", { withTimezone: true }),
     createdById: uuid("created_by_id").references(() => users.id, { onDelete: "set null" }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

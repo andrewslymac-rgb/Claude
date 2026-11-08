@@ -8,6 +8,7 @@ import * as pagesSvc from "@/lib/services/pages";
 import * as tasksSvc from "@/lib/services/tasks";
 import * as flagsSvc from "@/lib/services/flags";
 import { listWidgets } from "@/lib/services/dashboard";
+import { listMembers } from "@/lib/services/members";
 import { blocksToMarkdown, markdownToBlocks } from "@/lib/markdown";
 import { fmtDate, FREQUENCY_LABELS, DUE_LABELS } from "@/lib/recurrence";
 import type { Actor } from "@/lib/services/actor";
@@ -66,9 +67,10 @@ export function buildServer(p: AiPrincipal) {
     return text(`# ${page.icon ?? ""} ${page.title || "Untitled"}\n_${meta}_\n\n${md}`);
   });
 
-  server.registerTool("list_tasks", { title: "List tasks", description: "Recurring and one-off tasks with due state, owner and frequency. Filter by 'attention' (overdue or due today) or a frequency.", inputSchema: { filter: z.enum(["all", "attention", "daily", "weekly", "monthly", "quarterly", "annual", "once"]).optional() } }, async ({ filter }) => {
+  server.registerTool("list_tasks", { title: "List tasks", description: "The tracker: recurring and one-off tasks with due state, owner and cadence. Filter by 'attention' (overdue or due today) or a cadence, and/or by person (name).", inputSchema: { filter: z.enum(["all", "attention", "daily", "weekly", "monthly", "quarterly", "annual", "once"]).optional(), person: z.string().max(100).optional() } }, async ({ filter, person }) => {
     const all = await tasksSvc.listTasks(ws);
-    const rows = all.filter((t) => !filter || filter === "all" || (filter === "attention" ? t.state === "overdue" || t.state === "today" : t.frequency === filter));
+    const q = person?.trim().toLowerCase();
+    const rows = all.filter((t) => (!filter || filter === "all" || (filter === "attention" ? t.state === "overdue" || t.state === "today" : t.frequency === filter)) && (!q || t.assignees.some((a) => a.name.toLowerCase() === q || a.name.toLowerCase().split(" ")[0] === q)));
     if (!rows.length) return text("No tasks match.");
     return text(rows.map((t) => `- ${t.title} (id: ${t.id}) · ${FREQUENCY_LABELS[t.frequency]}${t.whenText ? ` · ${t.whenText}` : ""} · ${DUE_LABELS[t.state].label}${t.nextDueOn ? ` ${fmtDate(t.nextDueOn)}` : ""} · owner: ${t.assignees.map((a) => a.name).join(", ") || t.ownerRole || "anyone"}${t.category ? ` · ${t.category}` : ""}`).join("\n"));
   });
@@ -156,13 +158,39 @@ export function buildServer(p: AiPrincipal) {
 
   // ------------------------------------------------------------------ write: tasks
   if (can("write:tasks")) {
+    const freq = z.enum(["once", "daily", "weekly", "monthly", "quarterly", "annual"]);
+    const people = z.array(z.string().max(100)).max(20).optional().describe("Names or emails of workspace members, e.g. [\"Brittany\"]. Empty list = anyone.");
+
     server.registerTool(
       "create_task",
-      { title: "Create a task", description: "Creates a one-off or recurring task.", inputSchema: { title: z.string().min(1).max(200), frequency: z.enum(["once", "daily", "weekly", "monthly", "quarterly", "annual"]).optional(), when_text: z.string().max(120).optional().describe('e.g. "Every Friday" or "By the 5th"'), due_on: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(), category: z.string().max(40).optional(), instructions: z.string().max(5000).optional(), owner_role: z.string().max(60).optional() } },
+      {
+        title: "Create a task",
+        description: "Creates a one-off or recurring task on the tracker, optionally assigned to people by name.",
+        inputSchema: { title: z.string().min(1).max(200), frequency: freq.optional(), when_text: z.string().max(120).optional().describe('e.g. "Every Friday" or "By the 5th"'), due_on: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(), category: z.string().max(40).optional(), instructions: z.string().max(5000).optional(), owner_role: z.string().max(60).optional(), assignees: people },
+      },
       async (a) => {
-        const t = await tasksSvc.createTask(ws, { title: a.title, frequency: (a.frequency ?? "once") as Frequency, whenText: a.when_text, dueOn: a.due_on, category: a.category, instructions: a.instructions, ownerRole: a.owner_role }, p.userId);
+        const r = a.assignees ? await tasksSvc.resolveAssignees(ws, a.assignees) : { ids: [], unknown: [] };
+        if (r.unknown.length) return fail(`I don't know who ${r.unknown.join(", ")} is. Use list_members to see the team.`);
+        const t = await tasksSvc.createTask(ws, { title: a.title, frequency: (a.frequency ?? "once") as Frequency, whenText: a.when_text, dueOn: a.due_on, category: a.category, instructions: a.instructions, ownerRole: a.owner_role, assigneeIds: r.ids }, p.userId);
         await logActivity({ workspaceId: ws, grantId: p.grantId, tool: "create_task", summary: `Created task "${a.title}" (${FREQUENCY_LABELS[t.frequency]})`, taskId: t.id });
-        return text(`Created task "${a.title}" (id: ${t.id}), next due ${t.nextDueOn ? fmtDate(t.nextDueOn) : "unscheduled"}.`);
+        return text(`Created task "${a.title}" (id: ${t.id}), ${FREQUENCY_LABELS[t.frequency]}, next due ${t.nextDueOn ? fmtDate(t.nextDueOn) : "unscheduled"}${r.ids.length ? `, assigned to ${a.assignees!.join(", ")}` : ""}.`);
+      },
+    );
+
+    server.registerTool(
+      "update_task",
+      {
+        title: "Edit a task",
+        description: "Changes a task's title, cadence, when-text, due date, category, instructions, role or assignees. Only the fields you pass change. Pass assignees to replace who does it.",
+        inputSchema: { task_id: z.string().uuid(), title: z.string().min(1).max(200).optional(), frequency: freq.optional(), when_text: z.string().max(120).nullable().optional(), due_on: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(), category: z.string().max(40).nullable().optional(), instructions: z.string().max(5000).optional(), owner_role: z.string().max(60).nullable().optional(), assignees: people },
+      },
+      async (a) => {
+        const r = a.assignees ? await tasksSvc.resolveAssignees(ws, a.assignees) : null;
+        if (r?.unknown.length) return fail(`I don't know who ${r.unknown.join(", ")} is. Use list_members to see the team.`);
+        await tasksSvc.updateTask(ws, a.task_id, { title: a.title, frequency: a.frequency as Frequency | undefined, whenText: a.when_text, dueOn: a.due_on, category: a.category, instructions: a.instructions, ownerRole: a.owner_role, assigneeIds: r?.ids });
+        const t = (await tasksSvc.listTasks(ws)).find((x) => x.id === a.task_id);
+        await logActivity({ workspaceId: ws, grantId: p.grantId, tool: "update_task", summary: `Edited task "${t?.title ?? a.task_id}"`, taskId: a.task_id });
+        return text(t ? `Updated "${t.title}": ${FREQUENCY_LABELS[t.frequency]}${t.whenText ? ` · ${t.whenText}` : ""} · next due ${t.nextDueOn ? fmtDate(t.nextDueOn) : "—"} · owner: ${t.assignees.map((x) => x.name).join(", ") || t.ownerRole || "anyone"}` : "Updated.");
       },
     );
 
@@ -171,6 +199,33 @@ export function buildServer(p: AiPrincipal) {
       const t = (await tasksSvc.listTasks(ws)).find((x) => x.id === task_id);
       await logActivity({ workspaceId: ws, grantId: p.grantId, tool: "complete_task", summary: `Marked "${t?.title ?? task_id}" done`, taskId: task_id });
       return text(`Done. ${t ? `Next due ${t.nextDueOn ? fmtDate(t.nextDueOn) : "—"}.` : ""}`);
+    });
+
+    server.registerTool("undo_complete_task", { title: "Undo a completion", description: "Removes the most recent completion of a task (if it was within the last 7 days).", inputSchema: { task_id: z.string().uuid() } }, async ({ task_id }) => {
+      await tasksSvc.undoComplete(ws, task_id);
+      const t = (await tasksSvc.listTasks(ws)).find((x) => x.id === task_id);
+      await logActivity({ workspaceId: ws, grantId: p.grantId, tool: "undo_complete_task", summary: `Un-did the completion of "${t?.title ?? task_id}"`, taskId: task_id });
+      return text(`Undone. ${t ? `Now ${DUE_LABELS[t.state].label.toLowerCase()}${t.nextDueOn ? `, due ${fmtDate(t.nextDueOn)}` : ""}.` : ""}`);
+    });
+
+    server.registerTool("skip_task", { title: "Skip or move a task's due date", description: "Pushes a task's next due date without marking it done: to a specific date, or (with no date) one period out / a week for one-offs.", inputSchema: { task_id: z.string().uuid(), to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional() } }, async ({ task_id, to }) => {
+      const target = await tasksSvc.moveDue(ws, task_id, to);
+      const t = (await tasksSvc.listTasks(ws)).find((x) => x.id === task_id);
+      await logActivity({ workspaceId: ws, grantId: p.grantId, tool: "skip_task", summary: `Moved "${t?.title ?? task_id}" to ${fmtDate(target)}`, taskId: task_id });
+      return text(`"${t?.title ?? "Task"}" is now due ${fmtDate(target)}.`);
+    });
+
+    server.registerTool("remove_task", { title: "Remove a task", description: "Takes a task off the tracker. Its history is kept and an admin can restore it.", inputSchema: { task_id: z.string().uuid() } }, async ({ task_id }) => {
+      const t = (await tasksSvc.listTasks(ws)).find((x) => x.id === task_id);
+      if (!t) return fail("Task not found.");
+      await tasksSvc.archiveTask(ws, task_id);
+      await logActivity({ workspaceId: ws, grantId: p.grantId, tool: "remove_task", summary: `Removed task "${t.title}"`, taskId: task_id });
+      return text(`Removed "${t.title}".`);
+    });
+
+    server.registerTool("list_members", { title: "List the team", description: "People in this company and their roles, for assigning tasks.", inputSchema: {} }, async () => {
+      const { members } = await listMembers(ws);
+      return text(members.map((m) => `- ${m.name ?? m.email} (${m.email}) · ${m.role}`).join("\n") || "No members.");
     });
   }
 
