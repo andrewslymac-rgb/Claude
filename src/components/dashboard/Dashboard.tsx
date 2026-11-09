@@ -41,7 +41,7 @@ export function Dashboard({ slug, widgets: initial, stats, canCustomize, catalog
   return (
     <div className="mt-8">
       {canCustomize && (
-        <div className="mb-3 flex flex-wrap justify-end gap-2">
+        <div className="mb-3 flex flex-wrap justify-end gap-2 text-sm">
           {editing && (
             <button onClick={() => setAdding(true)} className="flex items-center gap-1 rounded-lg border border-line px-3 py-1.5 text-sm hover:bg-hover">
               <Plus size={14} /> Add widget
@@ -399,8 +399,8 @@ function AppLink({ link, className, children }: { link: LinkItem; className: str
 
 function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onMouseDown={onClose}>
-      <div className="max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-xl border border-line bg-card p-4 shadow-2xl md:p-6" onMouseDown={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-0 sm:items-center sm:p-4" onMouseDown={onClose}>
+      <div className="pb-safe max-h-[92dvh] w-full max-w-lg overflow-y-auto rounded-t-2xl border border-line bg-card p-4 shadow-2xl sm:rounded-xl md:p-6" onMouseDown={(e) => e.stopPropagation()}>
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-semibold">{title}</h2>
           <button onClick={onClose} className="rounded p-1 hover:bg-hover" aria-label="Close">

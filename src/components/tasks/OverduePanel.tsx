@@ -94,7 +94,7 @@ export function OverduePanel({ slug, items, me, canEdit, onClose }: { slug: stri
                         <Check size={15} />
                       </button>
                       <div className="min-w-0 flex-1">
-                        <Link href={`/w/${slug}/tasks`} onClick={onClose} className="block truncate text-sm font-medium hover:underline">
+                        <Link href={`/w/${slug}/tasks`} onClick={onClose} className="line-clamp-2 block text-sm font-medium leading-snug hover:underline">
                           {t.title}
                         </Link>
                         <div className="truncate text-xs text-ink-faint">

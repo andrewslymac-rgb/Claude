@@ -166,7 +166,7 @@ export function Tracker({ slug, tasks, members, roles = [], pages, categories, m
                         <Check size={14} />
                       </button>
                       <button onClick={() => setOpen(t)} className="min-w-0 flex-1 text-left">
-                        <div className={`truncate text-sm ${done ? "text-ink-faint line-through decoration-ink-faint/50" : ""}`}>{t.title}</div>
+                        <div className={`line-clamp-2 text-sm leading-snug ${done ? "text-ink-faint line-through decoration-ink-faint/50" : ""}`}>{t.title}</div>
                         <div className="truncate text-[11px] text-ink-faint">
                           {t.whenText || (t.nextDueOn && !done ? fmtDate(t.nextDueOn) : "")}
                           {groupBy === "list" && (t.assignees.length || t.role || t.ownerRole) ? ` · ${[...t.assignees.map((a) => a.name.split(" ")[0]), t.role ? `${t.role.emoji} ${t.role.name}` : null].filter(Boolean).join(", ") || t.ownerRole}` : ""}
@@ -288,8 +288,8 @@ function ReassignDialog({ task, members, roles, onClose, onSave }: { task: TaskR
   const [ids, setIds] = useState<string[]>(task.assignees.map((a) => a.id));
   const [roleId, setRoleId] = useState<string | null>(task.roleId);
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onMouseDown={onClose}>
-      <div className="w-full max-w-md rounded-xl border border-line bg-card p-5 shadow-2xl" onMouseDown={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-0 sm:items-center sm:p-4" onMouseDown={onClose}>
+      <div className="pb-safe max-h-[92dvh] w-full max-w-md overflow-y-auto rounded-t-2xl border border-line bg-card p-5 shadow-2xl sm:rounded-xl" onMouseDown={(e) => e.stopPropagation()}>
         <h3 className="text-lg font-semibold">Who does this?</h3>
         <p className="mt-0.5 truncate text-sm text-ink-soft">{task.title}</p>
         <div className="mt-3 flex flex-wrap gap-1.5">

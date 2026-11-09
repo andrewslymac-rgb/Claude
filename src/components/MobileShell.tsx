@@ -68,7 +68,7 @@ export function MobileShell({ sidebar, children, title, icon, slug, overdue = 0,
             </button>
           )}
           <span className="text-lg">{icon}</span>
-          <span className="min-w-0 flex-1 truncate font-semibold">{title}</span>
+          <span className="line-clamp-2 min-w-0 flex-1 text-[15px] font-semibold leading-tight">{title}</span>
           <OrbitLogo size={20} className="text-accent" />
         </header>
         <main className="min-w-0 flex-1 overflow-y-auto pb-20 scrollbar-thin md:pb-0">{children}</main>

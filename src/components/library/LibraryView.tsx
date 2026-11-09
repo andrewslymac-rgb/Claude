@@ -132,7 +132,7 @@ export function LibraryView({ slug, docs, log, types, areas, collections }: { sl
                 <Link href={`/w/${slug}/p/${d.id}`} className="block rounded-xl border border-line bg-card p-3 active:bg-hover">
                   <div className="flex items-center gap-2 font-medium">
                     <span>{d.icon ?? "📄"}</span>
-                    <span className="min-w-0 flex-1 truncate">{d.title || "Untitled"}</span>
+                    <span className="line-clamp-2 min-w-0 flex-1">{d.title || "Untitled"}</span>
                     {d.docStatus && <span className={`shrink-0 rounded px-1.5 py-0.5 text-[11px] font-medium ${STATUS_LABELS[d.docStatus].cls}`}>{STATUS_LABELS[d.docStatus].label}</span>}
                   </div>
                   <div className="mt-1 flex flex-wrap gap-x-2 text-xs text-ink-faint">

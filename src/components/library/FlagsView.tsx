@@ -60,7 +60,7 @@ export function FlagsView({ slug, flags, pages, canEdit }: { slug: string; flags
             <div className="flex flex-wrap items-start gap-2">
               <span className={`rounded px-2 py-0.5 text-xs font-medium ${SEV[f.severity]}`}>{f.severity[0].toUpperCase() + f.severity.slice(1)}</span>
               <span className="rounded bg-hover px-2 py-0.5 text-xs text-ink-soft">{FLAG_TYPE_LABELS[f.type]}</span>
-              <button onClick={() => canEdit && setEditing(f)} className="min-w-0 flex-1 text-left font-medium hover:underline">
+              <button onClick={() => canEdit && setEditing(f)} className="order-last w-full basis-full text-left font-medium hover:underline sm:order-none sm:w-auto sm:min-w-0 sm:flex-1 sm:basis-auto">
                 {f.title}
               </button>
               {canEdit ? (
@@ -114,8 +114,8 @@ export function FlagForm({ slug, flag, pages, presetPageId, onClose }: { slug: s
   const set = (k: keyof typeof v, val: string) => setV({ ...v, [k]: val });
   const field = "mt-1 w-full rounded-lg border border-line bg-paper px-3 py-2 text-sm";
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onMouseDown={onClose}>
-      <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl border border-line bg-card p-6 shadow-2xl" onMouseDown={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-0 sm:items-center sm:p-4" onMouseDown={onClose}>
+      <div className="pb-safe max-h-[92dvh] w-full max-w-lg overflow-y-auto rounded-t-2xl border border-line bg-card p-6 shadow-2xl sm:rounded-xl" onMouseDown={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold">{flag ? "Edit flag" : "New flag"}</h2>
           <button onClick={onClose} className="rounded p-1 hover:bg-hover" aria-label="Close">

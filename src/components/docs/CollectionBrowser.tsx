@@ -114,7 +114,7 @@ export function CollectionBrowser({ slug, collection, rows }: { slug: string; co
             <button key={f.id} onClick={() => setFolder(f.id)} className="flex items-center gap-2 rounded-xl border border-line bg-card px-3 py-3 text-left hover:border-ink-faint hover:bg-hover">
               <span className="text-2xl">📁</span>
               <span className="min-w-0">
-                <span className="block truncate text-sm font-medium">{f.title}</span>
+                <span className="line-clamp-2 block text-sm font-medium">{f.title}</span>
                 <span className="block text-xs text-ink-faint">{countIn(f.id)} items</span>
               </span>
             </button>
@@ -130,7 +130,7 @@ export function CollectionBrowser({ slug, collection, rows }: { slug: string; co
             <div key={f.id} className="group flex items-start gap-3 rounded-xl border border-line bg-card p-3 hover:border-ink-faint">
               <span className="mt-0.5 text-2xl">{f.icon ?? "📄"}</span>
               <div className="min-w-0 flex-1">
-                <Link href={`/w/${slug}/p/${f.id}`} className="block truncate text-sm font-medium hover:underline">
+                <Link href={`/w/${slug}/p/${f.id}`} className="line-clamp-2 block text-sm font-medium hover:underline">
                   {f.title}
                 </Link>
                 <div className="truncate text-xs text-ink-faint">
