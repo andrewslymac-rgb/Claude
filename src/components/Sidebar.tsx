@@ -61,7 +61,7 @@ export function Sidebar(props: { workspace: Ws; workspaces: Ws[]; tree: Node[]; 
     });
 
   return (
-    <aside className="flex h-full w-full flex-col border-r border-line bg-side text-[15px] md:text-[14px]">
+    <aside className="pt-safe flex h-full w-full flex-col border-r border-line bg-side text-[15px] md:text-[14px]">
       <Link href="/" className="flex items-center gap-2 px-4 pt-4 text-accent hover:opacity-80" title="All companies">
         <OrbitLogo size={22} />
         <span className="text-lg font-bold tracking-tight text-ink">orbit</span>
@@ -121,7 +121,7 @@ export function Sidebar(props: { workspace: Ws; workspaces: Ws[]; tree: Node[]; 
         )}
       </div>
 
-      <div className="space-y-0.5 border-t border-line px-2 py-2">
+      <div className="space-y-0.5 border-t border-line px-2 py-2 pb-20 md:pb-2">
         <NavItem href={`${base}/ai`} icon={<Bot size={16} />} label="AI" active={pathname === `${base}/ai`} badge={props.pendingAi || undefined} />
         <NavItem href={`${base}/trash`} icon={<Trash2 size={16} />} label="Trash" active={pathname === `${base}/trash`} />
         <NavItem href={`${base}/settings`} icon={<Settings size={16} />} label="Settings" active={pathname.startsWith(`${base}/settings`)} />

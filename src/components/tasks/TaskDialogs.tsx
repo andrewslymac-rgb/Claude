@@ -27,7 +27,7 @@ export function TaskDrawer({ slug, task, members, roles = [], pages, categories,
   if (editing) return <TaskForm slug={slug} task={task} members={members} roles={roles} pages={pages} categories={categories} onClose={() => setEditing(false)} />;
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-black/60" onMouseDown={onClose}>
-      <div className="flex h-full w-full max-w-lg flex-col overflow-y-auto border-l border-line bg-card p-4 shadow-2xl md:p-6" onMouseDown={(e) => e.stopPropagation()}>
+      <div className="pt-safe pb-safe flex h-full w-full max-w-lg flex-col overflow-y-auto border-l border-line bg-card p-4 shadow-2xl md:p-6" onMouseDown={(e) => e.stopPropagation()}>
         <div className="flex items-start justify-between gap-3">
           <h2 className="text-xl font-semibold">{task.title}</h2>
           <button onClick={onClose} className="rounded p-1 hover:bg-hover" aria-label="Close">
