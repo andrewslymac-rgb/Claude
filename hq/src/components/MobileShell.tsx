@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
-import { Menu, X, Home, CheckSquare, AlertTriangle, Library } from "lucide-react";
+import { Menu, X, Home, CheckSquare, AlertTriangle, Library, ChevronLeft } from "lucide-react";
 import { OrbitLogo } from "./OrbitLogo";
 
 /**
@@ -13,7 +13,33 @@ import { OrbitLogo } from "./OrbitLogo";
 export function MobileShell({ sidebar, children, title, icon, slug, overdue = 0, attention = 0 }: { sidebar: React.ReactNode; children: React.ReactNode; title: string; icon: string; slug: string; overdue?: number; attention?: number }) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
-  useEffect(() => setOpen(false), [pathname]); // close after navigating
+  const router = useRouter();
+  // Home-screen apps have no browser chrome, so Orbit keeps its own back button.
+  // We count in-app navigations in this tab so Back only shows when there is somewhere to go.
+  const [depth, setDepth] = useState(0);
+  useEffect(() => {
+    setOpen(false); // close the drawer after navigating
+    try {
+      const key = "orbit_nav_depth";
+      const last = sessionStorage.getItem("orbit_nav_last");
+      let d = Number(sessionStorage.getItem(key) ?? "0");
+      if (last && last !== pathname) d += 1;
+      sessionStorage.setItem(key, String(d));
+      sessionStorage.setItem("orbit_nav_last", pathname);
+      setDepth(d);
+    } catch {
+      setDepth(1);
+    }
+  }, [pathname]);
+  const goBack = () => {
+    try {
+      const d = Math.max(0, Number(sessionStorage.getItem("orbit_nav_depth") ?? "0") - 2); // the pop itself re-counts +1
+      sessionStorage.setItem("orbit_nav_depth", String(d));
+    } catch {}
+    if (window.history.length > 1) router.back();
+    else router.push(`/w/${slug}`);
+  };
+  const isHome = pathname === `/w/${slug}`;
   useEffect(() => {
     document.body.style.overflow = open ? "hidden" : "";
     return () => {
@@ -32,9 +58,15 @@ export function MobileShell({ sidebar, children, title, icon, slug, overdue = 0,
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Mobile top bar */}
         <header className="pt-safe flex shrink-0 items-center gap-2 border-b border-line bg-side px-3 md:hidden">
-          <button onClick={() => setOpen((o) => !o)} className="my-1 flex h-10 w-10 items-center justify-center rounded-lg text-ink-soft active:bg-hover" aria-label="Menu">
-            {open ? <X size={22} /> : <Menu size={22} />}
-          </button>
+          {!isHome && depth > 0 ? (
+            <button onClick={goBack} className="my-1 -ml-1 flex h-10 min-w-10 items-center justify-center gap-0.5 rounded-lg pr-2 text-accent active:bg-hover" aria-label="Back">
+              <ChevronLeft size={24} /> <span className="text-sm">Back</span>
+            </button>
+          ) : (
+            <button onClick={() => setOpen((o) => !o)} className="my-1 flex h-10 w-10 items-center justify-center rounded-lg text-ink-soft active:bg-hover" aria-label="Menu">
+              {open ? <X size={22} /> : <Menu size={22} />}
+            </button>
+          )}
           <span className="text-lg">{icon}</span>
           <span className="min-w-0 flex-1 truncate font-semibold">{title}</span>
           <OrbitLogo size={20} className="text-accent" />

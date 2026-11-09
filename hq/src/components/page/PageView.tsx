@@ -4,7 +4,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
-import { History, MoreHorizontal, BookMarked, Trash2, Check, Loader2, AlertCircle, ExternalLink, FileCheck2, ClipboardList, Flag } from "lucide-react";
+import { History, MoreHorizontal, BookMarked, Trash2, Check, Loader2, AlertCircle, ExternalLink, FileCheck2, ClipboardList, Flag, ChevronLeft } from "lucide-react";
 import { FlagForm } from "@/components/library/FlagsView";
 import { DocInfo, type DocInfoData } from "./DocInfo";
 import { LogChangeDialog } from "./LogChangeDialog";
@@ -91,6 +91,9 @@ export function PageView({ slug, page, crumbs, subpages, canEdit, docInfo, membe
       {/* Top bar */}
       <div className="sticky top-0 z-20 flex h-11 items-center gap-1 bg-paper/90 px-2 text-sm backdrop-blur md:gap-2 md:px-4">
         <nav className="flex min-w-0 flex-1 items-center gap-1 text-ink-soft">
+          <button onClick={() => (window.history.length > 1 ? router.back() : router.push(`/w/${slug}`))} className="hidden h-7 w-7 shrink-0 items-center justify-center rounded text-ink-faint hover:bg-hover hover:text-ink md:flex" title="Back" aria-label="Back">
+            <ChevronLeft size={16} />
+          </button>
           {crumbs.map((c) => (
             <span key={c.id} className="hidden min-w-0 items-center gap-1 sm:flex">
               <Link href={`/w/${slug}/p/${c.id}`} className="truncate rounded px-1 py-0.5 hover:bg-hover">
