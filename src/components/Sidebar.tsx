@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
-import { ChevronDown, ChevronRight, Home, LogOut, MoreHorizontal, Plus, Search, Settings, Trash2, CheckSquare, BookOpen, Library, Flag, Bot, FolderOpen } from "lucide-react";
+import { ChevronDown, ChevronRight, Home, LogOut, MoreHorizontal, Plus, Search, Settings, Trash2, CheckSquare, BookOpen, Library, Flag, Bot, FolderOpen, AlertTriangle } from "lucide-react";
+import { OverduePanel, type OverdueItem } from "./tasks/OverduePanel";
 import { archivePageAction, createPageAction, movePageAction, signOutAction } from "@/app/actions";
 import { SearchPalette } from "./SearchPalette";
 import { NewWorkspaceDialog } from "./NewWorkspaceForm";
@@ -13,8 +14,14 @@ type Ws = { slug: string; name: string; icon: string; color: string };
 type Node = { id: string; parentId: string | null; title: string; icon: string | null; position: number; isSop: boolean; source: string };
 export type CollectionNav = { id: string; label: string; icon: string; count: number; rootPageId: string | null };
 
-export function Sidebar(props: { workspace: Ws; workspaces: Ws[]; tree: Node[]; collections: CollectionNav[]; user: { name: string; email: string; isAppAdmin: boolean }; canEdit: boolean; canManage: boolean; attention?: number; openFlags?: number; pendingAi?: number }) {
+export function Sidebar(props: { workspace: Ws; workspaces: Ws[]; tree: Node[]; collections: CollectionNav[]; user: { name: string; email: string; isAppAdmin: boolean }; canEdit: boolean; canManage: boolean; attention?: number; overdue: OverdueItem[]; me: string; openFlags?: number; pendingAi?: number }) {
   const { workspace, canEdit, collections } = props;
+  const [overdueOpen, setOverdueOpen] = useState(false);
+  useEffect(() => {
+    const onOpen = () => setOverdueOpen(true);
+    window.addEventListener("orbit:open-overdue", onOpen);
+    return () => window.removeEventListener("orbit:open-overdue", onOpen);
+  }, []);
   // Document areas have their own section; keep their synced pages out of the free-form Pages tree.
   const tree = useMemo(() => {
     const roots = new Set(collections.map((c) => c.rootPageId).filter(Boolean) as string[]);
@@ -67,7 +74,11 @@ export function Sidebar(props: { workspace: Ws; workspaces: Ws[]; tree: Node[]; 
           <Search size={16} /> Search
           <kbd className="ml-auto rounded border border-line bg-card px-1 text-[10px] text-ink-faint">Ctrl K</kbd>
         </button>
-        <NavItem href={`${base}/tasks`} icon={<CheckSquare size={16} />} label="Tasks" active={pathname.startsWith(`${base}/tasks`)} badge={props.attention || undefined} />
+        <NavItem href={`${base}/tasks`} icon={<CheckSquare size={16} />} label="Tracker" active={pathname.startsWith(`${base}/tasks`)} badge={props.attention || undefined} />
+        <button onClick={() => setOverdueOpen(true)} className={`flex min-h-10 w-full items-center gap-2 rounded-md px-2 py-1.5 md:min-h-0 ${props.overdue.length ? "text-danger hover:bg-danger-soft" : "text-ink-soft hover:bg-hover"}`}>
+          <AlertTriangle size={16} /> <span className="flex-1 text-left">Past due</span>
+          {props.overdue.length > 0 && <span className="rounded-full bg-danger px-1.5 text-[11px] font-semibold text-paper">{props.overdue.length}</span>}
+        </button>
         <NavItem href={`${base}/library`} icon={<Library size={16} />} label="Document Library" active={pathname.startsWith(`${base}/library`)} />
         <NavItem href={`${base}/flags`} icon={<Flag size={16} />} label="Flags" active={pathname.startsWith(`${base}/flags`)} badge={props.openFlags || undefined} />
       </nav>
@@ -122,6 +133,7 @@ export function Sidebar(props: { workspace: Ws; workspaces: Ws[]; tree: Node[]; 
       </div>
 
       {searchOpen && <SearchPalette slug={workspace.slug} onClose={() => setSearchOpen(false)} />}
+      {overdueOpen && <OverduePanel slug={workspace.slug} items={props.overdue} me={props.me} canEdit={canEdit} onClose={() => setOverdueOpen(false)} />}
     </aside>
   );
 }

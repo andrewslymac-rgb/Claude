@@ -199,12 +199,19 @@ function WidgetBody({ w, slug, stats, canCustomize }: { w: WidgetData; slug: str
   if (w.type === "stats")
     return (
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
-        {stats.map((s) => (
-          <Link key={s.key} href={s.href} className="rounded-lg border border-line bg-side px-3 py-2 hover:border-ink-faint">
-            <div className="text-[11px] uppercase tracking-wide text-ink-faint">{s.label}</div>
-            <div className={`text-2xl font-semibold ${STAT_TONE[s.tone]}`}>{s.value}</div>
-          </Link>
-        ))}
+        {stats.map((s) =>
+          s.key === "overdue" ? (
+            <button key={s.key} onClick={() => window.dispatchEvent(new Event("orbit:open-overdue"))} className="rounded-lg border border-line bg-side px-3 py-2 text-left hover:border-ink-faint">
+              <div className="text-[11px] uppercase tracking-wide text-ink-faint">{s.label}</div>
+              <div className={`text-2xl font-semibold ${STAT_TONE[s.tone]}`}>{s.value}</div>
+            </button>
+          ) : (
+            <Link key={s.key} href={s.href} className="rounded-lg border border-line bg-side px-3 py-2 hover:border-ink-faint">
+              <div className="text-[11px] uppercase tracking-wide text-ink-faint">{s.label}</div>
+              <div className={`text-2xl font-semibold ${STAT_TONE[s.tone]}`}>{s.value}</div>
+            </Link>
+          ),
+        )}
       </div>
     );
 
