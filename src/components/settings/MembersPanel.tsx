@@ -1,15 +1,17 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { addMemberAction, cancelInviteAction, changeRoleAction, removeMemberAction } from "@/app/actions";
+import { addMemberAction, cancelInviteAction, changeRoleAction, removeMemberAction, setMemberRolesAction } from "@/app/actions";
 import type { Role } from "@/db/schema";
 
-type Member = { userId: string; email: string; name: string | null; avatarUrl: string | null; role: Role; lastSeenAt: string | null };
+type JobRole = { id: string; name: string; emoji: string; color: string };
+type Member = { userId: string; email: string; name: string | null; avatarUrl: string | null; role: Role; lastSeenAt: string | null; jobRoles: JobRole[] };
 type Pending = { id: string; email: string; role: Role };
 type Roles = Record<Role, { label: string; help: string }>;
 const ORDER: Role[] = ["viewer", "editor", "admin", "owner"];
 
-export function MembersPanel({ slug, myRole, myId, canManage, members, pending, roles }: { slug: string; myRole: Role; myId: string; canManage: boolean; members: Member[]; pending: Pending[]; roles: Roles }) {
+export function MembersPanel({ slug, myRole, myId, canManage, members, pending, roles, jobRoles }: { slug: string; myRole: Role; myId: string; canManage: boolean; members: Member[]; pending: Pending[]; roles: Roles; jobRoles: JobRole[] }) {
+  const [picking, setPicking] = useState<string | null>(null);
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<Role>("editor");
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
@@ -66,6 +68,38 @@ export function MembersPanel({ slug, myRole, myId, canManage, members, pending, 
                   {m.name ?? m.email} {m.userId === myId && <span className="text-ink-faint">(you)</span>}
                 </div>
                 <div className="truncate text-xs text-ink-faint">{m.email}</div>
+                <div className="mt-1 flex flex-wrap items-center gap-1">
+                  {m.jobRoles.map((r) => (
+                    <span key={r.id} className="rounded-full px-2 py-0.5 text-[11px]" style={{ background: `${r.color}33`, color: r.color }}>
+                      {r.emoji} {r.name}
+                    </span>
+                  ))}
+                  {canManage && jobRoles.length > 0 && (
+                    <button onClick={() => setPicking(picking === m.userId ? null : m.userId)} className="rounded-full border border-dashed border-line px-2 py-0.5 text-[11px] text-ink-faint hover:bg-hover hover:text-ink">
+                      {m.jobRoles.length ? "change roles" : "+ job role"}
+                    </button>
+                  )}
+                </div>
+                {picking === m.userId && (
+                  <div className="mt-2 flex flex-wrap gap-1.5 rounded-lg border border-line bg-side p-2">
+                    {jobRoles.map((r) => {
+                      const on = m.jobRoles.some((x) => x.id === r.id);
+                      return (
+                        <button
+                          key={r.id}
+                          disabled={busy}
+                          onClick={() => run(() => setMemberRolesAction(slug, m.userId, on ? m.jobRoles.filter((x) => x.id !== r.id).map((x) => x.id) : [...m.jobRoles.map((x) => x.id), r.id]))}
+                          className={`rounded-full border px-2.5 py-1 text-xs ${on ? "border-accent bg-accent-soft text-accent" : "border-line text-ink-soft hover:bg-hover"}`}
+                        >
+                          {r.emoji} {r.name}
+                        </button>
+                      );
+                    })}
+                    <button onClick={() => setPicking(null)} className="rounded-full px-2 py-1 text-xs text-ink-faint hover:bg-hover">
+                      done
+                    </button>
+                  </div>
+                )}
               </div>
               {editable ? (
                 <>

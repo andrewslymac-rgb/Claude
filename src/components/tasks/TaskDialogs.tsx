@@ -9,6 +9,7 @@ import type { Frequency } from "@/db/schema";
 import { DUE_LABELS, FREQUENCY_LABELS, fmtDate } from "@/lib/recurrence";
 
 export type Member = { id: string; name: string };
+export type JobRole = { id: string; name: string; emoji: string; color: string };
 export type PageOpt = { id: string; title: string; icon: string | null };
 
 export const TONE: Record<string, string> = {
@@ -19,11 +20,11 @@ export const TONE: Record<string, string> = {
   ok: "bg-ok-soft text-ok",
 };
 
-export function TaskDrawer({ slug, task, members, pages, categories, canEdit, onClose, onDone, onUndo }: { slug: string; task: TaskRow; members: Member[]; pages: PageOpt[]; categories: readonly string[]; canEdit: boolean; onClose: () => void; onDone: (t: TaskRow) => void; onUndo: (t: TaskRow) => void }) {
+export function TaskDrawer({ slug, task, members, roles = [], pages, categories, canEdit, onClose, onDone, onUndo }: { slug: string; task: TaskRow; members: Member[]; roles?: JobRole[]; pages: PageOpt[]; categories: readonly string[]; canEdit: boolean; onClose: () => void; onDone: (t: TaskRow) => void; onUndo: (t: TaskRow) => void }) {
   const [editing, setEditing] = useState(false);
   const [history, setHistory] = useState<Awaited<ReturnType<typeof listCompletionsAction>> | null>(null);
   const [, start] = useTransition();
-  if (editing) return <TaskForm slug={slug} task={task} members={members} pages={pages} categories={categories} onClose={() => setEditing(false)} />;
+  if (editing) return <TaskForm slug={slug} task={task} members={members} roles={roles} pages={pages} categories={categories} onClose={() => setEditing(false)} />;
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-black/60" onMouseDown={onClose}>
       <div className="flex h-full w-full max-w-lg flex-col overflow-y-auto border-l border-line bg-card p-4 shadow-2xl md:p-6" onMouseDown={(e) => e.stopPropagation()}>
@@ -42,7 +43,15 @@ export function TaskDrawer({ slug, task, members, pages, categories, canEdit, on
 
         <dl className="mt-5 grid grid-cols-[96px_1fr] gap-y-2 text-sm md:grid-cols-[120px_1fr]">
           <dt className="text-ink-faint">Owner</dt>
-          <dd>{task.assignees.map((a) => a.name).join(", ") || task.ownerRole || <span className="text-ink-faint">Anyone</span>}</dd>
+          <dd>
+            {task.assignees.map((a) => a.name).join(", ")}
+            {task.role && (
+              <span className="ml-1 rounded-full px-2 py-0.5 text-xs" style={{ background: `${task.role.color}33`, color: task.role.color }}>
+                {task.role.emoji} {task.role.name}
+              </span>
+            )}
+            {!task.assignees.length && !task.role && (task.ownerRole || <span className="text-ink-faint">Anyone</span>)}
+          </dd>
           <dt className="text-ink-faint">Next due</dt>
           <dd className="flex items-center gap-2">
             {task.nextDueOn ? fmtDate(task.nextDueOn) : "—"}
@@ -130,14 +139,14 @@ export function TaskDrawer({ slug, task, members, pages, categories, canEdit, on
 
 export const Chip = ({ children }: { children: React.ReactNode }) => <span className="rounded bg-hover px-2 py-0.5 text-ink-soft">{children}</span>;
 
-export function TaskForm({ slug, task, members, pages, categories, preset, onClose }: { slug: string; task?: TaskRow; members: Member[]; pages: PageOpt[]; categories: readonly string[]; preset?: { frequency?: Frequency; assigneeIds?: string[] }; onClose: () => void }) {
+export function TaskForm({ slug, task, members, roles = [], pages, categories, preset, onClose }: { slug: string; task?: TaskRow; members: Member[]; roles?: JobRole[]; pages: PageOpt[]; categories: readonly string[]; preset?: { frequency?: Frequency; assigneeIds?: string[]; roleId?: string | null }; onClose: () => void }) {
   const [title, setTitle] = useState(task?.title ?? "");
   const [frequency, setFrequency] = useState<Frequency>(task?.frequency ?? preset?.frequency ?? "weekly");
   const [whenText, setWhenText] = useState(task?.whenText ?? "");
   const [category, setCategory] = useState(task?.category ?? "");
   const [instructions, setInstructions] = useState(task?.instructions ?? "");
   const [assignees, setAssignees] = useState<string[]>(task?.assignees.map((a) => a.id) ?? preset?.assigneeIds ?? []);
-  const [ownerRole, setOwnerRole] = useState(task?.ownerRole ?? "");
+  const [roleId, setRoleId] = useState<string | null>(task?.roleId ?? preset?.roleId ?? null);
   const [sopPageId, setSopPageId] = useState(task?.sopPageId ?? "");
   const [dueOn, setDueOn] = useState(task?.dueOn ?? "");
   const [busy, start] = useTransition();
@@ -146,7 +155,7 @@ export function TaskForm({ slug, task, members, pages, categories, preset, onClo
   const submit = () =>
     start(async () => {
       try {
-        const input = { title, frequency, whenText: whenText || null, category: category || null, instructions, assigneeIds: assignees, ownerRole: ownerRole || null, sopPageId: sopPageId || null, dueOn: dueOn || null };
+        const input = { title, frequency, whenText: whenText || null, category: category || null, instructions, assigneeIds: assignees, roleId, sopPageId: sopPageId || null, dueOn: dueOn || null };
         if (task) await updateTaskAction(slug, task.id, input);
         else await createTaskAction(slug, input);
         onClose();
@@ -212,7 +221,22 @@ export function TaskForm({ slug, task, members, pages, categories, preset, onClo
                 );
               })}
             </div>
-            <input value={ownerRole} onChange={(e) => setOwnerRole(e.target.value)} placeholder='Or a role, e.g. "Office Manager" (leave blank for anyone)' className="mt-2 w-full rounded-lg border border-line bg-paper px-3 py-2" />
+            {roles.length > 0 && (
+              <>
+                <span className="mt-2 block text-xs text-ink-faint">Or a job role (everyone in it sees the task)</span>
+                <div className="mt-1 flex flex-wrap gap-1.5">
+                  {roles.map((r) => {
+                    const on = roleId === r.id;
+                    return (
+                      <button key={r.id} type="button" onClick={() => setRoleId(on ? null : r.id)} className={`rounded-full border px-3 py-1 ${on ? "border-accent bg-accent-soft text-accent" : "border-line text-ink-soft hover:bg-hover"}`} style={on ? { borderColor: r.color, color: r.color, background: `${r.color}22` } : undefined}>
+                        {r.emoji} {r.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+            {!assignees.length && !roleId && <p className="mt-1 text-xs text-ink-faint">Nobody picked: anyone can do it.</p>}
           </div>
           <label className="block">
             <span className="text-xs text-ink-faint">Instructions</span>

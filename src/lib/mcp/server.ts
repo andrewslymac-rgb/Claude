@@ -9,6 +9,7 @@ import * as tasksSvc from "@/lib/services/tasks";
 import * as flagsSvc from "@/lib/services/flags";
 import { listWidgets } from "@/lib/services/dashboard";
 import { listMembers } from "@/lib/services/members";
+import { listRoles } from "@/lib/services/roles";
 import { blocksToMarkdown, markdownToBlocks } from "@/lib/markdown";
 import { fmtDate, FREQUENCY_LABELS, DUE_LABELS } from "@/lib/recurrence";
 import type { Actor } from "@/lib/services/actor";
@@ -160,18 +161,19 @@ export function buildServer(p: AiPrincipal) {
   if (can("write:tasks")) {
     const freq = z.enum(["once", "daily", "weekly", "monthly", "quarterly", "annual"]);
     const people = z.array(z.string().max(100)).max(20).optional().describe("Names or emails of workspace members, e.g. [\"Brittany\"]. Empty list = anyone.");
+    const roleArg = z.string().max(60).nullable().optional().describe("A job role that owns the task, e.g. \"Team Lead\" (see list_roles). Created if it doesn't exist. null clears it.");
 
     server.registerTool(
       "create_task",
       {
         title: "Create a task",
         description: "Creates a one-off or recurring task on the tracker, optionally assigned to people by name.",
-        inputSchema: { title: z.string().min(1).max(200), frequency: freq.optional(), when_text: z.string().max(120).optional().describe('e.g. "Every Friday" or "By the 5th"'), due_on: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(), category: z.string().max(40).optional(), instructions: z.string().max(5000).optional(), owner_role: z.string().max(60).optional(), assignees: people },
+        inputSchema: { title: z.string().min(1).max(200), frequency: freq.optional(), when_text: z.string().max(120).optional().describe('e.g. "Every Friday" or "By the 5th"'), due_on: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(), category: z.string().max(40).optional(), instructions: z.string().max(5000).optional(), role: roleArg, owner_role: z.string().max(60).optional().describe("Same as role (kept for older clients)"), assignees: people },
       },
       async (a) => {
         const r = a.assignees ? await tasksSvc.resolveAssignees(ws, a.assignees) : { ids: [], unknown: [] };
         if (r.unknown.length) return fail(`I don't know who ${r.unknown.join(", ")} is. Use list_members to see the team.`);
-        const t = await tasksSvc.createTask(ws, { title: a.title, frequency: (a.frequency ?? "once") as Frequency, whenText: a.when_text, dueOn: a.due_on, category: a.category, instructions: a.instructions, ownerRole: a.owner_role, assigneeIds: r.ids }, p.userId);
+        const t = await tasksSvc.createTask(ws, { title: a.title, frequency: (a.frequency ?? "once") as Frequency, whenText: a.when_text, dueOn: a.due_on, category: a.category, instructions: a.instructions, ownerRole: a.role ?? a.owner_role ?? null, assigneeIds: r.ids }, p.userId);
         await logActivity({ workspaceId: ws, grantId: p.grantId, tool: "create_task", summary: `Created task "${a.title}" (${FREQUENCY_LABELS[t.frequency]})`, taskId: t.id });
         return text(`Created task "${a.title}" (id: ${t.id}), ${FREQUENCY_LABELS[t.frequency]}, next due ${t.nextDueOn ? fmtDate(t.nextDueOn) : "unscheduled"}${r.ids.length ? `, assigned to ${a.assignees!.join(", ")}` : ""}.`);
       },
@@ -182,12 +184,13 @@ export function buildServer(p: AiPrincipal) {
       {
         title: "Edit a task",
         description: "Changes a task's title, cadence, when-text, due date, category, instructions, role or assignees. Only the fields you pass change. Pass assignees to replace who does it.",
-        inputSchema: { task_id: z.string().uuid(), title: z.string().min(1).max(200).optional(), frequency: freq.optional(), when_text: z.string().max(120).nullable().optional(), due_on: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(), category: z.string().max(40).nullable().optional(), instructions: z.string().max(5000).optional(), owner_role: z.string().max(60).nullable().optional(), assignees: people },
+        inputSchema: { task_id: z.string().uuid(), title: z.string().min(1).max(200).optional(), frequency: freq.optional(), when_text: z.string().max(120).nullable().optional(), due_on: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(), category: z.string().max(40).nullable().optional(), instructions: z.string().max(5000).optional(), role: roleArg, owner_role: z.string().max(60).nullable().optional(), assignees: people },
       },
       async (a) => {
         const r = a.assignees ? await tasksSvc.resolveAssignees(ws, a.assignees) : null;
         if (r?.unknown.length) return fail(`I don't know who ${r.unknown.join(", ")} is. Use list_members to see the team.`);
-        await tasksSvc.updateTask(ws, a.task_id, { title: a.title, frequency: a.frequency as Frequency | undefined, whenText: a.when_text, dueOn: a.due_on, category: a.category, instructions: a.instructions, ownerRole: a.owner_role, assigneeIds: r?.ids });
+        const roleArgValue = a.role !== undefined ? a.role : a.owner_role;
+        await tasksSvc.updateTask(ws, a.task_id, { title: a.title, frequency: a.frequency as Frequency | undefined, whenText: a.when_text, dueOn: a.due_on, category: a.category, instructions: a.instructions, ...(roleArgValue === null ? { roleId: null, ownerRole: null } : roleArgValue ? { ownerRole: roleArgValue } : {}), assigneeIds: r?.ids });
         const t = (await tasksSvc.listTasks(ws)).find((x) => x.id === a.task_id);
         await logActivity({ workspaceId: ws, grantId: p.grantId, tool: "update_task", summary: `Edited task "${t?.title ?? a.task_id}"`, taskId: a.task_id });
         return text(t ? `Updated "${t.title}": ${FREQUENCY_LABELS[t.frequency]}${t.whenText ? ` · ${t.whenText}` : ""} · next due ${t.nextDueOn ? fmtDate(t.nextDueOn) : "—"} · owner: ${t.assignees.map((x) => x.name).join(", ") || t.ownerRole || "anyone"}` : "Updated.");
@@ -223,9 +226,14 @@ export function buildServer(p: AiPrincipal) {
       return text(`Removed "${t.title}".`);
     });
 
-    server.registerTool("list_members", { title: "List the team", description: "People in this company and their roles, for assigning tasks.", inputSchema: {} }, async () => {
+    server.registerTool("list_members", { title: "List the team", description: "People in this company, their access level and job roles, for assigning tasks.", inputSchema: {} }, async () => {
       const { members } = await listMembers(ws);
-      return text(members.map((m) => `- ${m.name ?? m.email} (${m.email}) · ${m.role}`).join("\n") || "No members.");
+      return text(members.map((m) => `- ${m.name ?? m.email} (${m.email}) · ${m.role}${m.jobRoles.length ? ` · roles: ${m.jobRoles.map((r) => r.name).join(", ")}` : ""}`).join("\n") || "No members.");
+    });
+
+    server.registerTool("list_roles", { title: "List job roles", description: "Job roles defined for this company (Team Lead, Cleaning Specialist…), who holds each, and how many tasks each owns.", inputSchema: {} }, async () => {
+      const roles = await listRoles(ws);
+      return text(roles.map((r) => `- ${r.emoji} ${r.name}${r.description ? ` — ${r.description}` : ""} · ${r.members.map((m) => m.name).join(", ") || "nobody yet"} · ${r.taskCount} tasks`).join("\n") || "No job roles yet. Pass role on create_task to make one.");
     });
   }
 

@@ -4,7 +4,7 @@ import { db, schema } from "@/db";
 import type { Role } from "@/db/schema";
 import { ForbiddenError, outranks } from "@/lib/permissions";
 
-const { users, memberships, invites } = schema;
+const { users, memberships, invites, memberRoles, workspaceRoles } = schema;
 
 export async function listMembers(workspaceId: string) {
   const members = await db
@@ -14,7 +14,14 @@ export async function listMembers(workspaceId: string) {
     .where(eq(memberships.workspaceId, workspaceId))
     .orderBy(asc(users.name));
   const pending = await db.select().from(invites).where(eq(invites.workspaceId, workspaceId)).orderBy(asc(invites.email));
-  return { members, pending };
+  const held = await db
+    .select({ userId: memberRoles.userId, id: workspaceRoles.id, name: workspaceRoles.name, emoji: workspaceRoles.emoji, color: workspaceRoles.color })
+    .from(memberRoles)
+    .innerJoin(workspaceRoles, eq(workspaceRoles.id, memberRoles.roleId))
+    .where(eq(memberRoles.workspaceId, workspaceId));
+  const byUser = new Map<string, { id: string; name: string; emoji: string; color: string }[]>();
+  for (const h of held) byUser.set(h.userId, [...(byUser.get(h.userId) ?? []), { id: h.id, name: h.name, emoji: h.emoji, color: h.color }]);
+  return { members: members.map((m) => ({ ...m, jobRoles: byUser.get(m.userId) ?? [] })), pending };
 }
 
 /** Owners can do anything; admins can only manage editors and viewers. */

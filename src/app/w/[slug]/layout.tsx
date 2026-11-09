@@ -11,7 +11,7 @@ import { workspaceThemeVars } from "@/lib/theme/workspace-theme";
 
 export default async function WorkspaceLayout({ children, params }: { children: React.ReactNode; params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const { user, workspace, role } = await requireWorkspacePage(slug);
+  const { user, workspace, role, abilities } = await requireWorkspacePage(slug);
   const [tree, workspaces, tasks, flags, pendingAi, collections, counts] = await Promise.all([listTree(workspace.id), listWorkspacesForUser(user), listTasks(workspace.id), listFlags(workspace.id), countPending(workspace.id), listCollections(workspace.id), collectionCounts(workspace.id)]);
   const attention = tasks.filter((t) => t.state === "overdue" || t.state === "today").length;
   const openFlags = flags.filter((f) => f.status === "open").length;
@@ -27,8 +27,8 @@ export default async function WorkspaceLayout({ children, params }: { children: 
         tree={tree}
         collections={collections.map((c) => ({ id: c.id, label: c.label, icon: c.icon, rootPageId: c.rootPageId, count: counts.get(c.id) ?? 0 }))}
         user={{ name: user.name ?? user.email, email: user.email, isAppAdmin: user.isAppAdmin }}
-        canEdit={can(role, "edit")}
-        canManage={can(role, "manage_members")}
+        canEdit={can(abilities, "edit")}
+        canManage={can(abilities, "manage_members")}
         attention={attention}
         overdue={tasks.filter((t) => t.state === "overdue").map((t) => ({ id: t.id, title: t.title, frequency: t.frequency, whenText: t.whenText, nextDueOn: t.nextDueOn!, assignees: t.assignees.map((a) => a.name), ownerRole: t.ownerRole }))}
         me={user.id}

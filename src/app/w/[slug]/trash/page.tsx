@@ -5,7 +5,7 @@ import { RestoreButton } from "@/components/page/RestoreButton";
 
 export default async function Trash({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const { workspace, role } = await requireWorkspacePage(slug);
+  const { workspace, role, abilities } = await requireWorkspacePage(slug);
   const items = await listTrash(workspace.id);
   return (
     <div className="mx-auto max-w-3xl px-4 py-6 md:px-10 md:py-10">
@@ -19,7 +19,7 @@ export default async function Trash({ params }: { params: Promise<{ slug: string
               {p.icon ?? "📄"} {p.title || "Untitled"}
               <span className="ml-2 text-xs text-ink-faint">deleted {p.archivedAt?.toLocaleDateString()}</span>
             </span>
-            {can(role, "edit") && <RestoreButton slug={slug} pageId={p.id} />}
+            {can(abilities, "edit") && <RestoreButton slug={slug} pageId={p.id} />}
           </li>
         ))}
       </ul>

@@ -1,7 +1,10 @@
 import Link from "next/link";
 import { Building2, Users, FolderSync, Bot, Plug } from "lucide-react";
 import { requireWorkspacePage } from "@/lib/access";
-import { can, ROLE_LABELS } from "@/lib/permissions";
+import { can, ROLE_LABELS, PERMISSION_LABELS } from "@/lib/permissions";
+import { listRoles } from "@/lib/services/roles";
+import { RolesPanel } from "@/components/settings/RolesPanel";
+import type { Role } from "@/db/schema";
 import { listMembers } from "@/lib/services/members";
 import { MembersPanel } from "@/components/settings/MembersPanel";
 import { WorkspaceForm } from "@/components/settings/WorkspaceForm";
@@ -21,14 +24,14 @@ type Tab = "workspace" | "people" | "sync" | "integrations" | "ai";
 export default async function Settings({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: Promise<{ tab?: string; ok?: string; error?: string }> }) {
   const { slug } = await params;
   const { tab: rawTab, ok, error } = await searchParams;
-  const { user, workspace, role } = await requireWorkspacePage(slug);
-  const admin = can(role, "manage_members");
+  const { user, workspace, role, abilities } = await requireWorkspacePage(slug);
+  const admin = can(abilities, "manage_members");
 
   const tabs: { key: Tab; label: string; icon: React.ReactNode; show: boolean }[] = [
-    { key: "workspace" as Tab, label: "Workspace", icon: <Building2 size={15} />, show: can(role, "manage_workspace") },
+    { key: "workspace" as Tab, label: "Workspace", icon: <Building2 size={15} />, show: can(abilities, "manage_workspace") },
     { key: "people" as Tab, label: "People", icon: <Users size={15} />, show: true },
     { key: "sync" as Tab, label: "Documents & sync", icon: <FolderSync size={15} />, show: admin },
-    { key: "integrations" as Tab, label: "Integrations", icon: <Plug size={15} />, show: can(role, "manage_workspace") },
+    { key: "integrations" as Tab, label: "Integrations", icon: <Plug size={15} />, show: can(abilities, "manage_workspace") },
     { key: "ai" as Tab, label: "AI", icon: <Bot size={15} />, show: admin },
   ].filter((t) => t.show);
   const tab: Tab = tabs.some((t) => t.key === rawTab) ? (rawTab as Tab) : tabs[0].key;
@@ -57,7 +60,7 @@ export default async function Settings({ params, searchParams }: { params: Promi
           </section>
         )}
 
-        {tab === "people" && <PeopleTab slug={slug} workspaceId={workspace.id} role={role} userId={user.id} />}
+        {tab === "people" && <PeopleTab slug={slug} workspaceId={workspace.id} role={role} canManage={can(abilities, "manage_members")} userId={user.id} />}
 
         {tab === "sync" && admin && (
           <div className="space-y-8">
@@ -75,7 +78,7 @@ export default async function Settings({ params, searchParams }: { params: Promi
           </div>
         )}
 
-        {tab === "integrations" && can(role, "manage_workspace") && (
+        {tab === "integrations" && can(abilities, "manage_workspace") && (
           <section>
             <h2 className="text-lg font-semibold">Integrations</h2>
             <p className="mt-1 text-sm text-ink-soft">Connect the tools you run the business in, so the dashboard shows live numbers.</p>
@@ -95,22 +98,30 @@ export default async function Settings({ params, searchParams }: { params: Promi
   );
 }
 
-async function PeopleTab({ slug, workspaceId, role, userId }: { slug: string; workspaceId: string; role: Parameters<typeof can>[0]; userId: string }) {
-  const { members, pending } = await listMembers(workspaceId);
+async function PeopleTab({ slug, workspaceId, role, canManage, userId }: { slug: string; workspaceId: string; role: Role; canManage: boolean; userId: string }) {
+  const [{ members, pending }, jobRoles] = await Promise.all([listMembers(workspaceId), listRoles(workspaceId)]);
   return (
-    <section>
-      <h2 className="text-lg font-semibold">People</h2>
-      <p className="mt-1 text-sm text-ink-soft">Who can open this company in Orbit and what they can do. Roles are per company.</p>
-      <MembersPanel
-        slug={slug}
-        myRole={role!}
-        myId={userId}
-        canManage={can(role, "manage_members")}
-        members={members.map((m) => ({ ...m, lastSeenAt: m.lastSeenAt?.toISOString() ?? null }))}
-        pending={pending.map((p) => ({ id: p.id, email: p.email, role: p.role }))}
-        roles={ROLE_LABELS}
-      />
-    </section>
+    <div className="space-y-8">
+      <section>
+        <h2 className="text-lg font-semibold">People</h2>
+        <p className="mt-1 text-sm text-ink-soft">Who can open this company in Orbit. The access level says what they can change; job roles say what work is theirs.</p>
+        <MembersPanel
+          slug={slug}
+          myRole={role}
+          myId={userId}
+          canManage={canManage}
+          members={members.map((m) => ({ ...m, lastSeenAt: m.lastSeenAt?.toISOString() ?? null }))}
+          pending={pending.map((p) => ({ id: p.id, email: p.email, role: p.role }))}
+          roles={ROLE_LABELS}
+          jobRoles={jobRoles.map((r) => ({ id: r.id, name: r.name, emoji: r.emoji, color: r.color }))}
+        />
+      </section>
+      <section>
+        <h2 className="text-lg font-semibold">Job roles</h2>
+        <p className="mt-1 text-sm text-ink-soft">Define the roles in your company, what each one is allowed to do in Orbit, and who holds it. Tasks can be assigned to a role so everyone in it sees the work as theirs.</p>
+        <RolesPanel slug={slug} canManage={canManage} roles={jobRoles.map((r) => ({ ...r, members: r.members }))} members={members.map((m) => ({ id: m.userId, name: m.name ?? m.email }))} permissionInfo={PERMISSION_LABELS} />
+      </section>
+    </div>
   );
 }
 

@@ -18,7 +18,8 @@ import { todayISO } from "@/lib/recurrence";
 import * as aiAuth from "@/lib/services/ai-auth";
 import * as proposals from "@/lib/services/ai-proposals";
 import * as driveSync from "@/lib/drive/sync";
-import { COLLECTION_KINDS, FIELD_TOOLS, type FieldTool } from "@/db/schema";
+import { COLLECTION_KINDS, FIELD_TOOLS, ROLE_PERMISSIONS, type FieldTool } from "@/db/schema";
+import * as rolesSvc from "@/lib/services/roles";
 
 const userActor = (userId: string): Actor => ({ type: "user", userId });
 const uuid = z.string().uuid();
@@ -223,26 +224,27 @@ const taskInput = z.object({
   whenText: z.string().max(120).nullable().optional(),
   instructions: z.string().max(20000).optional(),
   ownerRole: z.string().max(60).nullable().optional(),
+  roleId: uuid.nullable().optional(),
   sopPageId: uuid.nullable().optional(),
   dueOn: isoDate.nullable().optional(),
   assigneeIds: z.array(uuid).max(20).optional(),
 });
 
 export async function createTaskAction(slug: string, input: z.infer<typeof taskInput>) {
-  const { user, workspace } = await requireAbility(slug, "edit");
+  const { user, workspace } = await requireAbility(slug, "manage_tasks");
   const t = await taskSvc.createTask(workspace.id, taskInput.parse(input), user.id);
   revalidatePath(`/w/${slug}`, "layout");
   return t.id;
 }
 
 export async function updateTaskAction(slug: string, id: string, input: Partial<z.infer<typeof taskInput>>) {
-  const { workspace } = await requireAbility(slug, "edit");
+  const { workspace } = await requireAbility(slug, "manage_tasks");
   await taskSvc.updateTask(workspace.id, uuid.parse(id), taskInput.partial().parse(input));
   revalidatePath(`/w/${slug}`, "layout");
 }
 
 export async function archiveTaskAction(slug: string, id: string) {
-  const { workspace } = await requireAbility(slug, "edit");
+  const { workspace } = await requireAbility(slug, "manage_tasks");
   await taskSvc.archiveTask(workspace.id, uuid.parse(id));
   revalidatePath(`/w/${slug}`, "layout");
 }
@@ -256,7 +258,7 @@ export async function completeTaskAction(slug: string, id: string, doneOn?: stri
 
 /** "Skip this time" / "move due date": pushes the due date without a completion. */
 export async function moveDueAction(slug: string, id: string, to?: string) {
-  const { workspace } = await requireAbility(slug, "edit");
+  const { workspace } = await requireAbility(slug, "manage_tasks");
   const target = await taskSvc.moveDue(workspace.id, uuid.parse(id), to ? isoDate.parse(to) : undefined);
   revalidatePath(`/w/${slug}`, "layout");
   return target;
@@ -346,6 +348,55 @@ export async function deleteFlagAction(slug: string, id: string) {
   const { workspace } = await requireAbility(slug, "edit");
   await flagSvc.deleteFlag(workspace.id, uuid.parse(id));
   revalidatePath(`/w/${slug}`, "layout");
+}
+
+// ---------------------------------------------------------------- job roles
+
+const roleInput = z.object({ name: z.string().trim().min(1).max(60), emoji: z.string().max(8).optional(), color: z.string().regex(/^#[0-9a-f]{6}$/i).optional(), description: z.string().max(500).optional(), permissions: z.array(z.enum(ROLE_PERMISSIONS)).max(10).optional() });
+
+export async function createRoleAction(slug: string, input: z.infer<typeof roleInput>): Promise<Result> {
+  return wrap(async () => {
+    const { workspace } = await requireAbility(slug, "manage_members");
+    const r = await rolesSvc.createRole(workspace.id, roleInput.parse(input));
+    revalidatePath(`/w/${slug}`, "layout");
+    return `Added the ${r.name} role.`;
+  });
+}
+
+export async function updateRoleAction(slug: string, id: string, input: Partial<z.infer<typeof roleInput>>): Promise<Result> {
+  return wrap(async () => {
+    const { workspace } = await requireAbility(slug, "manage_members");
+    await rolesSvc.updateRole(workspace.id, uuid.parse(id), roleInput.partial().parse(input));
+    revalidatePath(`/w/${slug}`, "layout");
+    return "Saved.";
+  });
+}
+
+export async function deleteRoleAction(slug: string, id: string): Promise<Result> {
+  return wrap(async () => {
+    const { workspace } = await requireAbility(slug, "manage_members");
+    await rolesSvc.deleteRole(workspace.id, uuid.parse(id));
+    revalidatePath(`/w/${slug}`, "layout");
+    return "Role removed. Its tasks are now open to anyone.";
+  });
+}
+
+export async function setRoleMembersAction(slug: string, roleId: string, userIds: string[]): Promise<Result> {
+  return wrap(async () => {
+    const { workspace } = await requireAbility(slug, "manage_members");
+    await rolesSvc.setRoleMembers(workspace.id, uuid.parse(roleId), z.array(uuid).max(100).parse(userIds));
+    revalidatePath(`/w/${slug}`, "layout");
+    return "Saved.";
+  });
+}
+
+export async function setMemberRolesAction(slug: string, userId: string, roleIds: string[]): Promise<Result> {
+  return wrap(async () => {
+    const { workspace } = await requireAbility(slug, "manage_members");
+    await rolesSvc.setMemberRoles(workspace.id, uuid.parse(userId), z.array(uuid).max(50).parse(roleIds));
+    revalidatePath(`/w/${slug}`, "layout");
+    return "Saved.";
+  });
 }
 
 export async function listMembersAction(slug: string) {
