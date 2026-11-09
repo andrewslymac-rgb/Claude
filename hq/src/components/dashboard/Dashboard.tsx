@@ -358,6 +358,10 @@ function WidgetBody({ w, slug, stats, canCustomize }: { w: WidgetData; slug: str
 const Empty = ({ children }: { children: React.ReactNode }) => <p className="text-sm text-ink-faint">{children}</p>;
 
 const isPhone = () => typeof navigator !== "undefined" && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+/** Running as a home-screen app. There a failed app link fails quietly; in Safari it pops an alert. */
+const isStandalone = () => typeof window !== "undefined" && (window.matchMedia("(display-mode: standalone)").matches || (navigator as unknown as { standalone?: boolean }).standalone === true);
+/** Schemes we know these apps register. Anything else is a best guess, tried only in the home-screen app. */
+const VERIFIED_SCHEMES = ["slack:", "googlegmail:", "googlecalendar:", "googledrive:", "openphone:"];
 
 /**
  * On a phone, try the installed app first (slack://open and friends) and fall back to
@@ -373,6 +377,8 @@ function AppLink({ link, className, children }: { link: LinkItem; className: str
       className={className}
       onClick={(e) => {
         if (!appUrl || !isPhone()) return;
+        const scheme = appUrl.slice(0, appUrl.indexOf(":") + 1).toLowerCase();
+        if (!VERIFIED_SCHEMES.includes(scheme) && !isStandalone()) return;
         e.preventDefault();
         const started = Date.now();
         const fallback = setTimeout(() => {
