@@ -6,7 +6,7 @@ import { archiveTaskAction, completeTaskAction, createTaskAction, moveDueAction,
 import type { TaskRow } from "@/lib/services/tasks";
 import type { Frequency } from "@/db/schema";
 import { DUE_LABELS, FREQUENCY_LABELS, PERIOD_LABELS, doneThisPeriod, fmtDate, todayISO } from "@/lib/recurrence";
-import { TaskDrawer, TaskForm, TONE, type Member, type PageOpt } from "./TaskDialogs";
+import { TaskDrawer, TaskForm, TONE, type JobRole, type Member, type PageOpt } from "./TaskDialogs";
 
 const TABS: { key: Frequency; label: string }[] = [
   { key: "daily", label: "Daily" },
@@ -17,20 +17,20 @@ const TABS: { key: Frequency; label: string }[] = [
   { key: "once", label: "One-off" },
 ];
 
-type Group = { key: string; name: string; memberId: string | null; tasks: TaskRow[] };
+type Group = { key: string; name: string; memberId: string | null; roleId?: string | null; emoji?: string; color?: string; holders?: string[]; tasks: TaskRow[] };
 
 /**
  * The recurring-work tracker: one tab per cadence, tasks grouped by who owns them,
  * tick to complete, quick-add per person, and a menu to edit / reassign / skip / remove.
  * Used on the dashboard (compact) and as the Tasks page (full).
  */
-export function Tracker({ slug, tasks, members, pages, categories, me, canEdit, mode }: { slug: string; tasks: TaskRow[]; members: Member[]; pages: PageOpt[]; categories: readonly string[]; me: string; canEdit: boolean; mode: "dashboard" | "full" }) {
+export function Tracker({ slug, tasks, members, roles = [], pages, categories, me, myRoleIds = [], canEdit, mode }: { slug: string; tasks: TaskRow[]; members: Member[]; roles?: (JobRole & { memberIds?: string[] })[]; pages: PageOpt[]; categories: readonly string[]; me: string; myRoleIds?: string[]; canEdit: boolean; mode: "dashboard" | "full" }) {
   const [tab, setTab] = useState<Frequency>(() => firstTabNeedingAttention(tasks));
   const [groupBy, setGroupBy] = useState<"person" | "list">("person");
   const [onlyMine, setOnlyMine] = useState(false);
   const [hideDone, setHideDone] = useState(false);
   const [open, setOpen] = useState<TaskRow | null>(null);
-  const [creating, setCreating] = useState<{ memberId: string | null; frequency: Frequency } | null>(null);
+  const [creating, setCreating] = useState<{ memberId: string | null; roleId?: string | null; frequency: Frequency } | null>(null);
   const [menu, setMenu] = useState<string | null>(null);
   const [reassign, setReassign] = useState<TaskRow | null>(null);
   const [local, setLocal] = useState<Record<string, Partial<TaskRow>>>({});
@@ -38,7 +38,7 @@ export function Tracker({ slug, tasks, members, pages, categories, me, canEdit, 
   const today = todayISO();
 
   const rows = useMemo(() => tasks.map((t) => ({ ...t, ...local[t.id] })), [tasks, local]);
-  const inTab = rows.filter((t) => t.frequency === tab && (!onlyMine || t.assignees.some((a) => a.id === me) || t.assignees.length === 0));
+  const inTab = rows.filter((t) => t.frequency === tab && (!onlyMine || t.assignees.some((a) => a.id === me) || (t.roleId ? myRoleIds.includes(t.roleId) : t.assignees.length === 0)));
   const isDone = (t: TaskRow) => doneThisPeriod(t.frequency, t.lastDoneOn, today) && t.state !== "overdue";
 
   // Counts per tab for the badges.
@@ -47,13 +47,19 @@ export function Tracker({ slug, tasks, members, pages, categories, me, canEdit, 
   const groups: Group[] = useMemo(() => {
     if (groupBy === "list") return [{ key: "all", name: "", memberId: null, tasks: inTab }];
     const out: Group[] = members.map((m) => ({ key: m.id, name: m.name, memberId: m.id, tasks: inTab.filter((t) => t.assignees.some((a) => a.id === m.id)) }));
-    const roles = new Map<string, TaskRow[]>();
-    for (const t of inTab) if (!t.assignees.length && t.ownerRole) roles.set(t.ownerRole, [...(roles.get(t.ownerRole) ?? []), t]);
-    for (const [role, ts] of roles) out.push({ key: `role:${role}`, name: role, memberId: null, tasks: ts });
-    const unassigned = inTab.filter((t) => !t.assignees.length && !t.ownerRole);
+    // Job roles: real ones first (with who holds them), then any legacy free-text role names.
+    for (const r of roles) {
+      const ts = inTab.filter((t) => t.roleId === r.id && !t.assignees.length);
+      const holders = members.filter((m) => r.memberIds?.includes(m.id)).map((m) => m.name.split(" ")[0]);
+      if (ts.length || mode === "full") out.push({ key: `role:${r.id}`, name: r.name, memberId: null, roleId: r.id, emoji: r.emoji, color: r.color, holders, tasks: ts });
+    }
+    const legacy = new Map<string, TaskRow[]>();
+    for (const t of inTab) if (!t.assignees.length && !t.roleId && t.ownerRole) legacy.set(t.ownerRole, [...(legacy.get(t.ownerRole) ?? []), t]);
+    for (const [role, ts] of legacy) out.push({ key: `legacy:${role}`, name: role, memberId: null, tasks: ts });
+    const unassigned = inTab.filter((t) => !t.assignees.length && !t.roleId && !t.ownerRole);
     if (unassigned.length || canEdit) out.push({ key: "none", name: "Anyone", memberId: null, tasks: unassigned });
-    return out.filter((g) => g.tasks.length || (mode === "full" && g.memberId));
-  }, [groupBy, inTab, members, canEdit, mode]);
+    return out.filter((g) => g.tasks.length || (mode === "full" && (g.memberId || g.roleId)));
+  }, [groupBy, inTab, members, roles, canEdit, mode]);
 
   const visible = (ts: TaskRow[]) => (hideDone ? ts.filter((t) => !isDone(t)) : ts).sort((a, b) => Number(isDone(a)) - Number(isDone(b)) || rank(a) - rank(b) || a.title.localeCompare(b.title));
 
@@ -130,8 +136,17 @@ export function Tracker({ slug, tasks, members, pages, categories, me, canEdit, 
             <section key={g.key} className={`min-w-0 ${groupBy === "person" ? "rounded-xl border border-line bg-side/60 p-3" : ""}`}>
               {groupBy === "person" && (
                 <header className="mb-1.5 flex items-center gap-2">
-                  <Avatar name={g.name} />
-                  <span className="min-w-0 flex-1 truncate text-sm font-medium">{g.name}</span>
+                  {g.roleId ? (
+                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-sm" style={{ background: `${g.color}33` }}>
+                      {g.emoji}
+                    </span>
+                  ) : (
+                    <Avatar name={g.name} />
+                  )}
+                  <span className="min-w-0 flex-1 truncate text-sm font-medium">
+                    {g.name}
+                    {g.roleId && <span className="ml-1 text-xs font-normal text-ink-faint">{g.holders?.length ? g.holders.join(", ") : "nobody assigned yet"}</span>}
+                  </span>
                   <span className="text-xs text-ink-faint">
                     {gDone}/{g.tasks.length}
                   </span>
@@ -154,7 +169,7 @@ export function Tracker({ slug, tasks, members, pages, categories, me, canEdit, 
                         <div className={`truncate text-sm ${done ? "text-ink-faint line-through decoration-ink-faint/50" : ""}`}>{t.title}</div>
                         <div className="truncate text-[11px] text-ink-faint">
                           {t.whenText || (t.nextDueOn && !done ? fmtDate(t.nextDueOn) : "")}
-                          {groupBy === "list" && (t.assignees.length || t.ownerRole) ? ` · ${t.assignees.map((a) => a.name.split(" ")[0]).join(", ") || t.ownerRole}` : ""}
+                          {groupBy === "list" && (t.assignees.length || t.role || t.ownerRole) ? ` · ${[...t.assignees.map((a) => a.name.split(" ")[0]), t.role ? `${t.role.emoji} ${t.role.name}` : null].filter(Boolean).join(", ") || t.ownerRole}` : ""}
                           {t.assignees.length > 1 && groupBy === "person" ? ` · with ${t.assignees.filter((a) => a.id !== g.memberId).map((a) => a.name.split(" ")[0]).join(", ")}` : ""}
                         </div>
                       </button>
@@ -189,23 +204,25 @@ export function Tracker({ slug, tasks, members, pages, categories, me, canEdit, 
                 })}
                 {ts.length === 0 && g.tasks.length > 0 && <li className="px-2 py-1 text-xs text-ink-faint">All done {period}. 🎉</li>}
               </ul>
-              {canEdit && <QuickAdd slug={slug} frequency={tab} memberId={g.memberId} onMore={() => setCreating({ memberId: g.memberId, frequency: tab })} />}
+              {canEdit && <QuickAdd slug={slug} frequency={tab} memberId={g.memberId} roleId={g.roleId ?? null} onMore={() => setCreating({ memberId: g.memberId, roleId: g.roleId ?? null, frequency: tab })} />}
             </section>
           );
         })}
       </div>
 
-      {open && <TaskDrawer slug={slug} task={rows.find((t) => t.id === open.id) ?? open} members={members} pages={pages} categories={categories} canEdit={canEdit} onClose={() => setOpen(null)} onDone={(t) => (toggle(t), setOpen(null))} onUndo={(t) => (toggle(t), setOpen(null))} />}
-      {creating && <TaskForm slug={slug} members={members} pages={pages} categories={categories} preset={{ frequency: creating.frequency, assigneeIds: creating.memberId ? [creating.memberId] : [] }} onClose={() => setCreating(null)} />}
+      {open && <TaskDrawer slug={slug} task={rows.find((t) => t.id === open.id) ?? open} members={members} roles={roles} pages={pages} categories={categories} canEdit={canEdit} onClose={() => setOpen(null)} onDone={(t) => (toggle(t), setOpen(null))} onUndo={(t) => (toggle(t), setOpen(null))} />}
+      {creating && <TaskForm slug={slug} members={members} roles={roles} pages={pages} categories={categories} preset={{ frequency: creating.frequency, assigneeIds: creating.memberId ? [creating.memberId] : [], roleId: creating.roleId ?? null }} onClose={() => setCreating(null)} />}
       {reassign && (
         <ReassignDialog
           task={reassign}
           members={members}
+          roles={roles}
           onClose={() => setReassign(null)}
-          onSave={(ids, role) => {
-            setLocal((l) => ({ ...l, [reassign.id]: { assignees: members.filter((m) => ids.includes(m.id)), ownerRole: role } }));
+          onSave={(ids, roleId) => {
+            const r = roles.find((x) => x.id === roleId) ?? null;
+            setLocal((l) => ({ ...l, [reassign.id]: { assignees: members.filter((m) => ids.includes(m.id)), roleId, role: r ? { id: r.id, name: r.name, emoji: r.emoji, color: r.color } : null, ownerRole: r?.name ?? null } }));
             setReassign(null);
-            start(() => updateTaskAction(slug, reassign.id, { assigneeIds: ids, ownerRole: role }));
+            start(() => updateTaskAction(slug, reassign.id, { assigneeIds: ids, roleId }));
           }}
         />
       )}
@@ -244,7 +261,7 @@ function MenuItem({ icon, danger, onClick, children }: { icon: React.ReactNode; 
   );
 }
 
-function QuickAdd({ slug, frequency, memberId, onMore }: { slug: string; frequency: Frequency; memberId: string | null; onMore: () => void }) {
+function QuickAdd({ slug, frequency, memberId, roleId, onMore }: { slug: string; frequency: Frequency; memberId: string | null; roleId: string | null; onMore: () => void }) {
   const [v, setV] = useState("");
   const [busy, start] = useTransition();
   return (
@@ -255,7 +272,7 @@ function QuickAdd({ slug, frequency, memberId, onMore }: { slug: string; frequen
         const title = v.trim();
         if (!title) return;
         setV("");
-        start(async () => void (await createTaskAction(slug, { title, frequency, assigneeIds: memberId ? [memberId] : [] })));
+        start(async () => void (await createTaskAction(slug, { title, frequency, assigneeIds: memberId ? [memberId] : [], roleId })));
       }}
     >
       <Plus size={14} className="shrink-0 text-ink-faint" />
@@ -267,9 +284,9 @@ function QuickAdd({ slug, frequency, memberId, onMore }: { slug: string; frequen
   );
 }
 
-function ReassignDialog({ task, members, onClose, onSave }: { task: TaskRow; members: Member[]; onClose: () => void; onSave: (ids: string[], role: string | null) => void }) {
+function ReassignDialog({ task, members, roles, onClose, onSave }: { task: TaskRow; members: Member[]; roles: JobRole[]; onClose: () => void; onSave: (ids: string[], roleId: string | null) => void }) {
   const [ids, setIds] = useState<string[]>(task.assignees.map((a) => a.id));
-  const [role, setRole] = useState(task.ownerRole ?? "");
+  const [roleId, setRoleId] = useState<string | null>(task.roleId);
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onMouseDown={onClose}>
       <div className="w-full max-w-md rounded-xl border border-line bg-card p-5 shadow-2xl" onMouseDown={(e) => e.stopPropagation()}>
@@ -285,12 +302,26 @@ function ReassignDialog({ task, members, onClose, onSave }: { task: TaskRow; mem
             );
           })}
         </div>
-        <input value={role} onChange={(e) => setRole(e.target.value)} placeholder='Or a role, e.g. "Office Manager"' className="mt-3 w-full rounded-lg border border-line bg-paper px-3 py-2 text-sm" />
+        {roles.length > 0 && (
+          <>
+            <p className="mt-3 text-xs text-ink-faint">Or a job role</p>
+            <div className="mt-1 flex flex-wrap gap-1.5">
+              {roles.map((r) => {
+                const on = roleId === r.id;
+                return (
+                  <button key={r.id} type="button" onClick={() => setRoleId(on ? null : r.id)} className={`rounded-full border px-3 py-1 text-sm ${on ? "border-accent bg-accent-soft text-accent" : "border-line text-ink-soft hover:bg-hover"}`}>
+                    {r.emoji} {r.name}
+                  </button>
+                );
+              })}
+            </div>
+          </>
+        )}
         <div className="mt-4 flex justify-end gap-2">
           <button onClick={onClose} className="rounded-lg px-4 py-2 text-sm hover:bg-hover">
             Cancel
           </button>
-          <button onClick={() => onSave(ids, role.trim() || null)} className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-paper">
+          <button onClick={() => onSave(ids, roleId)} className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-paper">
             Save
           </button>
         </div>

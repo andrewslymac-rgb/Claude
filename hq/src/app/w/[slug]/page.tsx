@@ -10,6 +10,7 @@ import { reviewState } from "@/lib/recurrence";
 import { collectionCounts, listCollections } from "@/lib/drive/sync";
 import { getIntegration, MANUAL_TOKEN } from "@/lib/integrations/jobber";
 import { listMembers } from "@/lib/services/members";
+import { listRoles } from "@/lib/services/roles";
 import { TASK_CATEGORIES } from "@/db/schema";
 
 const safeHost = (u: string) => {
@@ -22,7 +23,7 @@ const safeHost = (u: string) => {
 
 export default async function Home({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const { user, workspace, role } = await requireWorkspacePage(slug);
+  const { user, workspace, abilities, roleIds } = await requireWorkspacePage(slug);
   await ensureTrackerWidget(workspace.id);
   const [widgets, tree, allTasks, flags, library, collections, counts, jobber, pendingAi] = await Promise.all([
     listWidgets(workspace.id),
@@ -62,7 +63,7 @@ export default async function Home({ params }: { params: Promise<{ slug: string 
         case "pages":
           return { ...base, items: await getPagesByIds(workspace.id, w.config.pageIds ?? []) };
         case "tasks": {
-          const mine = tasksForUser(allTasks, user.id).filter((t) => t.state === "overdue" || t.state === "today" || (t.state === "soon" && !(t.lastDoneOn && t.lastDoneOn >= twoDaysAgo)));
+          const mine = tasksForUser(allTasks, user.id, roleIds).filter((t) => t.state === "overdue" || t.state === "today" || (t.state === "soon" && !(t.lastDoneOn && t.lastDoneOn >= twoDaysAgo)));
           return { ...base, items: mine.slice(0, w.config.limit ?? 8).map((t) => ({ id: t.id, title: t.title, icon: null, state: t.state, nextDueOn: t.nextDueOn })) };
         }
         case "reviews":
@@ -74,11 +75,20 @@ export default async function Home({ params }: { params: Promise<{ slug: string 
         case "jobber":
           return { ...base, items: [], connected: Boolean(jobber), manual: jobber?.accessToken === MANUAL_TOKEN, fieldTool: workspace.fieldTool };
         case "tracker": {
-          const { members } = await listMembers(workspace.id);
+          const [{ members }, roles] = await Promise.all([listMembers(workspace.id), listRoles(workspace.id)]);
           return {
             ...base,
             items: [],
-            tracker: { tasks: allTasks, members: members.map((m) => ({ id: m.userId, name: m.name ?? m.email })), pages: tree.map((p) => ({ id: p.id, title: p.title || "Untitled", icon: p.icon })), categories: TASK_CATEGORIES, me: user.id, canEdit: can(role, "edit") },
+            tracker: {
+              tasks: allTasks,
+              members: members.map((m) => ({ id: m.userId, name: m.name ?? m.email })),
+              roles: roles.map((r) => ({ id: r.id, name: r.name, emoji: r.emoji, color: r.color, memberIds: r.members.map((m) => m.id) })),
+              myRoleIds: roleIds,
+              pages: tree.map((p) => ({ id: p.id, title: p.title || "Untitled", icon: p.icon })),
+              categories: TASK_CATEGORIES,
+              me: user.id,
+              canEdit: can(abilities, "manage_tasks"),
+            },
           };
         }
         default:
@@ -108,7 +118,7 @@ export default async function Home({ params }: { params: Promise<{ slug: string 
         slug={slug}
         widgets={data}
         stats={stats}
-        canCustomize={can(role, "manage_dashboard")}
+        canCustomize={can(abilities, "manage_dashboard")}
         catalog={WIDGET_CATALOG}
         allPages={tree.map((p) => ({ id: p.id, title: p.title || "Untitled", icon: p.icon }))}
       />

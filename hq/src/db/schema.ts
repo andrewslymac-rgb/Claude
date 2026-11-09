@@ -306,8 +306,10 @@ export const tasks = pgTable(
     /** Free text like "First Monday of the month" or "By the 15th". */
     whenText: text("when_text"),
     instructions: text("instructions").notNull().default(""),
-    /** A role that owns the task when no specific person does, e.g. "Office Manager". */
+    /** Legacy free-text role name; superseded by roleId but kept for display and imports. */
     ownerRole: text("owner_role"),
+    /** Job role that owns the task when no specific person does. */
+    roleId: uuid("role_id").references(() => workspaceRoles.id, { onDelete: "set null" }),
     /** Optional link to the SOP that explains how to do it. */
     sopPageId: uuid("sop_page_id").references(() => pages.id, { onDelete: "set null" }),
     /** One-off tasks: the due date. Recurring tasks: the first due date (optional). */
@@ -323,6 +325,50 @@ export const tasks = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index("tasks_ws_idx").on(t.workspaceId, t.frequency), index("tasks_due_idx").on(t.workspaceId, t.nextDueOn)],
+);
+
+/** Abilities a custom job role can grant on top of a member's access level. */
+export const ROLE_PERMISSIONS = ["edit", "manage_tasks", "manage_dashboard", "manage_members", "manage_workspace", "view_sensitive"] as const;
+export type RolePermission = (typeof ROLE_PERMISSIONS)[number];
+
+/**
+ * Job roles a company defines itself: Cleaning Specialist, Team Lead, Office Manager,
+ * Technician… People can hold several. Tasks can be owned by a role, so everyone in
+ * that role sees them as theirs.
+ */
+export const workspaceRoles = pgTable(
+  "workspace_roles",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    emoji: text("emoji").notNull().default("🧑‍💼"),
+    color: text("color").notNull().default("#6366f1"),
+    description: text("description").notNull().default(""),
+    /** Extra abilities everyone in this role gets, on top of their access level. */
+    permissions: jsonb("permissions").$type<RolePermission[]>().notNull().default([]),
+    position: doublePrecision("position").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("workspace_roles_name_idx").on(t.workspaceId, t.name)],
+);
+
+export const memberRoles = pgTable(
+  "member_roles",
+  {
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    roleId: uuid("role_id")
+      .notNull()
+      .references(() => workspaceRoles.id, { onDelete: "cascade" }),
+  },
+  (t) => [primaryKey({ columns: [t.workspaceId, t.userId, t.roleId] })],
 );
 
 export const taskAssignees = pgTable(

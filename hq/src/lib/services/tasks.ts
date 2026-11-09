@@ -4,7 +4,8 @@ import { db, schema } from "@/db";
 import type { Frequency } from "@/db/schema";
 import { addDays, computeNextDue, dueState, nextDueAfter, todayISO, type DueState } from "@/lib/recurrence";
 
-const { tasks, taskAssignees, taskCompletions, users, pages } = schema;
+const { tasks, taskAssignees, taskCompletions, users, pages, workspaceRoles, memberRoles } = schema;
+import { roleByName } from "./roles";
 
 export type TaskRow = {
   id: string;
@@ -14,6 +15,8 @@ export type TaskRow = {
   whenText: string | null;
   instructions: string;
   ownerRole: string | null;
+  roleId: string | null;
+  role: { id: string; name: string; emoji: string; color: string } | null;
   sopPageId: string | null;
   sopTitle: string | null;
   dueOn: string | null;
@@ -28,9 +31,10 @@ export type TaskRow = {
 
 export async function listTasks(workspaceId: string): Promise<TaskRow[]> {
   const rows = await db
-    .select({ t: tasks, sopTitle: pages.title })
+    .select({ t: tasks, sopTitle: pages.title, roleName: workspaceRoles.name, roleEmoji: workspaceRoles.emoji, roleColor: workspaceRoles.color })
     .from(tasks)
     .leftJoin(pages, eq(pages.id, tasks.sopPageId))
+    .leftJoin(workspaceRoles, eq(workspaceRoles.id, tasks.roleId))
     .where(and(eq(tasks.workspaceId, workspaceId), isNull(tasks.archivedAt)))
     .orderBy(asc(tasks.nextDueOn), asc(tasks.title));
   if (rows.length === 0) return [];
@@ -44,14 +48,16 @@ export async function listTasks(workspaceId: string): Promise<TaskRow[]> {
   for (const a of assignees) byTask.set(a.taskId, [...(byTask.get(a.taskId) ?? []), { id: a.id, name: a.name ?? a.email }]);
   const today = todayISO();
   const undoCutoff = new Date(Date.now() - 7 * 864e5).toISOString().slice(0, 10);
-  return rows.map(({ t, sopTitle }) => ({
+  return rows.map(({ t, sopTitle, roleName, roleEmoji, roleColor }) => ({
     id: t.id,
     title: t.title,
     category: t.category,
     frequency: t.frequency,
     whenText: t.whenText,
     instructions: t.instructions,
-    ownerRole: t.ownerRole,
+    ownerRole: roleName ?? t.ownerRole,
+    roleId: t.roleId,
+    role: t.roleId && roleName ? { id: t.roleId, name: roleName, emoji: roleEmoji ?? "🧑‍💼", color: roleColor ?? "#6366f1" } : null,
     sopPageId: t.sopPageId,
     sopTitle: sopTitle ?? null,
     dueOn: t.dueOn,
@@ -64,9 +70,15 @@ export async function listTasks(workspaceId: string): Promise<TaskRow[]> {
   }));
 }
 
-/** Tasks relevant to one person: assigned to them, or unassigned (anyone can do them). */
-export function tasksForUser(all: TaskRow[], userId: string) {
-  return all.filter((t) => t.assignees.length === 0 || t.assignees.some((a) => a.id === userId));
+/** Tasks relevant to one person: assigned to them, owned by one of their roles, or open to anyone. */
+export function tasksForUser(all: TaskRow[], userId: string, roleIds: string[] = []) {
+  return all.filter((t) => t.assignees.some((a) => a.id === userId) || (t.roleId ? roleIds.includes(t.roleId) : t.assignees.length === 0));
+}
+
+/** Job-role ids one person holds in a workspace. */
+export async function roleIdsFor(workspaceId: string, userId: string) {
+  const rows = await db.select({ roleId: memberRoles.roleId }).from(memberRoles).where(and(eq(memberRoles.workspaceId, workspaceId), eq(memberRoles.userId, userId)));
+  return rows.map((r) => r.roleId);
 }
 
 export type TaskInput = {
@@ -76,12 +88,21 @@ export type TaskInput = {
   whenText?: string | null;
   instructions?: string;
   ownerRole?: string | null;
+  roleId?: string | null;
   sopPageId?: string | null;
   dueOn?: string | null;
   assigneeIds?: string[];
 };
 
+/** A free-text role name (imports, AI) becomes a real job role so it shows up everywhere. */
+async function resolveRoleId(workspaceId: string, input: Partial<TaskInput>): Promise<string | null | undefined> {
+  if (input.roleId !== undefined) return input.roleId;
+  if (input.ownerRole) return (await roleByName(workspaceId, input.ownerRole, true))?.id ?? null;
+  return undefined;
+}
+
 export async function createTask(workspaceId: string, input: TaskInput, createdById: string) {
+  const roleId = (await resolveRoleId(workspaceId, input)) ?? null;
   const [t] = await db
     .insert(tasks)
     .values({
@@ -92,6 +113,7 @@ export async function createTask(workspaceId: string, input: TaskInput, createdB
       whenText: input.whenText ?? null,
       instructions: input.instructions ?? "",
       ownerRole: input.ownerRole ?? null,
+      roleId,
       sopPageId: input.sopPageId ?? null,
       dueOn: input.dueOn ?? null,
       nextDueOn: computeNextDue(input.frequency, input.dueOn ?? null, null),
@@ -107,9 +129,11 @@ export async function updateTask(workspaceId: string, id: string, input: Partial
   if (!t) throw new Error("Task not found");
   const frequency = input.frequency ?? t.frequency;
   const dueOn = input.dueOn === undefined ? t.dueOn : input.dueOn;
+  const roleId = await resolveRoleId(workspaceId, input);
   await db
     .update(tasks)
     .set({
+      roleId: roleId === undefined ? t.roleId : roleId,
       title: input.title?.trim() ?? t.title,
       category: input.category === undefined ? t.category : input.category,
       frequency,

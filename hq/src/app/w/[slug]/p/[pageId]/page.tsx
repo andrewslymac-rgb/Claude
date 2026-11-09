@@ -11,7 +11,7 @@ import { eq } from "drizzle-orm";
 export default async function PageRoute({ params }: { params: Promise<{ slug: string; pageId: string }> }) {
   const { slug, pageId } = await params;
   if (!/^[0-9a-f-]{36}$/i.test(pageId)) notFound();
-  const { workspace, role } = await requireWorkspacePage(slug);
+  const { workspace, role, abilities } = await requireWorkspacePage(slug);
   const page = await getPage(workspace.id, pageId);
   if (!page) notFound();
 
@@ -44,7 +44,7 @@ export default async function PageRoute({ params }: { params: Promise<{ slug: st
       }}
       crumbs={crumbs}
       subpages={children}
-      canEdit={can(role, "edit") && page.source === "local" && !page.archivedAt}
+      canEdit={can(abilities, "edit") && page.source === "local" && !page.archivedAt}
       docInfo={{
         docType: page.docType,
         area: page.area,

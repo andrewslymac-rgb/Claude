@@ -5,11 +5,11 @@ import { and, asc, eq } from "drizzle-orm";
 import { db, schema } from "@/db";
 import type { Role, User, Workspace } from "@/db/schema";
 import { getCurrentUser } from "./auth/session";
-import { can, ForbiddenError, type Ability } from "./permissions";
+import { can, effectiveAbilities, ForbiddenError, type Ability } from "./permissions";
 
-const { workspaces, memberships } = schema;
+const { workspaces, memberships, memberRoles, workspaceRoles } = schema;
 
-export type Access = { user: User; workspace: Workspace; role: Role };
+export type Access = { user: User; workspace: Workspace; role: Role; abilities: Ability[]; roleIds: string[] };
 
 /** Workspaces the user can open. App admins see all of them. */
 export const listWorkspacesForUser = cache(async (user: User) => {
@@ -39,7 +39,12 @@ async function resolve(slug: string): Promise<Access | null> {
     .where(and(eq(memberships.workspaceId, ws.id), eq(memberships.userId, user.id)));
   const role: Role | null = m?.role ?? (user.isAppAdmin ? "owner" : null);
   if (!role) return null;
-  return { user, workspace: ws, role };
+  const jobRoles = await db
+    .select({ id: workspaceRoles.id, permissions: workspaceRoles.permissions })
+    .from(memberRoles)
+    .innerJoin(workspaceRoles, eq(workspaceRoles.id, memberRoles.roleId))
+    .where(and(eq(memberRoles.workspaceId, ws.id), eq(memberRoles.userId, user.id)));
+  return { user, workspace: ws, role, abilities: effectiveAbilities(role, jobRoles.map((r) => r.permissions)), roleIds: jobRoles.map((r) => r.id) };
 }
 
 /** For pages: redirects to login / 404s instead of throwing. */
@@ -55,6 +60,6 @@ export const requireWorkspacePage = cache(async (slug: string) => {
 export async function requireAbility(slug: string, ability: Ability): Promise<Access> {
   const access = await resolve(slug);
   if (!access) throw new ForbiddenError("Please sign in again.");
-  if (!can(access.role, ability)) throw new ForbiddenError();
+  if (!can(access.abilities, ability)) throw new ForbiddenError();
   return access;
 }
