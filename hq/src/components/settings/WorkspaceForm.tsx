@@ -3,6 +3,8 @@
 import { useState, useTransition } from "react";
 import { updateWorkspaceAction } from "@/app/actions";
 import type { FieldTool } from "@/db/schema";
+import { BRAND_SWATCHES, workspaceThemeVars } from "@/lib/theme/workspace-theme";
+import { useEffect } from "react";
 
 const FIELD_TOOLS: { key: FieldTool; label: string; hint: string }[] = [
   { key: "jobber", label: "🗓️ Jobber", hint: "Scheduling, quotes and invoices in Jobber" },
@@ -10,7 +12,14 @@ const FIELD_TOOLS: { key: FieldTool; label: string; hint: string }[] = [
   { key: "none", label: "None", hint: "No field-service software (no live jobs tile)" },
 ];
 
-const COLORS = ["#6366f1", "#8b5cf6", "#16a34a", "#0ea5e9", "#f59e0b", "#ef4444", "#64748b"];
+const COLORS = BRAND_SWATCHES;
+
+/** Paint the chosen color across the whole workspace immediately, before Save. */
+function preview(color: string) {
+  const root = document.querySelector<HTMLElement>("[data-ws-theme]");
+  if (!root) return;
+  for (const [k, v] of Object.entries(workspaceThemeVars(color))) root.style.setProperty(k, v);
+}
 
 export function WorkspaceForm({ slug, name: n0, icon: i0, color: c0, fieldTool: f0 }: { slug: string; name: string; icon: string; color: string; fieldTool: FieldTool }) {
   const [name, setName] = useState(n0);
@@ -19,6 +28,10 @@ export function WorkspaceForm({ slug, name: n0, icon: i0, color: c0, fieldTool: 
   const [fieldTool, setFieldTool] = useState<FieldTool>(f0);
   const [msg, setMsg] = useState("");
   const [busy, start] = useTransition();
+  useEffect(() => {
+    preview(color);
+    return () => preview(c0); // leaving without saving puts the saved color back
+  }, [color, c0]);
   return (
     <form
       className="mt-3 space-y-3 rounded-xl border border-line p-4"
@@ -26,7 +39,7 @@ export function WorkspaceForm({ slug, name: n0, icon: i0, color: c0, fieldTool: 
         e.preventDefault();
         start(async () => {
           const r = await updateWorkspaceAction(slug, { name, icon, color, fieldTool });
-          setMsg(r.ok ? "Saved. The sidebar, buttons and badges now use this color." : r.error);
+          setMsg(r.ok ? "Saved." : r.error);
         });
       }}
     >
@@ -34,11 +47,22 @@ export function WorkspaceForm({ slug, name: n0, icon: i0, color: c0, fieldTool: 
         <input value={icon} onChange={(e) => setIcon(e.target.value)} maxLength={4} className="w-14 rounded-lg border border-line px-2 py-2 text-center text-lg" aria-label="Icon" />
         <input value={name} onChange={(e) => setName(e.target.value)} className="flex-1 rounded-lg border border-line px-3 py-2" aria-label="Name" />
       </div>
-      <div className="flex items-center gap-2">
-        {COLORS.map((c) => (
-          <button type="button" key={c} onClick={() => setColor(c)} className={`h-7 w-7 rounded-full ${color === c ? "ring-2 ring-offset-2 ring-offset-card" : ""}`} style={{ background: c, ["--tw-ring-color" as string]: c }} aria-label={`Color ${c}`} />
-        ))}
-        <button disabled={busy} className="ml-auto rounded-lg bg-accent px-4 py-2 text-sm font-medium text-paper disabled:opacity-50">
+      <div>
+        <div className="text-sm font-medium">Brand color</div>
+        <p className="text-xs text-ink-soft">Tints the whole workspace: sidebar, cards, buttons and highlights. Pick one and watch it change; Save keeps it.</p>
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          {COLORS.map((c) => (
+            <button type="button" key={c} onClick={() => setColor(c)} className={`h-8 w-8 rounded-full ${color === c ? "ring-2 ring-offset-2 ring-offset-card" : ""}`} style={{ background: c, ["--tw-ring-color" as string]: c }} aria-label={`Color ${c}`} />
+          ))}
+          <label className="relative flex h-8 cursor-pointer items-center gap-1.5 rounded-full border border-dashed border-line px-3 text-xs text-ink-soft hover:bg-hover" title="Pick any color">
+            <span className="h-4 w-4 rounded-full" style={{ background: color }} />
+            Custom {color.toUpperCase()}
+            <input type="color" value={color} onChange={(e) => setColor(e.target.value)} className="absolute inset-0 cursor-pointer opacity-0" />
+          </label>
+        </div>
+      </div>
+      <div className="flex justify-end">
+        <button disabled={busy} className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-paper disabled:opacity-50">
           Save
         </button>
       </div>

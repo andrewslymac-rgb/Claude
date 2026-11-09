@@ -7,6 +7,7 @@ import { listTasks } from "@/lib/services/tasks";
 import { listFlags } from "@/lib/services/flags";
 import { countPending } from "@/lib/services/ai-proposals";
 import { collectionCounts, listCollections } from "@/lib/drive/sync";
+import { workspaceThemeVars } from "@/lib/theme/workspace-theme";
 
 export default async function WorkspaceLayout({ children, params }: { children: React.ReactNode; params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -18,13 +19,7 @@ export default async function WorkspaceLayout({ children, params }: { children: 
   return (
     // The company's color becomes the accent for everything inside it: buttons, active
     // links, badges, the icon tile. Lightened a touch so it reads well on the dark theme.
-    <div
-      style={{
-        ["--ws-accent" as string]: workspace.color,
-        ["--color-accent" as string]: `color-mix(in oklab, ${workspace.color} 72%, white)`,
-        ["--color-accent-soft" as string]: `color-mix(in srgb, ${workspace.color} 22%, transparent)`,
-      }}
-    >
+    <div data-ws-theme className="bg-paper text-ink" style={workspaceThemeVars(workspace.color) as React.CSSProperties}>
       <MobileShell title={workspace.name} icon={workspace.icon} sidebar={
       <Sidebar
         workspace={{ slug: workspace.slug, name: workspace.name, icon: workspace.icon, color: workspace.color }}
@@ -35,6 +30,8 @@ export default async function WorkspaceLayout({ children, params }: { children: 
         canEdit={can(role, "edit")}
         canManage={can(role, "manage_members")}
         attention={attention}
+        overdue={tasks.filter((t) => t.state === "overdue").map((t) => ({ id: t.id, title: t.title, frequency: t.frequency, whenText: t.whenText, nextDueOn: t.nextDueOn!, assignees: t.assignees.map((a) => a.name), ownerRole: t.ownerRole }))}
+        me={user.id}
         openFlags={openFlags}
         pendingAi={pendingAi}
       />
