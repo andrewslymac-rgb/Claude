@@ -30,7 +30,7 @@ export function IntegrationsPanel({ slug, fieldTool, jobber, redirectUri, isAppA
       <div className="rounded-xl border border-line p-4">
         <div className="flex flex-wrap items-center gap-3">
           <span className="text-2xl">{tool.emoji}</span>
-          <div className="min-w-0 flex-1">
+          <div className="min-w-0 flex-1 basis-56">
             <div className="font-medium">{tool.label}</div>
             <div className="text-xs text-ink-faint">
               {jobber.connected

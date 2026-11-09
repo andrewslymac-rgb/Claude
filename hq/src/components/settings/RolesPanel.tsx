@@ -112,9 +112,9 @@ function RoleForm({ slug, role, permissionInfo, onClose, onDone }: { slug: strin
   const toggle = (p: RolePermission) => setPerms(perms.includes(p) ? perms.filter((x) => x !== p) : [...perms, p]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onMouseDown={onClose}>
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-0 sm:items-center sm:p-4" onMouseDown={onClose}>
       <form
-        className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl border border-line bg-card p-5 shadow-2xl"
+        className="pb-safe max-h-[92dvh] w-full max-w-lg overflow-y-auto rounded-t-2xl border border-line bg-card p-5 shadow-2xl sm:rounded-xl"
         onMouseDown={(e) => e.stopPropagation()}
         onSubmit={(e) => {
           e.preventDefault();
@@ -174,8 +174,8 @@ function RoleForm({ slug, role, permissionInfo, onClose, onDone }: { slug: strin
 function AssignDialog({ role, members, onClose, onSave }: { role: RoleRow; members: Member[]; onClose: () => void; onSave: (ids: string[]) => void }) {
   const [ids, setIds] = useState<string[]>(role.members.map((m) => m.id));
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onMouseDown={onClose}>
-      <div className="w-full max-w-md rounded-xl border border-line bg-card p-5 shadow-2xl" onMouseDown={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-0 sm:items-center sm:p-4" onMouseDown={onClose}>
+      <div className="pb-safe max-h-[92dvh] w-full max-w-md overflow-y-auto rounded-t-2xl border border-line bg-card p-5 shadow-2xl sm:rounded-xl" onMouseDown={(e) => e.stopPropagation()}>
         <h3 className="text-lg font-semibold">
           Who is a {role.emoji} {role.name}?
         </h3>

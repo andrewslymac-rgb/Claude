@@ -43,7 +43,7 @@ export default async function Settings({ params, searchParams }: { params: Promi
         {workspace.icon} {workspace.name} · you are {ROLE_LABELS[role].label === "Admin" || ROLE_LABELS[role].label === "Owner" ? "an" : "a"} <strong>{ROLE_LABELS[role].label}</strong>
       </p>
 
-      <nav className="mt-5 flex gap-1 overflow-x-auto border-b border-line pb-2 scrollbar-thin">
+      <nav className="mt-5 flex flex-wrap gap-1 border-b border-line pb-2">
         {tabs.map((t) => (
           <Link key={t.key} href={`/w/${slug}/settings?tab=${t.key}`} className={`flex shrink-0 items-center gap-1.5 rounded-md px-3 py-2 text-sm md:py-1.5 ${tab === t.key ? "bg-hover font-medium text-ink" : "text-ink-soft hover:bg-hover"}`}>
             {t.icon} {t.label}

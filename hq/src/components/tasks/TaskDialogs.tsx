@@ -165,8 +165,8 @@ export function TaskForm({ slug, task, members, roles = [], pages, categories, p
     });
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onMouseDown={onClose}>
-      <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl border border-line bg-card p-6 shadow-2xl" onMouseDown={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-0 sm:items-center sm:p-4" onMouseDown={onClose}>
+      <div className="pb-safe max-h-[92dvh] w-full max-w-lg overflow-y-auto rounded-t-2xl border border-line bg-card p-6 shadow-2xl sm:rounded-xl" onMouseDown={(e) => e.stopPropagation()}>
         <h2 className="text-lg font-semibold">{task ? "Edit task" : "New task"}</h2>
         <div className="mt-4 space-y-3 text-sm">
           <input autoFocus value={title} onChange={(e) => setTitle(e.target.value)} placeholder="What needs doing?" className="w-full rounded-lg border border-line bg-paper px-3 py-2 text-base" />
