@@ -59,7 +59,7 @@ export function OverduePanel({ slug, items, me, canEdit, onClose }: { slug: stri
   // Portal: the sidebar is a transformed drawer on phones, which would trap a fixed overlay inside it.
   return createPortal(
     <div className="fixed inset-0 z-50 flex justify-end bg-black/60" onMouseDown={onClose}>
-      <div className="flex h-full w-full max-w-xl flex-col border-l border-line bg-card shadow-2xl" onMouseDown={(e) => e.stopPropagation()}>
+      <div className="pt-safe pb-safe flex h-full w-full max-w-xl flex-col border-l border-line bg-card shadow-2xl" onMouseDown={(e) => e.stopPropagation()}>
         <div className="flex items-start gap-3 border-b border-line p-4 md:p-5">
           <AlertTriangle size={22} className={`mt-0.5 shrink-0 ${live.length ? "text-danger" : "text-ok"}`} />
           <div className="min-w-0 flex-1">

@@ -21,6 +21,11 @@
   --color-warn-soft: #f7c66b22;
 }
 
+/* iPhone notch / home indicator. The app draws edge to edge (viewport-fit=cover), so bars pad themselves. */
+.pt-safe { padding-top: env(safe-area-inset-top, 0px); }
+.pb-safe { padding-bottom: env(safe-area-inset-bottom, 0px); }
+.top-safe { top: env(safe-area-inset-top, 0px); }
+
 html,
 body {
   background: var(--color-paper);

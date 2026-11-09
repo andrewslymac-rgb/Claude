@@ -20,7 +20,7 @@ export default async function WorkspaceLayout({ children, params }: { children: 
     // The company's color becomes the accent for everything inside it: buttons, active
     // links, badges, the icon tile. Lightened a touch so it reads well on the dark theme.
     <div data-ws-theme className="bg-paper text-ink" style={workspaceThemeVars(workspace.color) as React.CSSProperties}>
-      <MobileShell title={workspace.name} icon={workspace.icon} sidebar={
+      <MobileShell title={workspace.name} icon={workspace.icon} slug={workspace.slug} overdue={tasks.filter((t) => t.state === "overdue").length} attention={attention} sidebar={
       <Sidebar
         workspace={{ slug: workspace.slug, name: workspace.name, icon: workspace.icon, color: workspace.color }}
         workspaces={workspaces.map((w) => ({ slug: w.slug, name: w.name, icon: w.icon, color: w.color }))}
