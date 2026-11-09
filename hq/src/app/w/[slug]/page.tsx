@@ -41,10 +41,13 @@ export default async function Home({ params }: { params: Promise<{ slug: string 
   const dueToday = allTasks.filter((t) => t.state === "today").length;
   const openFlags = flags.filter((f) => f.status === "open");
   const reviewsDue = library.filter((d) => ["overdue", "due_soon", "first"].includes(reviewState(d.reviewCycle, d.lastReviewedOn)));
+  const todayStr = new Date().toLocaleDateString("en-CA", { timeZone: "America/Los_Angeles" });
+  const followUps = allTasks.filter((t) => t.followUpOn && t.followUpOn <= todayStr).length;
 
   const stats: Stat[] = [
     { key: "overdue", label: "Overdue tasks", value: overdue, href: `/w/${slug}/tasks`, tone: overdue ? "danger" : "ok" },
     { key: "today", label: "Due today", value: dueToday, href: `/w/${slug}/tasks`, tone: dueToday ? "warn" : "ok" },
+    { key: "followups", label: "Follow-ups due", value: followUps, href: `/w/${slug}/tasks`, tone: followUps ? "warn" : "ok" },
     { key: "flags", label: "Open flags", value: openFlags.length, href: `/w/${slug}/flags`, tone: openFlags.length ? "warn" : "ok" },
     { key: "reviews", label: "Reviews due", value: reviewsDue.length, href: `/w/${slug}/library`, tone: reviewsDue.length ? "accent" : "ok" },
     { key: "ai", label: "AI awaiting approval", value: pendingAi, href: `/w/${slug}/ai`, tone: pendingAi ? "accent" : "muted" },

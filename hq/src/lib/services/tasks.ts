@@ -4,7 +4,7 @@ import { db, schema } from "@/db";
 import type { Frequency } from "@/db/schema";
 import { addDays, computeNextDue, dueState, nextDueAfter, todayISO, type DueState } from "@/lib/recurrence";
 
-const { tasks, taskAssignees, taskCompletions, users, pages, workspaceRoles, memberRoles } = schema;
+const { tasks, taskAssignees, taskCompletions, taskNotes, users, pages, workspaceRoles, memberRoles } = schema;
 import { roleByName } from "./roles";
 
 export type TaskRow = {
@@ -23,6 +23,9 @@ export type TaskRow = {
   lastDoneOn: string | null;
   nextDueOn: string | null;
   dueOverride: string | null;
+  followUpOn: string | null;
+  followUpNote: string | null;
+  noteCount: number;
   state: DueState;
   assignees: { id: string; name: string }[];
   /** True if the latest completion can be undone (done within the last 7 days). */
@@ -31,7 +34,7 @@ export type TaskRow = {
 
 export async function listTasks(workspaceId: string): Promise<TaskRow[]> {
   const rows = await db
-    .select({ t: tasks, sopTitle: pages.title, roleName: workspaceRoles.name, roleEmoji: workspaceRoles.emoji, roleColor: workspaceRoles.color })
+    .select({ t: tasks, sopTitle: pages.title, roleName: workspaceRoles.name, roleEmoji: workspaceRoles.emoji, roleColor: workspaceRoles.color, noteCount: sql<number>`(select count(*)::int from ${taskNotes} n where n.task_id = ${tasks.id})` })
     .from(tasks)
     .leftJoin(pages, eq(pages.id, tasks.sopPageId))
     .leftJoin(workspaceRoles, eq(workspaceRoles.id, tasks.roleId))
@@ -48,7 +51,7 @@ export async function listTasks(workspaceId: string): Promise<TaskRow[]> {
   for (const a of assignees) byTask.set(a.taskId, [...(byTask.get(a.taskId) ?? []), { id: a.id, name: a.name ?? a.email }]);
   const today = todayISO();
   const undoCutoff = new Date(Date.now() - 7 * 864e5).toISOString().slice(0, 10);
-  return rows.map(({ t, sopTitle, roleName, roleEmoji, roleColor }) => ({
+  return rows.map(({ t, sopTitle, roleName, roleEmoji, roleColor, noteCount }) => ({
     id: t.id,
     title: t.title,
     category: t.category,
@@ -64,6 +67,9 @@ export async function listTasks(workspaceId: string): Promise<TaskRow[]> {
     lastDoneOn: t.lastDoneOn,
     nextDueOn: t.nextDueOn,
     dueOverride: t.dueOverride,
+    followUpOn: t.followUpOn,
+    followUpNote: t.followUpNote,
+    noteCount,
     state: dueState(t.nextDueOn, today),
     assignees: byTask.get(t.id) ?? [],
     canUndo: Boolean(t.lastDoneOn && t.lastDoneOn >= undoCutoff),
@@ -190,6 +196,43 @@ async function recompute(taskId: string) {
   const [t] = await db.select().from(tasks).where(eq(tasks.id, taskId));
   const [{ last }] = await db.select({ last: sql<string | null>`max(${taskCompletions.doneOn})` }).from(taskCompletions).where(eq(taskCompletions.taskId, taskId));
   await db.update(tasks).set({ lastDoneOn: last, nextDueOn: computeNextDue(t.frequency, t.dueOn, last, undefined, t.dueOverride), updatedAt: new Date() }).where(eq(tasks.id, taskId));
+}
+
+// ---------------------------------------------------------------- notes & follow-ups
+
+export async function addNote(workspaceId: string, taskId: string, userId: string | null, body: string) {
+  const [t] = await db.select({ id: tasks.id }).from(tasks).where(and(eq(tasks.workspaceId, workspaceId), eq(tasks.id, taskId)));
+  if (!t) throw new Error("Task not found");
+  const text = body.trim();
+  if (!text) throw new Error("Write something first.");
+  const [n] = await db.insert(taskNotes).values({ taskId, userId, body: text }).returning();
+  await db.update(tasks).set({ updatedAt: new Date() }).where(eq(tasks.id, taskId));
+  return n;
+}
+
+export async function listNotes(workspaceId: string, taskId: string, limit = 50) {
+  const [t] = await db.select({ id: tasks.id }).from(tasks).where(and(eq(tasks.workspaceId, workspaceId), eq(tasks.id, taskId)));
+  if (!t) return [];
+  return db
+    .select({ id: taskNotes.id, body: taskNotes.body, createdAt: taskNotes.createdAt, by: users.name })
+    .from(taskNotes)
+    .leftJoin(users, eq(users.id, taskNotes.userId))
+    .where(eq(taskNotes.taskId, taskId))
+    .orderBy(desc(taskNotes.createdAt))
+    .limit(limit);
+}
+
+export async function deleteNote(workspaceId: string, taskId: string, noteId: string) {
+  const [t] = await db.select({ id: tasks.id }).from(tasks).where(and(eq(tasks.workspaceId, workspaceId), eq(tasks.id, taskId)));
+  if (!t) return;
+  await db.delete(taskNotes).where(and(eq(taskNotes.id, noteId), eq(taskNotes.taskId, taskId)));
+}
+
+/** Set (or clear, with null) a follow-up date and note. Independent of the recurring due date. */
+export async function setFollowUp(workspaceId: string, taskId: string, followUpOn: string | null, note?: string | null) {
+  const [t] = await db.select({ id: tasks.id }).from(tasks).where(and(eq(tasks.workspaceId, workspaceId), eq(tasks.id, taskId)));
+  if (!t) throw new Error("Task not found");
+  await db.update(tasks).set({ followUpOn, followUpNote: followUpOn ? (note ?? null) : null, updatedAt: new Date() }).where(eq(tasks.id, taskId));
 }
 
 export async function listCompletions(workspaceId: string, taskId: string, limit = 30) {

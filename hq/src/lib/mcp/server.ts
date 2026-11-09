@@ -73,7 +73,7 @@ export function buildServer(p: AiPrincipal) {
     const q = person?.trim().toLowerCase();
     const rows = all.filter((t) => (!filter || filter === "all" || (filter === "attention" ? t.state === "overdue" || t.state === "today" : t.frequency === filter)) && (!q || t.assignees.some((a) => a.name.toLowerCase() === q || a.name.toLowerCase().split(" ")[0] === q)));
     if (!rows.length) return text("No tasks match.");
-    return text(rows.map((t) => `- ${t.title} (id: ${t.id}) · ${FREQUENCY_LABELS[t.frequency]}${t.whenText ? ` · ${t.whenText}` : ""} · ${DUE_LABELS[t.state].label}${t.nextDueOn ? ` ${fmtDate(t.nextDueOn)}` : ""} · owner: ${t.assignees.map((a) => a.name).join(", ") || t.ownerRole || "anyone"}${t.category ? ` · ${t.category}` : ""}`).join("\n"));
+    return text(rows.map((t) => `- ${t.title} (id: ${t.id}) · ${FREQUENCY_LABELS[t.frequency]}${t.whenText ? ` · ${t.whenText}` : ""} · ${DUE_LABELS[t.state].label}${t.nextDueOn ? ` ${fmtDate(t.nextDueOn)}` : ""} · owner: ${t.assignees.map((a) => a.name).join(", ") || t.ownerRole || "anyone"}${t.category ? ` · ${t.category}` : ""}${t.followUpOn ? ` · follow-up ${fmtDate(t.followUpOn)}` : ""}${t.noteCount ? ` · ${t.noteCount} notes` : ""}`).join("\n"));
   });
 
   server.registerTool("list_flags", { title: "List open flags", description: "Open questions, contradictions and compliance risks waiting on a decision.", inputSchema: {} }, async () => {
@@ -197,8 +197,8 @@ export function buildServer(p: AiPrincipal) {
       },
     );
 
-    server.registerTool("complete_task", { title: "Mark a task done", description: "Marks a task done today (or on a given date).", inputSchema: { task_id: z.string().uuid(), done_on: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional() } }, async ({ task_id, done_on }) => {
-      await tasksSvc.completeTask(ws, task_id, p.userId, done_on);
+    server.registerTool("complete_task", { title: "Mark a task done", description: "Marks a task done today (or on a given date), optionally with a note about what happened.", inputSchema: { task_id: z.string().uuid(), done_on: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(), note: z.string().max(2000).optional() } }, async ({ task_id, done_on, note }) => {
+      await tasksSvc.completeTask(ws, task_id, p.userId, done_on, note);
       const t = (await tasksSvc.listTasks(ws)).find((x) => x.id === task_id);
       await logActivity({ workspaceId: ws, grantId: p.grantId, tool: "complete_task", summary: `Marked "${t?.title ?? task_id}" done`, taskId: task_id });
       return text(`Done. ${t ? `Next due ${t.nextDueOn ? fmtDate(t.nextDueOn) : "—"}.` : ""}`);
@@ -216,6 +216,38 @@ export function buildServer(p: AiPrincipal) {
       const t = (await tasksSvc.listTasks(ws)).find((x) => x.id === task_id);
       await logActivity({ workspaceId: ws, grantId: p.grantId, tool: "skip_task", summary: `Moved "${t?.title ?? task_id}" to ${fmtDate(target)}`, taskId: task_id });
       return text(`"${t?.title ?? "Task"}" is now due ${fmtDate(target)}.`);
+    });
+
+    server.registerTool("add_task_note", { title: "Add a note to a task", description: "Appends a dated note to a task: what happened, what to remember, a handoff.", inputSchema: { task_id: z.string().uuid(), note: z.string().min(1).max(5000) } }, async ({ task_id, note }) => {
+      await tasksSvc.addNote(ws, task_id, p.userId, note);
+      const t = (await tasksSvc.listTasks(ws)).find((x) => x.id === task_id);
+      await logActivity({ workspaceId: ws, grantId: p.grantId, tool: "add_task_note", summary: `Added a note to "${t?.title ?? task_id}"`, taskId: task_id });
+      return text(`Note added to "${t?.title ?? "task"}".`);
+    });
+
+    server.registerTool("get_task", { title: "Task details", description: "Everything about one task: owner, schedule, follow-up, instructions, notes and completion history.", inputSchema: { task_id: z.string().uuid() } }, async ({ task_id }) => {
+      const t = (await tasksSvc.listTasks(ws)).find((x) => x.id === task_id);
+      if (!t) return fail("Task not found.");
+      const [notes, done] = await Promise.all([tasksSvc.listNotes(ws, task_id), tasksSvc.listCompletions(ws, task_id, 10)]);
+      return text(
+        [
+          `# ${t.title}`,
+          `${FREQUENCY_LABELS[t.frequency]}${t.whenText ? ` · ${t.whenText}` : ""} · ${DUE_LABELS[t.state].label}${t.nextDueOn ? ` ${fmtDate(t.nextDueOn)}` : ""} · owner: ${t.assignees.map((a) => a.name).join(", ") || t.ownerRole || "anyone"}${t.category ? ` · ${t.category}` : ""}`,
+          t.followUpOn ? `Follow-up: ${fmtDate(t.followUpOn)}${t.followUpNote ? ` — ${t.followUpNote}` : ""}` : "",
+          t.instructions ? `\nInstructions:\n${t.instructions}` : "",
+          notes.length ? `\nNotes:\n${notes.map((n) => `- ${fmtDate(n.createdAt.toISOString().slice(0, 10))} (${n.by ?? "someone"}): ${n.body}`).join("\n")}` : "\nNo notes yet.",
+          done.length ? `\nCompleted:\n${done.map((d) => `- ${fmtDate(d.doneOn)}${d.by ? ` by ${d.by}` : ""}${d.note ? ` — ${d.note}` : ""}`).join("\n")}` : "\nNever completed yet.",
+        ]
+          .filter(Boolean)
+          .join("\n"),
+      );
+    });
+
+    server.registerTool("set_follow_up", { title: "Set or clear a follow-up", description: "Puts a follow-up date (and optional note) on a task, separate from its recurring due date. Pass follow_up_on: null to clear it.", inputSchema: { task_id: z.string().uuid(), follow_up_on: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable(), note: z.string().max(500).optional() } }, async ({ task_id, follow_up_on, note }) => {
+      await tasksSvc.setFollowUp(ws, task_id, follow_up_on, note);
+      const t = (await tasksSvc.listTasks(ws)).find((x) => x.id === task_id);
+      await logActivity({ workspaceId: ws, grantId: p.grantId, tool: "set_follow_up", summary: follow_up_on ? `Set a follow-up on "${t?.title ?? task_id}" for ${fmtDate(follow_up_on)}` : `Cleared the follow-up on "${t?.title ?? task_id}"`, taskId: task_id });
+      return text(follow_up_on ? `Follow-up set for ${fmtDate(follow_up_on)}.` : "Follow-up cleared.");
     });
 
     server.registerTool("remove_task", { title: "Remove a task", description: "Takes a task off the tracker. Its history is kept and an admin can restore it.", inputSchema: { task_id: z.string().uuid() } }, async ({ task_id }) => {

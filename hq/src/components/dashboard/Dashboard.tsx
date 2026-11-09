@@ -198,7 +198,7 @@ function WidgetBody({ w, slug, stats, canCustomize }: { w: WidgetData; slug: str
 
   if (w.type === "stats")
     return (
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
         {stats.map((s) =>
           s.key === "overdue" ? (
             <button key={s.key} onClick={() => window.dispatchEvent(new Event("orbit:open-overdue"))} className="rounded-lg border border-line bg-side px-3 py-2 text-left hover:border-ink-faint">

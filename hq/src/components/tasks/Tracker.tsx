@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { Check, Plus, MoreHorizontal, Users, ChevronRight, SkipForward, Trash2, Pencil, UserPlus } from "lucide-react";
+import { Check, Plus, MoreHorizontal, Users, ChevronRight, SkipForward, Trash2, Pencil, UserPlus, Bell, MessageSquare } from "lucide-react";
 import { archiveTaskAction, completeTaskAction, createTaskAction, moveDueAction, undoTaskAction, updateTaskAction } from "@/app/actions";
 import type { TaskRow } from "@/lib/services/tasks";
 import type { Frequency } from "@/db/schema";
@@ -173,6 +173,16 @@ export function Tracker({ slug, tasks, members, roles = [], pages, categories, m
                           {t.assignees.length > 1 && groupBy === "person" ? ` · with ${t.assignees.filter((a) => a.id !== g.memberId).map((a) => a.name.split(" ")[0]).join(", ")}` : ""}
                         </div>
                       </button>
+                      {t.noteCount > 0 && (
+                        <span className="flex shrink-0 items-center gap-0.5 text-[10px] text-ink-faint" title={`${t.noteCount} notes`}>
+                          <MessageSquare size={11} /> {t.noteCount}
+                        </span>
+                      )}
+                      {t.followUpOn && (
+                        <span className={`flex shrink-0 items-center gap-0.5 rounded px-1.5 py-0.5 text-[10px] font-medium ${t.followUpOn <= today ? "bg-warn-soft text-warn" : "bg-hover text-ink-soft"}`} title={t.followUpNote ?? "Follow-up"}>
+                          <Bell size={10} /> {fmtDate(t.followUpOn)}
+                        </span>
+                      )}
                       {!done && (t.state === "overdue" || t.state === "today") && <span className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium ${TONE[DUE_LABELS[t.state].tone]}`}>{DUE_LABELS[t.state].label}</span>}
                       {canEdit ? (
                         <button onClick={() => setMenu(menu === t.id ? null : t.id)} className="shrink-0 rounded p-1 text-ink-faint hover:bg-line hover:text-ink md:opacity-0 md:group-hover:opacity-100" aria-label="More">

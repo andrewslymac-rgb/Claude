@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useTransition } from "react";
-import { Check, Undo2, X, Trash2, History, CalendarClock, SkipForward } from "lucide-react";
-import { archiveTaskAction, createTaskAction, listCompletionsAction, moveDueAction, updateTaskAction } from "@/app/actions";
+import { useEffect, useState, useTransition } from "react";
+import { Check, Undo2, X, Trash2, History, CalendarClock, SkipForward, MessageSquare, Bell, BellOff } from "lucide-react";
+import { addTaskNoteAction, archiveTaskAction, completeTaskAction, createTaskAction, deleteTaskNoteAction, listCompletionsAction, listTaskNotesAction, moveDueAction, setFollowUpAction, updateTaskAction } from "@/app/actions";
+import { todayISO } from "@/lib/recurrence";
 import type { TaskRow } from "@/lib/services/tasks";
 import type { Frequency } from "@/db/schema";
 import { DUE_LABELS, FREQUENCY_LABELS, fmtDate } from "@/lib/recurrence";
@@ -23,7 +24,16 @@ export const TONE: Record<string, string> = {
 export function TaskDrawer({ slug, task, members, roles = [], pages, categories, canEdit, onClose, onDone, onUndo }: { slug: string; task: TaskRow; members: Member[]; roles?: JobRole[]; pages: PageOpt[]; categories: readonly string[]; canEdit: boolean; onClose: () => void; onDone: (t: TaskRow) => void; onUndo: (t: TaskRow) => void }) {
   const [editing, setEditing] = useState(false);
   const [history, setHistory] = useState<Awaited<ReturnType<typeof listCompletionsAction>> | null>(null);
-  const [, start] = useTransition();
+  const [notes, setNotes] = useState<Awaited<ReturnType<typeof listTaskNotesAction>> | null>(null);
+  const [noteText, setNoteText] = useState("");
+  const [doneOn, setDoneOn] = useState<{ date: string; note: string } | null>(null);
+  const [followUp, setFollowUp] = useState<{ date: string; note: string } | null>(null);
+  const [busy, start] = useTransition();
+  useEffect(() => {
+    listTaskNotesAction(slug, task.id).then(setNotes);
+  }, [slug, task.id]);
+  const refreshNotes = () => listTaskNotesAction(slug, task.id).then(setNotes);
+  const today = todayISO();
   if (editing) return <TaskForm slug={slug} task={task} members={members} roles={roles} pages={pages} categories={categories} onClose={() => setEditing(false)} />;
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-black/60" onMouseDown={onClose}>
@@ -111,18 +121,147 @@ export function TaskDrawer({ slug, task, members, roles = [], pages, categories,
             <History size={14} /> History
           </button>
         </div>
+        <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs">
+          <button onClick={() => setDoneOn(doneOn ? null : { date: today, note: "" })} className="flex items-center gap-1 text-accent hover:underline">
+            <CalendarClock size={12} /> {doneOn ? "Cancel" : "Mark done on a different day, or with a note"}
+          </button>
+          <button onClick={() => setFollowUp(followUp ? null : { date: task.followUpOn ?? "", note: task.followUpNote ?? "" })} className="flex items-center gap-1 text-accent hover:underline">
+            <Bell size={12} /> {task.followUpOn ? "Change follow-up" : "Set a follow-up"}
+          </button>
+        </div>
+
+        {doneOn && (
+          <form
+            className="mt-3 space-y-2 rounded-lg border border-line bg-side/60 p-3 text-sm"
+            onSubmit={(e) => {
+              e.preventDefault();
+              start(async () => {
+                await completeTaskAction(slug, task.id, doneOn.date, doneOn.note);
+                setDoneOn(null);
+                setHistory(await listCompletionsAction(slug, task.id));
+              });
+            }}
+          >
+            <div className="flex flex-wrap items-center gap-2">
+              <label className="text-xs text-ink-faint">
+                Done on
+                <input type="date" required max={today} value={doneOn.date} onChange={(e) => setDoneOn({ ...doneOn, date: e.target.value })} className="ml-2 rounded-lg border border-line bg-paper px-2 py-1.5 text-sm" />
+              </label>
+            </div>
+            <textarea value={doneOn.note} onChange={(e) => setDoneOn({ ...doneOn, note: e.target.value })} rows={2} placeholder="What happened? (optional) e.g. 'Reconciled through Oct 31; two checks still outstanding.'" className="w-full rounded-lg border border-line bg-paper px-3 py-2 text-sm" />
+            <div className="flex justify-end">
+              <button disabled={busy} className="rounded-lg bg-accent px-3 py-1.5 text-xs font-medium text-paper disabled:opacity-50">
+                {busy ? "Saving…" : "Save completion"}
+              </button>
+            </div>
+          </form>
+        )}
+
+        {(followUp || task.followUpOn) && (
+          <div className="mt-3 rounded-lg border border-line bg-side/60 p-3 text-sm">
+            {followUp ? (
+              <form
+                className="space-y-2"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  start(async () => {
+                    await setFollowUpAction(slug, task.id, followUp.date || null, followUp.note);
+                    setFollowUp(null);
+                  });
+                }}
+              >
+                <div className="flex flex-wrap items-center gap-2">
+                  <label className="text-xs text-ink-faint">
+                    Follow up on
+                    <input type="date" required value={followUp.date} onChange={(e) => setFollowUp({ ...followUp, date: e.target.value })} className="ml-2 rounded-lg border border-line bg-paper px-2 py-1.5 text-sm" />
+                  </label>
+                </div>
+                <input value={followUp.note} onChange={(e) => setFollowUp({ ...followUp, note: e.target.value })} placeholder="What to check on (optional)" className="w-full rounded-lg border border-line bg-paper px-3 py-2 text-sm" />
+                <div className="flex justify-end gap-2">
+                  {task.followUpOn && (
+                    <button type="button" disabled={busy} onClick={() => start(async () => (await setFollowUpAction(slug, task.id, null), setFollowUp(null)))} className="flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs text-ink-soft hover:bg-hover">
+                      <BellOff size={12} /> Clear
+                    </button>
+                  )}
+                  <button disabled={busy || !followUp.date} className="rounded-lg bg-accent px-3 py-1.5 text-xs font-medium text-paper disabled:opacity-50">
+                    Save follow-up
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <div className="flex items-start gap-2">
+                <Bell size={15} className={`mt-0.5 shrink-0 ${task.followUpOn! <= today ? "text-warn" : "text-accent"}`} />
+                <div className="min-w-0 flex-1">
+                  <div className="font-medium">
+                    Follow up {fmtDate(task.followUpOn!)}
+                    {task.followUpOn! < today ? <span className="ml-2 rounded bg-warn-soft px-1.5 py-0.5 text-[11px] text-warn">past</span> : task.followUpOn === today ? <span className="ml-2 rounded bg-warn-soft px-1.5 py-0.5 text-[11px] text-warn">today</span> : null}
+                  </div>
+                  {task.followUpNote && <div className="text-ink-soft">{task.followUpNote}</div>}
+                </div>
+                <button disabled={busy} onClick={() => start(async () => void (await setFollowUpAction(slug, task.id, null)))} className="rounded p-1 text-ink-faint hover:bg-hover hover:text-ink" title="Done following up">
+                  <Check size={14} />
+                </button>
+              </div>
+            )}
+          </div>
+        )}
 
         {history && (
           <ul className="mt-4 divide-y divide-line rounded-lg border border-line text-sm">
             {history.length === 0 && <li className="px-3 py-3 text-ink-faint">Never completed yet.</li>}
             {history.map((h) => (
-              <li key={h.id} className="flex justify-between px-3 py-2">
-                <span>{fmtDate(h.doneOn)}</span>
-                <span className="text-ink-faint">{h.by ?? ""}</span>
+              <li key={h.id} className="px-3 py-2">
+                <div className="flex justify-between">
+                  <span>{fmtDate(h.doneOn)}</span>
+                  <span className="text-ink-faint">{h.by ?? ""}</span>
+                </div>
+                {h.note && <div className="mt-0.5 text-xs text-ink-soft">{h.note}</div>}
               </li>
             ))}
           </ul>
         )}
+
+        <div className="mt-6">
+          <div className="mb-2 flex items-center gap-1 text-xs font-medium uppercase tracking-wide text-ink-faint">
+            <MessageSquare size={12} /> Notes {notes && notes.length > 0 && <span className="rounded-full bg-hover px-1.5 text-[10px] normal-case">{notes.length}</span>}
+          </div>
+          <form
+            className="flex gap-2"
+            onSubmit={(e) => {
+              e.preventDefault();
+              const body = noteText.trim();
+              if (!body) return;
+              setNoteText("");
+              start(async () => {
+                await addTaskNoteAction(slug, task.id, body);
+                await refreshNotes();
+              });
+            }}
+          >
+            <input value={noteText} onChange={(e) => setNoteText(e.target.value)} placeholder="Add a note… (what happened, what to remember, a handoff)" className="min-w-0 flex-1 rounded-lg border border-line bg-paper px-3 py-2 text-sm" />
+            <button disabled={busy || !noteText.trim()} className="rounded-lg bg-accent px-3 py-2 text-sm font-medium text-paper disabled:opacity-50">
+              Add
+            </button>
+          </form>
+          <ul className="mt-2 space-y-2">
+            {notes?.map((n) => (
+              <li key={n.id} className="group rounded-lg border border-line bg-side/60 px-3 py-2 text-sm">
+                <div className="whitespace-pre-wrap">{n.body}</div>
+                <div className="mt-1 flex items-center gap-2 text-[11px] text-ink-faint">
+                  <span>{n.by ?? "Someone"}</span>
+                  <span>·</span>
+                  <span>{new Date(n.createdAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZone: "America/Los_Angeles" })}</span>
+                  {canEdit && (
+                    <button onClick={() => confirm("Delete this note?") && start(async () => (await deleteTaskNoteAction(slug, task.id, n.id), await refreshNotes()))} className="ml-auto rounded px-1 text-ink-faint hover:text-danger md:opacity-0 md:group-hover:opacity-100">
+                      delete
+                    </button>
+                  )}
+                </div>
+              </li>
+            ))}
+            {notes && notes.length === 0 && <li className="text-xs text-ink-faint">No notes yet.</li>}
+          </ul>
+        </div>
 
         {canEdit && (
           <button

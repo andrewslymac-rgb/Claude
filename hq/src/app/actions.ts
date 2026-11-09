@@ -249,10 +249,33 @@ export async function archiveTaskAction(slug: string, id: string) {
   revalidatePath(`/w/${slug}`, "layout");
 }
 
-/** Viewers may complete tasks too: ticking off work is not "editing". */
-export async function completeTaskAction(slug: string, id: string, doneOn?: string) {
+/** Viewers may complete tasks too: ticking off work is not "editing". Optional done date and note. */
+export async function completeTaskAction(slug: string, id: string, doneOn?: string, note?: string) {
   const { user, workspace } = await requireAbility(slug, "read");
-  await taskSvc.completeTask(workspace.id, uuid.parse(id), user.id, doneOn ? isoDate.parse(doneOn) : todayISO());
+  await taskSvc.completeTask(workspace.id, uuid.parse(id), user.id, doneOn ? isoDate.parse(doneOn) : todayISO(), note?.trim() ? z.string().max(2000).parse(note.trim()) : undefined);
+  revalidatePath(`/w/${slug}`, "layout");
+}
+
+export async function addTaskNoteAction(slug: string, id: string, body: string) {
+  const { user, workspace } = await requireAbility(slug, "read");
+  await taskSvc.addNote(workspace.id, uuid.parse(id), user.id, z.string().min(1).max(5000).parse(body));
+  revalidatePath(`/w/${slug}`, "layout");
+}
+
+export async function listTaskNotesAction(slug: string, id: string) {
+  const { workspace } = await requireAbility(slug, "read");
+  return taskSvc.listNotes(workspace.id, uuid.parse(id));
+}
+
+export async function deleteTaskNoteAction(slug: string, id: string, noteId: string) {
+  const { workspace } = await requireAbility(slug, "manage_tasks");
+  await taskSvc.deleteNote(workspace.id, uuid.parse(id), uuid.parse(noteId));
+  revalidatePath(`/w/${slug}`, "layout");
+}
+
+export async function setFollowUpAction(slug: string, id: string, followUpOn: string | null, note?: string | null) {
+  const { workspace } = await requireAbility(slug, "read");
+  await taskSvc.setFollowUp(workspace.id, uuid.parse(id), followUpOn ? isoDate.parse(followUpOn) : null, note ? z.string().max(500).parse(note) : null);
   revalidatePath(`/w/${slug}`, "layout");
 }
 
