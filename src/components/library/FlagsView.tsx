@@ -100,7 +100,7 @@ export function FlagsView({ slug, flags, pages, canEdit }: { slug: string; flags
   );
 }
 
-function FlagForm({ slug, flag, pages, onClose }: { slug: string; flag?: F; pages: PageOpt[]; onClose: () => void }) {
+export function FlagForm({ slug, flag, pages, presetPageId, onClose }: { slug: string; flag?: F; pages: PageOpt[]; presetPageId?: string; onClose: () => void }) {
   const [v, setV] = useState({
     title: flag?.title ?? "",
     type: flag?.type ?? ("open_decision" as FlagInput["type"]),
@@ -108,7 +108,7 @@ function FlagForm({ slug, flag, pages, onClose }: { slug: string; flag?: F; page
     whoDecides: flag?.whoDecides ?? "",
     whatWeFound: flag?.whatWeFound ?? "",
     nextStep: flag?.nextStep ?? "",
-    pageId: flag?.pageId ?? "",
+    pageId: flag?.pageId ?? presetPageId ?? "",
   });
   const [busy, start] = useTransition();
   const set = (k: keyof typeof v, val: string) => setV({ ...v, [k]: val });

@@ -332,8 +332,9 @@ const flagInput = z.object({
   ownerId: uuid.nullable().optional(),
 });
 
+/** Anyone who can read can raise a flag: field staff spot most of the problems. */
 export async function createFlagAction(slug: string, input: z.infer<typeof flagInput>) {
-  const { user, workspace } = await requireAbility(slug, "edit");
+  const { user, workspace } = await requireAbility(slug, "read");
   await flagSvc.createFlag(workspace.id, flagInput.parse(input), user.id);
   revalidatePath(`/w/${slug}`, "layout");
 }

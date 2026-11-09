@@ -4,7 +4,8 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
-import { History, MoreHorizontal, BookMarked, Trash2, Check, Loader2, AlertCircle, ExternalLink, FileCheck2, ClipboardList } from "lucide-react";
+import { History, MoreHorizontal, BookMarked, Trash2, Check, Loader2, AlertCircle, ExternalLink, FileCheck2, ClipboardList, Flag } from "lucide-react";
+import { FlagForm } from "@/components/library/FlagsView";
 import { DocInfo, type DocInfoData } from "./DocInfo";
 import { LogChangeDialog } from "./LogChangeDialog";
 import { archivePageAction, savePageAction, setSopAction } from "@/app/actions";
@@ -30,6 +31,7 @@ export function PageView({ slug, page, crumbs, subpages, canEdit, docInfo, membe
   const [menu, setMenu] = useState(false);
   const [history, setHistory] = useState(false);
   const [logChange, setLogChange] = useState(false);
+  const [flagging, setFlagging] = useState(false);
   const [docSetup, setDocSetup] = useState(false);
   const isDoc = Boolean(docInfo.docType || docInfo.docStatus || docInfo.reviewCycle);
   const [editorKey, setEditorKey] = useState(0);
@@ -103,6 +105,9 @@ export function PageView({ slug, page, crumbs, subpages, canEdit, docInfo, membe
         </nav>
         <SaveIndicator state={save} />
         {isSop && <span className="rounded bg-warn-soft px-2 py-0.5 text-xs font-semibold text-warn">SOP</span>}
+        <button onClick={() => setFlagging(true)} className="flex min-h-10 items-center gap-1 rounded-md px-2 py-1 text-ink-soft hover:bg-hover hover:text-warn md:min-h-0" title="Something off? Flag it for the owners.">
+          <Flag size={15} /> <span className="hidden sm:inline">Flag</span>
+        </button>
         <button onClick={() => setHistory(true)} className="flex min-h-10 items-center gap-1 rounded-md px-2 py-1 text-ink-soft hover:bg-hover md:min-h-0">
           <History size={15} /> <span className="hidden sm:inline">History</span>
         </button>
@@ -235,6 +240,7 @@ export function PageView({ slug, page, crumbs, subpages, canEdit, docInfo, membe
         )}
       </article>
 
+      {flagging && <FlagForm slug={slug} pages={[{ id: page.id, title: title || "Untitled", icon }]} presetPageId={page.id} onClose={() => setFlagging(false)} />}
       {logChange && <LogChangeDialog slug={slug} pageId={page.id} currentVersionLabel={docInfo.docVersion} onClose={() => setLogChange(false)} />}
 
       {history && (
