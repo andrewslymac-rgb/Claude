@@ -237,6 +237,37 @@ export function buildServer(p: AiPrincipal) {
     });
   }
 
+  // ------------------------------------------------------------------ flags (any write scope)
+  if (can("write:pages") || can("write:tasks")) {
+    server.registerTool(
+      "create_flag",
+      {
+        title: "Raise a flag",
+        description: "Flags something that looks wrong for the owners to decide on: a contradiction between SOPs, an outdated or missing document, a compliance risk, a duplicate, an open decision. Link the page it is about when you can.",
+        inputSchema: {
+          title: z.string().min(1).max(200),
+          type: z.enum(["contradiction", "duplicate", "missing_document", "outdated", "incomplete", "open_decision", "compliance_risk", "naming_mismatch"]),
+          severity: z.enum(["high", "medium", "low"]).optional(),
+          what_we_found: z.string().max(5000).describe("What you saw, with enough detail that a person can verify it"),
+          next_step: z.string().max(2000).optional(),
+          who_decides: z.string().max(60).optional(),
+          page_id: z.string().uuid().optional(),
+        },
+      },
+      async (a) => {
+        const f = await flagsSvc.createFlag(ws, { title: a.title, type: a.type, severity: a.severity ?? "medium", whatWeFound: a.what_we_found, nextStep: a.next_step, whoDecides: a.who_decides ?? null, pageId: a.page_id ?? null }, p.userId);
+        await logActivity({ workspaceId: ws, grantId: p.grantId, tool: "create_flag", summary: `Raised a ${a.severity ?? "medium"} flag: "${a.title}"`, pageId: a.page_id ?? null });
+        return text(`Flagged "${a.title}" (id: ${f.id}). It shows under Flags for the owners to decide.`);
+      },
+    );
+
+    server.registerTool("update_flag", { title: "Update a flag", description: "Changes a flag's status (open, in_progress, resolved, wont_fix) or adds a next step.", inputSchema: { flag_id: z.string().uuid(), status: z.enum(["open", "in_progress", "resolved", "wont_fix"]).optional(), next_step: z.string().max(2000).optional() } }, async ({ flag_id, status, next_step }) => {
+      await flagsSvc.updateFlag(ws, flag_id, { status, nextStep: next_step });
+      await logActivity({ workspaceId: ws, grantId: p.grantId, tool: "update_flag", summary: `Updated flag ${flag_id}${status ? ` → ${status.replace("_", " ")}` : ""}` });
+      return text("Flag updated.");
+    });
+  }
+
   // ------------------------------------------------------------------ dashboard feeds
   if (can("write:tasks")) {
     const money = { count: z.number().int().min(0), total: z.number().min(0) };
