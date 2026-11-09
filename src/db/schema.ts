@@ -319,6 +319,9 @@ export const tasks = pgTable(
     nextDueOn: date("next_due_on"),
     /** One-time override of the next due date ("skip this week", "push to Friday"). Cleared on completion. */
     dueOverride: date("due_override"),
+    /** A follow-up to come back to, separate from the recurring due date. */
+    followUpOn: date("follow_up_on"),
+    followUpNote: text("follow_up_note"),
     archivedAt: timestamp("archived_at", { withTimezone: true }),
     createdById: uuid("created_by_id").references(() => users.id, { onDelete: "set null" }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -385,6 +388,21 @@ export const taskAssignees = pgTable(
 );
 
 /** One row per time a task is marked done. Undo deletes the latest row. */
+/** Running notes on a task: what happened, what to remember, handoffs. */
+export const taskNotes = pgTable(
+  "task_notes",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    taskId: uuid("task_id")
+      .notNull()
+      .references(() => tasks.id, { onDelete: "cascade" }),
+    userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }),
+    body: text("body").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("task_notes_task_idx").on(t.taskId, t.createdAt)],
+);
+
 export const taskCompletions = pgTable(
   "task_completions",
   {
