@@ -23,7 +23,7 @@ export function AiAccessPanel({ slug, grants, scopeInfo, mcpUrl, approvalRule }:
 
   return (
     <div className="mt-3 space-y-4">
-      <div className="rounded-xl border border-line p-4 text-sm">
+      <div className="card p-4 text-sm">
         <div className="flex items-start gap-3">
           <Bot size={20} className="mt-0.5 shrink-0 text-accent" />
           <div className="min-w-0 flex-1">
@@ -39,7 +39,7 @@ export function AiAccessPanel({ slug, grants, scopeInfo, mcpUrl, approvalRule }:
         </div>
       </div>
 
-      <div className="rounded-xl border border-line p-4 text-sm">
+      <div className="card p-4 text-sm">
         <div className="font-medium">When an AI tool edits a page</div>
         <div className="mt-2 space-y-1.5">
           {([["sops", "SOPs and documents wait for approval; other pages apply right away (recommended)"], ["all", "Every page edit waits for approval"], ["none", "Apply everything right away (you can still undo)"]] as const).map(([k, label]) => (
@@ -78,15 +78,15 @@ export function AiAccessPanel({ slug, grants, scopeInfo, mcpUrl, approvalRule }:
             </button>
           </div>
           <p className="mt-2 text-xs text-ink-soft">Use it as a Bearer token against {mcpUrl}. For Claude Code: <code>claude mcp add --transport http orbit {mcpUrl} --header &quot;Authorization: Bearer &lt;key&gt;&quot;</code></p>
-          <button onClick={() => setNewKey(null)} className="mt-3 rounded-lg border border-line px-3 py-1.5 text-xs hover:bg-hover">
+          <button onClick={() => setNewKey(null)} className="mt-3 btn btn-secondary btn-sm">
             Done
           </button>
         </div>
       ) : creating ? (
-        <div className="rounded-xl border border-line p-4 text-sm">
+        <div className="card p-4 text-sm">
           <div className="font-medium">New API key</div>
           <p className="mt-1 text-xs text-ink-soft">For tools that can&apos;t do the Allow flow (scripts, Claude Code, Zapier). The key is tied to this company only.</p>
-          <input value={name} onChange={(e) => setName(e.target.value)} placeholder='Name, e.g. "Claude Code on Andrew’s laptop"' className="mt-3 w-full rounded-lg border border-line bg-paper px-3 py-2" />
+          <input value={name} onChange={(e) => setName(e.target.value)} placeholder='Name, e.g. "Claude Code on Andrew’s laptop"' className="mt-3 field" />
           <div className="mt-3 space-y-1">
             {scopeInfo.map((s) => (
               <label key={s.key} className="flex items-start gap-2">
@@ -119,7 +119,7 @@ export function AiAccessPanel({ slug, grants, scopeInfo, mcpUrl, approvalRule }:
           </div>
         </div>
       ) : (
-        <button onClick={() => setCreating(true)} className="flex items-center gap-1 rounded-lg border border-line px-3 py-2 text-sm hover:bg-hover">
+        <button onClick={() => setCreating(true)} className="flex items-center gap-1 btn btn-secondary">
           <Plus size={14} /> Create an API key
         </button>
       )}

@@ -97,7 +97,7 @@ export function ProposalsView({ slug, items, canReview }: { slug: string; items:
                 <button disabled={busy} onClick={() => start(async () => (await rejectProposalAction(slug, p.id, note || undefined), setNote("")))} className="flex items-center gap-1 rounded-lg border border-line px-3 py-2 text-sm hover:bg-danger-soft hover:text-danger">
                   <X size={14} /> Reject
                 </button>
-                <button disabled={busy} onClick={() => start(async () => (await approveProposalAction(slug, p.id, note || undefined), setNote("")))} className="flex items-center gap-1 rounded-lg bg-accent px-3 py-2 text-sm font-medium text-paper">
+                <button disabled={busy} onClick={() => start(async () => (await approveProposalAction(slug, p.id, note || undefined), setNote("")))} className="flex items-center gap-1 btn btn-primary">
                   <Check size={14} /> Approve &amp; apply
                 </button>
               </div>

@@ -64,7 +64,7 @@ export default async function Authorize({ searchParams }: { searchParams: Promis
             </p>
 
             <label className="mt-5 block text-sm font-medium">Company</label>
-            <select name="workspace_id" className="mt-1 w-full rounded-lg border border-line bg-paper px-3 py-2 text-sm" defaultValue={workspaces[0].id}>
+            <select name="workspace_id" className="field" defaultValue={workspaces[0].id}>
               {workspaces.map((w) => (
                 <option key={w.id} value={w.id}>
                   {w.icon} {w.name}
@@ -90,7 +90,7 @@ export default async function Authorize({ searchParams }: { searchParams: Promis
               <a href={`${q.redirect_uri}?error=access_denied${q.state ? `&state=${encodeURIComponent(q.state)}` : ""}`} className="flex-1 rounded-lg border border-line px-4 py-2.5 text-center text-sm hover:bg-hover">
                 Cancel
               </a>
-              <button className="flex-1 rounded-lg bg-accent px-4 py-2.5 text-sm font-medium text-paper">Allow</button>
+              <button className="flex-1 btn btn-primary">Allow</button>
             </div>
           </form>
         )}

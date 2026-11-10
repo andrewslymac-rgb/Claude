@@ -17,7 +17,7 @@ export function AiHub({ slug, tab, activity, proposals, canUndo, canReview }: { 
   );
   return (
     <div className="mx-auto max-w-3xl px-4 py-6 md:px-10 md:py-8">
-      <h1 className="flex items-center gap-2 text-2xl font-semibold">
+      <h1 className="page-title flex items-center gap-2">
         <Bot size={24} className="text-accent" /> AI
       </h1>
       <p className="mt-1 text-sm text-ink-soft">What AI tools have asked to change, and what they changed.</p>

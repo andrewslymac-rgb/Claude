@@ -11,10 +11,10 @@ export function LogChangeDialog({ slug, pageId, currentVersionLabel, onClose }: 
   const [teamTold, setTeamTold] = useState(false);
   const [docVersion, setDocVersion] = useState(currentVersionLabel ?? "");
   const [busy, start] = useTransition();
-  const field = "mt-1 w-full rounded-lg border border-line bg-paper px-3 py-2 text-sm";
+  const field = "field";
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onMouseDown={onClose}>
-      <div className="w-full max-w-md rounded-xl border border-line bg-card p-6 shadow-2xl" onMouseDown={(e) => e.stopPropagation()}>
+      <div className="w-full max-w-md card p-6 shadow-2xl" onMouseDown={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold">Log a change</h2>
           <button onClick={onClose} className="rounded p-1 hover:bg-hover" aria-label="Close">
@@ -33,20 +33,20 @@ export function LogChangeDialog({ slug, pageId, currentVersionLabel, onClose }: 
         <div className="mt-3 flex items-center gap-3">
           <label className="text-xs text-ink-faint">
             Version label
-            <input value={docVersion} onChange={(e) => setDocVersion(e.target.value)} placeholder="v2" className="mt-1 w-24 rounded-lg border border-line bg-paper px-2 py-1.5 text-sm" />
+            <input value={docVersion} onChange={(e) => setDocVersion(e.target.value)} placeholder="v2" className="mt-1 w-24 field w-auto py-1.5" />
           </label>
           <label className="mt-4 flex items-center gap-2 text-sm">
             <input type="checkbox" checked={teamTold} onChange={(e) => setTeamTold(e.target.checked)} /> Team has been told
           </label>
         </div>
         <div className="mt-5 flex justify-end gap-2">
-          <button onClick={onClose} className="rounded-lg px-4 py-2 text-sm hover:bg-hover">
+          <button onClick={onClose} className="btn btn-ghost">
             Cancel
           </button>
           <button
             disabled={busy || !note.trim()}
             onClick={() => start(async () => (await logChangeAction(slug, pageId, { note, why: why || undefined, teamTold, docVersion: docVersion || null }), onClose()))}
-            className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-paper disabled:opacity-50"
+            className="btn btn-primary"
           >
             {busy ? "Saving…" : "Save to change log"}
           </button>

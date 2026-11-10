@@ -28,7 +28,7 @@ export function MembersPanel({ slug, myRole, myId, canManage, members, pending, 
     <div className="mt-3 space-y-4">
       {canManage && (
         <form
-          className="rounded-xl border border-line p-4"
+          className="card p-4"
           onSubmit={(e) => {
             e.preventDefault();
             run(async () => {
@@ -48,7 +48,7 @@ export function MembersPanel({ slug, myRole, myId, canManage, members, pending, 
                 </option>
               ))}
             </select>
-            <button disabled={busy} className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-paper disabled:opacity-50">
+            <button disabled={busy} className="btn btn-primary">
               Add
             </button>
           </div>
@@ -110,7 +110,7 @@ export function MembersPanel({ slug, myRole, myId, canManage, members, pending, 
                       </option>
                     ))}
                   </select>
-                  <button disabled={busy} onClick={() => confirm(`Remove ${m.name ?? m.email} from this workspace?`) && run(() => removeMemberAction(slug, m.userId))} className="rounded px-2 py-1 text-sm text-danger hover:bg-danger-soft">
+                  <button disabled={busy} onClick={() => confirm(`Remove ${m.name ?? m.email} from this workspace?`) && run(() => removeMemberAction(slug, m.userId))} className="btn btn-danger btn-sm">
                     Remove
                   </button>
                 </>

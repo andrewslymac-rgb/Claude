@@ -7,6 +7,7 @@ import type { TaskRow } from "@/lib/services/tasks";
 import type { Frequency } from "@/db/schema";
 import { DUE_LABELS, FREQUENCY_LABELS, PERIOD_LABELS, doneThisPeriod, fmtDate, todayISO } from "@/lib/recurrence";
 import { TaskDrawer, TaskForm, TONE, type JobRole, type Member, type PageOpt } from "./TaskDialogs";
+import { PageHeader } from "@/components/ui/PageHeader";
 
 const TABS: { key: Frequency; label: string }[] = [
   { key: "daily", label: "Daily" },
@@ -78,19 +79,20 @@ export function Tracker({ slug, tasks, members, roles = [], pages, categories, m
   const period = PERIOD_LABELS[tab];
 
   return (
-    <div className={mode === "full" ? "mx-auto max-w-6xl px-4 py-6 md:px-8 md:py-8" : ""}>
+    <div className={mode === "full" ? "page" : ""}>
       {mode === "full" && (
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <h1 className="text-2xl font-semibold">Tracker</h1>
-            <p className="mt-1 text-sm text-ink-soft">Daily, weekly, monthly, quarterly and annual work, by person. Tick it off as it gets done.</p>
-          </div>
-          {canEdit && (
-            <button onClick={() => setCreating({ memberId: null, frequency: tab })} className="flex items-center gap-1 rounded-lg bg-accent px-3 py-2 text-sm font-medium text-paper">
-              <Plus size={16} /> New task
-            </button>
-          )}
-        </div>
+        <PageHeader
+          eyebrow="Operations"
+          title="Tracker"
+          subtitle="Daily, weekly, monthly, quarterly and annual work, by person. Tick it off as it gets done."
+          actions={
+            canEdit && (
+              <button onClick={() => setCreating({ memberId: null, frequency: tab })} className="btn btn-primary">
+                <Plus size={16} /> New task
+              </button>
+            )
+          }
+        />
       )}
 
       {/* Tabs */}
@@ -133,7 +135,7 @@ export function Tracker({ slug, tasks, members, roles = [], pages, categories, m
           const ts = visible(g.tasks);
           const gDone = g.tasks.filter(isDone).length;
           return (
-            <section key={g.key} className={`min-w-0 ${groupBy === "person" ? "rounded-xl border border-line bg-side/60 p-3" : ""}`}>
+            <section key={g.key} className={`min-w-0 ${groupBy === "person" ? "surface p-3" : ""}`}>
               {groupBy === "person" && (
                 <header className="mb-1.5 flex items-center gap-2">
                   {g.roleId ? (
@@ -328,10 +330,10 @@ function ReassignDialog({ task, members, roles, onClose, onSave }: { task: TaskR
           </>
         )}
         <div className="mt-4 flex justify-end gap-2">
-          <button onClick={onClose} className="rounded-lg px-4 py-2 text-sm hover:bg-hover">
+          <button onClick={onClose} className="btn btn-ghost">
             Cancel
           </button>
-          <button onClick={() => onSave(ids, roleId)} className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-paper">
+          <button onClick={() => onSave(ids, roleId)} className="btn btn-primary">
             Save
           </button>
         </div>

@@ -30,7 +30,7 @@ export function DrivePanel({ slug, collections, kinds, serviceEmail, problem, is
 
   const keyForm = isAppAdmin && (
     <form
-      className="rounded-xl border border-line p-4"
+      className="card p-4"
       onSubmit={(e) => {
         e.preventDefault();
         start(async () => {
@@ -42,9 +42,9 @@ export function DrivePanel({ slug, collections, kinds, serviceEmail, problem, is
     >
       <div className="font-medium">{serviceEmail ? "Replace the Google key" : "Paste the Google key"}</div>
       <p className="mt-1 text-xs text-ink-soft">Open the .json file you downloaded from Google Cloud in TextEdit or Notepad, select all, copy, and paste it here. Orbit checks it immediately. It&apos;s stored on the server and never shown again.</p>
-      <textarea value={keyText} onChange={(e) => setKeyText(e.target.value)} rows={4} placeholder='{ "type": "service_account", ... }' className="mt-2 w-full rounded-lg border border-line bg-paper px-3 py-2 font-mono text-xs" />
+      <textarea value={keyText} onChange={(e) => setKeyText(e.target.value)} rows={4} placeholder='{ "type": "service_account", ... }' className="mt-2 field font-mono text-xs" />
       <div className="mt-2 flex items-center gap-3">
-        <button disabled={busy || !keyText.trim()} className="rounded-lg bg-accent px-3 py-1.5 text-xs font-medium text-paper disabled:opacity-50">
+        <button disabled={busy || !keyText.trim()} className="btn btn-primary btn-sm">
           {busy ? "Checking…" : "Save key"}
         </button>
         {keyMsg && <span className={keyMsg.ok ? "text-ok" : "text-danger"}>{keyMsg.text}</span>}
@@ -71,7 +71,7 @@ export function DrivePanel({ slug, collections, kinds, serviceEmail, problem, is
 
   return (
     <div className="mt-3 space-y-4 text-sm">
-      <div className="rounded-xl border border-line p-4">
+      <div className="card p-4">
         <div className="flex items-start gap-3">
           <FolderSync size={20} className="mt-0.5 shrink-0 text-accent" />
           <div className="min-w-0 flex-1">
@@ -91,7 +91,7 @@ export function DrivePanel({ slug, collections, kinds, serviceEmail, problem, is
 
       <div className="space-y-2">
         {collections.map((c) => (
-          <div key={c.id} className="rounded-xl border border-line p-4">
+          <div key={c.id} className="card p-4">
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-xl">{c.icon}</span>
               <div className="min-w-0 flex-1">
@@ -119,7 +119,7 @@ export function DrivePanel({ slug, collections, kinds, serviceEmail, problem, is
                     setMsg(r.ok ? { ok: true, text: r.message ?? "Synced." } : { ok: false, text: r.error });
                   })
                 }
-                className="flex items-center gap-1 rounded-lg border border-line px-2.5 py-1.5 text-xs hover:bg-hover disabled:opacity-50"
+                className="flex items-center gap-1 btn btn-secondary btn-sm"
               >
                 <RefreshCw size={12} className={busy ? "animate-spin" : ""} /> Sync
               </button>
@@ -141,7 +141,7 @@ export function DrivePanel({ slug, collections, kinds, serviceEmail, problem, is
       </div>
 
       <div className="flex flex-wrap gap-2">
-        <button onClick={() => setEditing("new")} className="flex items-center gap-1 rounded-lg bg-accent px-3 py-1.5 text-xs font-medium text-paper">
+        <button onClick={() => setEditing("new")} className="flex items-center gap-1 btn btn-primary btn-sm">
           <Plus size={13} /> Add a document area
         </button>
         {collections.length > 1 && (
@@ -153,7 +153,7 @@ export function DrivePanel({ slug, collections, kinds, serviceEmail, problem, is
                 setMsg(r.ok ? { ok: true, text: r.message ?? "Synced." } : { ok: false, text: r.error });
               })
             }
-            className="flex items-center gap-1 rounded-lg border border-line px-3 py-1.5 text-xs hover:bg-hover disabled:opacity-50"
+            className="flex items-center gap-1 btn btn-secondary btn-sm"
           >
             <RefreshCw size={12} className={busy ? "animate-spin" : ""} /> Sync all
           </button>
@@ -235,16 +235,16 @@ function CollectionForm({ slug, kinds, initial, onClose, onDone }: { slug: strin
         </div>
         <label className="mt-3 block text-sm font-medium">Google Drive folder links</label>
         <p className="text-xs text-ink-faint">One per line. Several folders are shown as sections inside this area.</p>
-        <textarea value={folders} onChange={(e) => setFolders(e.target.value)} rows={3} placeholder="https://drive.google.com/drive/folders/…" className="mt-1 w-full rounded-lg border border-line bg-paper px-3 py-2 text-xs" />
+        <textarea value={folders} onChange={(e) => setFolders(e.target.value)} rows={3} placeholder="https://drive.google.com/drive/folders/…" className="mt-1 field text-xs" />
         <label className="mt-3 block text-sm font-medium">Subfolders to skip (optional)</label>
         <p className="text-xs text-ink-faint">Links to folders inside the ones above that belong somewhere else.</p>
-        <textarea value={exclude} onChange={(e) => setExclude(e.target.value)} rows={2} className="mt-1 w-full rounded-lg border border-line bg-paper px-3 py-2 text-xs" />
+        <textarea value={exclude} onChange={(e) => setExclude(e.target.value)} rows={2} className="mt-1 field text-xs" />
         {err && <p className="mt-3 rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger">{err}</p>}
         <div className="mt-5 flex justify-end gap-2">
-          <button type="button" onClick={onClose} className="rounded-lg px-4 py-2 text-sm hover:bg-hover">
+          <button type="button" onClick={onClose} className="btn btn-ghost">
             Cancel
           </button>
-          <button disabled={busy || !lines(folders).length} className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-paper disabled:opacity-50">
+          <button disabled={busy || !lines(folders).length} className="btn btn-primary">
             {busy ? "Syncing…" : initial ? "Save & sync" : "Add & sync"}
           </button>
         </div>

@@ -34,7 +34,7 @@ export function WorkspaceForm({ slug, name: n0, icon: i0, color: c0, fieldTool: 
   }, [color, c0]);
   return (
     <form
-      className="mt-3 space-y-3 rounded-xl border border-line p-4"
+      className="mt-3 space-y-3 card p-4"
       onSubmit={(e) => {
         e.preventDefault();
         start(async () => {
@@ -62,7 +62,7 @@ export function WorkspaceForm({ slug, name: n0, icon: i0, color: c0, fieldTool: 
         </div>
       </div>
       <div className="flex justify-end">
-        <button disabled={busy} className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-paper disabled:opacity-50">
+        <button disabled={busy} className="btn btn-primary">
           Save
         </button>
       </div>

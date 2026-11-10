@@ -27,7 +27,7 @@ export function IntegrationsPanel({ slug, fieldTool, jobber, redirectUri, isAppA
       )}
 
       {fieldTool !== "none" && (
-      <div className="rounded-xl border border-line p-4">
+      <div className="card p-4">
         <div className="flex flex-wrap items-center gap-3">
           <span className="text-2xl">{tool.emoji}</span>
           <div className="min-w-0 flex-1 basis-56">
@@ -51,16 +51,16 @@ export function IntegrationsPanel({ slug, fieldTool, jobber, redirectUri, isAppA
                     setMsg(r.ok ? { ok: true, text: r.message ?? "OK" } : { ok: false, text: r.error });
                   })
                 }
-                className="rounded-lg border border-line px-3 py-1.5 text-xs hover:bg-hover disabled:opacity-50"
+                className="btn btn-secondary btn-sm"
               >
                 {busy ? "Testing…" : "Test connection"}
               </button>
-              <button disabled={busy} onClick={() => confirm("Disconnect Jobber? The dashboard tile stops updating.") && start(() => disconnectJobberAction(slug))} className="rounded-lg px-2 py-1.5 text-xs text-ink-soft hover:bg-hover">
+              <button disabled={busy} onClick={() => confirm("Disconnect Jobber? The dashboard tile stops updating.") && start(() => disconnectJobberAction(slug))} className="btn btn-ghost btn-sm">
                 Disconnect
               </button>
             </>
           ) : fieldTool === "jobber" && jobber.appConfigured ? (
-            <a href={`/api/integrations/jobber/connect?slug=${slug}`} className="rounded-lg bg-accent px-3 py-1.5 text-xs font-medium text-paper">
+            <a href={`/api/integrations/jobber/connect?slug=${slug}`} className="btn btn-primary btn-sm">
               Connect Jobber
             </a>
           ) : null}
@@ -69,7 +69,7 @@ export function IntegrationsPanel({ slug, fieldTool, jobber, redirectUri, isAppA
       )}
 
       {isAppAdmin && fieldTool === "jobber" && (
-        <details className="rounded-xl border border-line p-4" open={!jobber.appConfigured && !jobber.connected}>
+        <details className="card p-4" open={!jobber.appConfigured && !jobber.connected}>
           <summary className="cursor-pointer font-medium">{jobber.appConfigured ? "Jobber app keys (set)" : "Optional: a direct Jobber connection (needs a Jobber Developer Center app)"}</summary>
           <ol className="mt-2 list-decimal space-y-1 pl-5 text-ink-soft">
             <li>
@@ -108,9 +108,9 @@ export function IntegrationsPanel({ slug, fieldTool, jobber, redirectUri, isAppA
               });
             }}
           >
-            <input value={clientId} onChange={(e) => setClientId(e.target.value)} placeholder="Client ID" className="w-full rounded-lg border border-line bg-paper px-3 py-2 font-mono text-xs" />
-            <input value={secret} onChange={(e) => setSecret(e.target.value)} placeholder="Client secret" type="password" className="w-full rounded-lg border border-line bg-paper px-3 py-2 font-mono text-xs" />
-            <button disabled={busy || !clientId.trim() || !secret.trim()} className="rounded-lg bg-accent px-3 py-1.5 text-xs font-medium text-paper disabled:opacity-50">
+            <input value={clientId} onChange={(e) => setClientId(e.target.value)} placeholder="Client ID" className="field font-mono text-xs" />
+            <input value={secret} onChange={(e) => setSecret(e.target.value)} placeholder="Client secret" type="password" className="field font-mono text-xs" />
+            <button disabled={busy || !clientId.trim() || !secret.trim()} className="btn btn-primary btn-sm">
               Save keys
             </button>
           </form>

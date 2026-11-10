@@ -95,7 +95,7 @@ export function Dashboard({ slug, widgets: initial, stats, canCustomize, catalog
           The dashboard is empty.
           {canCustomize && (
             <div className="mt-3">
-              <button onClick={() => start(() => setupCommandCenterAction(slug))} className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-paper">
+              <button onClick={() => start(() => setupCommandCenterAction(slug))} className="btn btn-primary">
                 Set up the command center
               </button>
             </div>
@@ -144,6 +144,7 @@ export function Dashboard({ slug, widgets: initial, stats, canCustomize, catalog
 }
 
 const SPAN: Record<number, string> = { 1: "", 2: "md:col-span-2", 3: "md:col-span-2 lg:col-span-3" };
+const CATALOG_EMOJI: Partial<Record<WidgetType, string>> = { stats: "📊", tools: "🧰", tracker: "☑️", jobber: "🗓️", collections: "🗂️", tasks: "✅", flags: "🚩", reviews: "📋", recent: "🕒", welcome: "📣", links: "🔗", sops: "📚", pages: "📌" };
 
 function Tile({ w, slug, stats, canCustomize, editing, onConfigure, onResize, onRemove }: { w: WidgetData; slug: string; stats: Stat[]; canCustomize: boolean; editing: boolean; onConfigure: () => void; onResize: () => void; onRemove: () => void }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: w.id, disabled: !editing });
@@ -152,7 +153,7 @@ function Tile({ w, slug, stats, canCustomize, editing, onConfigure, onResize, on
     <section
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={`rounded-xl border bg-card p-4 md:p-5 ${SPAN[w.width] ?? ""} ${isDragging ? "z-10 shadow-xl" : ""} ${editing ? "border-dashed border-ink-faint" : "border-line"}`}
+      className={`card p-4 md:p-5 ${SPAN[w.width] ?? ""} ${isDragging ? "z-10 shadow-xl" : ""} ${editing ? "border-dashed !border-ink-faint" : ""}`}
     >
       <header className="mb-3 flex items-center gap-2">
         {editing && (
@@ -160,7 +161,9 @@ function Tile({ w, slug, stats, canCustomize, editing, onConfigure, onResize, on
             <GripVertical size={16} />
           </button>
         )}
-        <h2 className="flex-1 text-sm font-semibold text-ink-soft">{w.title}</h2>
+        <h2 className="flex flex-1 items-center gap-2 text-[13px] font-semibold uppercase tracking-[0.08em] text-ink-soft">
+          <span className="text-base leading-none">{CATALOG_EMOJI[w.type] ?? "▪️"}</span> {w.title}
+        </h2>
         {editing && (
           <div className="flex gap-1 text-ink-faint">
             {configurable && (
@@ -192,6 +195,7 @@ const ago = (iso?: string) => {
 };
 
 const STAT_TONE: Record<Stat["tone"], string> = { danger: "text-danger", warn: "text-warn", accent: "text-accent", ok: "text-ok", muted: "text-ink-faint" };
+const STAT_EDGE: Record<Stat["tone"], string> = { danger: "border-t-danger", warn: "border-t-warn", accent: "border-t-accent", ok: "border-t-ok", muted: "border-t-ink-faint" };
 
 function WidgetBody({ w, slug, stats, canCustomize }: { w: WidgetData; slug: string; stats: Stat[]; canCustomize: boolean }) {
   if (w.type === "welcome") return <p className="whitespace-pre-wrap text-[15px] leading-relaxed">{w.config.text}</p>;
@@ -201,14 +205,14 @@ function WidgetBody({ w, slug, stats, canCustomize }: { w: WidgetData; slug: str
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
         {stats.map((s) =>
           s.key === "overdue" ? (
-            <button key={s.key} onClick={() => window.dispatchEvent(new Event("orbit:open-overdue"))} className="rounded-lg border border-line bg-side px-3 py-2 text-left hover:border-ink-faint">
-              <div className="text-[11px] uppercase tracking-wide text-ink-faint">{s.label}</div>
-              <div className={`text-2xl font-semibold ${STAT_TONE[s.tone]}`}>{s.value}</div>
+            <button key={s.key} onClick={() => window.dispatchEvent(new Event("orbit:open-overdue"))} className={`stat-tile ${STAT_EDGE[s.tone]}`}>
+              <div className="eyebrow">{s.label}</div>
+              <div className={`num mt-1 text-[28px] font-semibold leading-none ${STAT_TONE[s.tone]}`}>{s.value}</div>
             </button>
           ) : (
-            <Link key={s.key} href={s.href} className="rounded-lg border border-line bg-side px-3 py-2 hover:border-ink-faint">
-              <div className="text-[11px] uppercase tracking-wide text-ink-faint">{s.label}</div>
-              <div className={`text-2xl font-semibold ${STAT_TONE[s.tone]}`}>{s.value}</div>
+            <Link key={s.key} href={s.href} className={`stat-tile ${STAT_EDGE[s.tone]}`}>
+              <div className="eyebrow">{s.label}</div>
+              <div className={`num mt-1 text-[28px] font-semibold leading-none ${STAT_TONE[s.tone]}`}>{s.value}</div>
             </Link>
           ),
         )}
@@ -429,12 +433,12 @@ function WidgetSettings({ w, allPages, onClose, onSave }: { w: WidgetData; allPa
   return (
     <Modal title="Edit widget" onClose={onClose}>
       <label className="block text-sm font-medium">Title</label>
-      <input value={title} onChange={(e) => setTitle(e.target.value)} className="mb-4 mt-1 w-full rounded-lg border border-line px-3 py-2" />
+      <input value={title} onChange={(e) => setTitle(e.target.value)} className="mb-4 mt-1 field" />
 
       {w.type === "welcome" && (
         <>
           <label className="block text-sm font-medium">Message</label>
-          <textarea value={text} onChange={(e) => setText(e.target.value)} rows={5} className="mt-1 w-full rounded-lg border border-line px-3 py-2" />
+          <textarea value={text} onChange={(e) => setText(e.target.value)} rows={5} className="mt-1 field" />
         </>
       )}
 
@@ -444,7 +448,7 @@ function WidgetSettings({ w, allPages, onClose, onSave }: { w: WidgetData; allPa
             <div key={i} className="flex flex-wrap gap-2">
               <input value={l.emoji ?? ""} onChange={(e) => setLinks(links.map((x, j) => (j === i ? { ...x, emoji: e.target.value } : x)))} placeholder="🔗" className="w-12 rounded-lg border border-line px-2 py-2 text-center" />
               {w.type === "tools" && <input type="color" value={l.color ?? "#6366f1"} onChange={(e) => setLinks(links.map((x, j) => (j === i ? { ...x, color: e.target.value } : x)))} className="h-10 w-10 cursor-pointer rounded-lg border border-line bg-transparent p-1" title="Color" />}
-              {w.type === "tools" && <input value={l.appUrl ?? ""} onChange={(e) => setLinks(links.map((x, j) => (j === i ? { ...x, appUrl: e.target.value } : x)))} placeholder="Phone app link, e.g. slack://open (optional)" className="w-full rounded-lg border border-line px-3 py-2 text-xs" />}
+              {w.type === "tools" && <input value={l.appUrl ?? ""} onChange={(e) => setLinks(links.map((x, j) => (j === i ? { ...x, appUrl: e.target.value } : x)))} placeholder="Phone app link, e.g. slack://open (optional)" className="field text-xs" />}
               <input value={l.label} onChange={(e) => setLinks(links.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)))} placeholder="Name" className="w-32 rounded-lg border border-line px-3 py-2" />
               <input value={l.url} onChange={(e) => setLinks(links.map((x, j) => (j === i ? { ...x, url: e.target.value } : x)))} placeholder="https://…" className="min-w-0 flex-1 rounded-lg border border-line px-3 py-2" />
               <button onClick={() => setLinks(links.filter((_, j) => j !== i))} className="rounded p-2 text-ink-faint hover:bg-danger-soft hover:text-danger" aria-label="Remove link">
@@ -471,10 +475,10 @@ function WidgetSettings({ w, allPages, onClose, onSave }: { w: WidgetData; allPa
 
       {error && <p className="mt-3 text-sm text-danger">{error}</p>}
       <div className="mt-6 flex justify-end gap-2">
-        <button onClick={onClose} className="rounded-lg px-4 py-2 text-sm hover:bg-hover">
+        <button onClick={onClose} className="btn btn-ghost">
           Cancel
         </button>
-        <button onClick={save} className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-paper">
+        <button onClick={save} className="btn btn-primary">
           Save
         </button>
       </div>

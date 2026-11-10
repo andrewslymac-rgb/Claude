@@ -14,7 +14,7 @@ export function ActivityView({ slug, items, canUndo, embedded }: { slug: string;
   return (
     <div className={embedded ? "" : "mx-auto max-w-3xl px-4 py-6 md:px-10 md:py-8"}>
       {!embedded && (
-        <h1 className="flex items-center gap-2 text-2xl font-semibold">
+        <h1 className="page-title flex items-center gap-2">
           <Bot size={24} className="text-accent" /> AI activity
         </h1>
       )}
@@ -47,7 +47,7 @@ export function ActivityView({ slug, items, canUndo, embedded }: { slug: string;
               </div>
             </div>
             {canUndo && !a.undoneAt && (
-              <button disabled={busy} onClick={() => confirm("Undo this AI change?") && start(() => undoAiActivityAction(slug, a.id))} className="flex items-center gap-1 rounded-md border border-line px-2 py-1 text-xs hover:bg-hover">
+              <button disabled={busy} onClick={() => confirm("Undo this AI change?") && start(() => undoAiActivityAction(slug, a.id))} className="flex items-center gap-1 btn btn-secondary btn-sm">
                 <Undo2 size={12} /> Undo
               </button>
             )}

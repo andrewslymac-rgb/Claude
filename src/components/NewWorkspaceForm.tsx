@@ -38,7 +38,7 @@ export function NewWorkspaceForm({ onDone }: { onDone?: () => void }) {
         ))}
       </div>
       {error && <p className="text-sm text-danger">{error}</p>}
-      <button disabled={pending || !name.trim()} className="w-full rounded-lg bg-accent px-4 py-2.5 text-sm font-medium text-paper disabled:opacity-50">
+      <button disabled={pending || !name.trim()} className="w-full btn btn-primary">
         {pending ? "Creating…" : "Create workspace"}
       </button>
     </form>
@@ -48,7 +48,7 @@ export function NewWorkspaceForm({ onDone }: { onDone?: () => void }) {
 export function NewWorkspaceDialog({ onClose }: { onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onMouseDown={onClose}>
-      <div className="w-full max-w-sm rounded-xl border border-line bg-card p-6 shadow-2xl" onMouseDown={(e) => e.stopPropagation()}>
+      <div className="w-full max-w-sm card p-6 shadow-2xl" onMouseDown={(e) => e.stopPropagation()}>
         <h2 className="mb-4 text-lg font-semibold">New workspace</h2>
         <NewWorkspaceForm onDone={onClose} />
       </div>

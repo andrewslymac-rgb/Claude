@@ -61,13 +61,14 @@ export function LibraryView({ slug, docs, log, types, areas, collections }: { sl
   );
   const dueCount = docs.filter((d) => ["first", "overdue", "due_soon"].includes(reviewState(d.reviewCycle, d.lastReviewedOn))).length;
 
-  const sel = "rounded-md border border-line bg-card px-2 py-1.5 text-sm";
+  const sel = "field w-auto py-1.5";
   return (
     <div className="mx-auto max-w-6xl px-4 py-6 md:px-10 md:py-8">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold">Document Library</h1>
-          <p className="mt-1 text-sm text-ink-soft">
+          <div className="eyebrow mb-1.5">Knowledge</div>
+          <h1 className="page-title">Document Library</h1>
+          <p className="page-sub">
             {docs.length} documents · {dueCount > 0 ? <span className="text-warn">{dueCount} need a review</span> : "all reviews current"}
           </p>
         </div>
@@ -129,7 +130,7 @@ export function LibraryView({ slug, docs, log, types, areas, collections }: { sl
             {rows.length === 0 && <li className="rounded-xl border border-dashed border-line px-4 py-8 text-center text-sm text-ink-faint">No documents match.</li>}
             {rows.map((d) => (
               <li key={d.id}>
-                <Link href={`/w/${slug}/p/${d.id}`} className="block rounded-xl border border-line bg-card p-3 active:bg-hover">
+                <Link href={`/w/${slug}/p/${d.id}`} className="block card p-3 active:bg-hover">
                   <div className="flex items-center gap-2 font-medium">
                     <span>{d.icon ?? "📄"}</span>
                     <span className="line-clamp-2 min-w-0 flex-1">{d.title || "Untitled"}</span>

@@ -18,7 +18,7 @@ export default async function Hub() {
   const first = (user.name ?? "").split(" ")[0] || "there";
 
   return (
-    <main className="mx-auto max-w-3xl px-4 py-6 md:px-6 md:py-10">
+    <main className="orbit-bg mx-auto max-w-3xl px-4 py-6 md:px-6 md:py-10">
       <header className="flex items-center justify-between">
         <OrbitWordmark size={30} />
         <form action={signOutAction}>
@@ -36,7 +36,7 @@ export default async function Hub() {
 
       <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
         {list.map((w) => (
-          <Link key={w.slug} href={`/w/${w.slug}`} className="group rounded-2xl border border-line bg-card p-6 transition hover:border-accent/60 hover:bg-hover">
+          <Link key={w.slug} href={`/w/${w.slug}`} className="card card-hover group p-6">
             <span className="flex h-11 w-11 items-center justify-center rounded-xl text-2xl" style={{ background: `${w.color}40`, boxShadow: `inset 0 0 0 1px ${w.color}99` }}>
               {w.icon}
             </span>

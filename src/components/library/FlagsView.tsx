@@ -38,7 +38,8 @@ export function FlagsView({ slug, flags, pages, canEdit }: { slug: string; flags
     <div className="mx-auto max-w-4xl px-4 py-6 md:px-10 md:py-8">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold">Flags & open questions</h1>
+          <div className="eyebrow mb-1.5">Decisions</div>
+          <h1 className="page-title">Flags & open questions</h1>
           <p className="mt-1 text-sm text-ink-soft">Contradictions, gaps and decisions waiting on someone. {flags.filter((f) => f.status === "open").length} open.</p>
         </div>
         <div className="flex items-center gap-2">
@@ -46,7 +47,7 @@ export function FlagsView({ slug, flags, pages, canEdit }: { slug: string; flags
             <input type="checkbox" checked={showClosed} onChange={(e) => setShowClosed(e.target.checked)} /> Show resolved
           </label>
           {canEdit && (
-            <button onClick={() => setEditing("new")} className="flex items-center gap-1 rounded-lg bg-accent px-3 py-2 text-sm font-medium text-paper">
+            <button onClick={() => setEditing("new")} className="flex items-center gap-1 btn btn-primary">
               <Plus size={16} /> New flag
             </button>
           )}
@@ -56,7 +57,7 @@ export function FlagsView({ slug, flags, pages, canEdit }: { slug: string; flags
       <ul className="mt-5 space-y-2">
         {visible.length === 0 && <li className="rounded-xl border border-dashed border-line px-4 py-10 text-center text-sm text-ink-faint">No open flags. 🎉</li>}
         {visible.map((f) => (
-          <li key={f.id} className="rounded-xl border border-line bg-card p-4">
+          <li key={f.id} className="card p-4">
             <div className="flex flex-wrap items-start gap-2">
               <span className={`rounded px-2 py-0.5 text-xs font-medium ${SEV[f.severity]}`}>{f.severity[0].toUpperCase() + f.severity.slice(1)}</span>
               <span className="rounded bg-hover px-2 py-0.5 text-xs text-ink-soft">{FLAG_TYPE_LABELS[f.type]}</span>
@@ -64,7 +65,7 @@ export function FlagsView({ slug, flags, pages, canEdit }: { slug: string; flags
                 {f.title}
               </button>
               {canEdit ? (
-                <select value={f.status} onChange={(e) => start(() => updateFlagAction(slug, f.id, { status: e.target.value as F["status"] }))} className="rounded-md border border-line bg-paper px-2 py-1 text-xs">
+                <select value={f.status} onChange={(e) => start(() => updateFlagAction(slug, f.id, { status: e.target.value as F["status"] }))} className="field w-auto px-2 py-1 text-xs">
                   {(Object.keys(FLAG_STATUS_LABELS) as F["status"][]).map((s) => (
                     <option key={s} value={s}>
                       {FLAG_STATUS_LABELS[s]}
@@ -112,7 +113,7 @@ export function FlagForm({ slug, flag, pages, presetPageId, onClose }: { slug: s
   });
   const [busy, start] = useTransition();
   const set = (k: keyof typeof v, val: string) => setV({ ...v, [k]: val });
-  const field = "mt-1 w-full rounded-lg border border-line bg-paper px-3 py-2 text-sm";
+  const field = "field";
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-0 sm:items-center sm:p-4" onMouseDown={onClose}>
       <div className="pb-safe max-h-[92dvh] w-full max-w-lg overflow-y-auto rounded-t-2xl border border-line bg-card p-6 shadow-2xl sm:rounded-xl" onMouseDown={(e) => e.stopPropagation()}>
@@ -179,7 +180,7 @@ export function FlagForm({ slug, flag, pages, presetPageId, onClose }: { slug: s
               Delete
             </button>
           )}
-          <button onClick={onClose} className="ml-auto rounded-lg px-4 py-2 text-sm hover:bg-hover">
+          <button onClick={onClose} className="ml-auto btn btn-ghost">
             Cancel
           </button>
           <button
@@ -192,7 +193,7 @@ export function FlagForm({ slug, flag, pages, presetPageId, onClose }: { slug: s
                 onClose();
               })
             }
-            className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-paper disabled:opacity-50"
+            className="btn btn-primary"
           >
             {busy ? "Saving…" : "Save"}
           </button>
