@@ -158,12 +158,39 @@ const wrap = async (fn: () => Promise<string | void>): Promise<Result> => {
   }
 };
 
+/** Email someone a 3-day sign-in link to this company. Returns whether it went out. */
+async function sendWelcome(email: string, workspaceName: string, inviterName: string, role: Role) {
+  const { createInviteLink } = await import("@/lib/auth/session");
+  const { sendEmail, inviteEmail } = await import("@/lib/email");
+  const { ROLE_LABELS } = await import("@/lib/permissions");
+  const link = await createInviteLink(email);
+  const r = await sendEmail({ to: email.trim().toLowerCase(), ...inviteEmail(link, { workspace: workspaceName, inviter: inviterName, role: ROLE_LABELS[role].label.toLowerCase() === "admin" ? "an Admin" : `a${/^[aeiou]/i.test(ROLE_LABELS[role].label) ? "n" : ""} ${ROLE_LABELS[role].label}` }) });
+  return r.ok;
+}
+
 export async function addMemberAction(slug: string, email: string, role: Role): Promise<Result> {
   return wrap(async () => {
     const { user, workspace, role: myRole } = await requireAbility(slug, "manage_members");
-    const r = await members.addMember(workspace.id, email, roleSchema.parse(role), myRole, user.id);
+    const parsed = roleSchema.parse(role);
+    await members.addMember(workspace.id, email, parsed, myRole, user.id);
     revalidatePath(`/w/${slug}/settings`);
-    return r.status === "added" ? "Added. They'll see this workspace right away." : "Invited. They'll get access the first time they sign in with that email.";
+    const sent = await sendWelcome(email, workspace.name, user.name ?? user.email, parsed);
+    return sent ? `Added. A sign-in link is on its way to ${email.trim().toLowerCase()}.` : `Added, but the welcome email didn't send. They can go to myorbithq.net and enter ${email.trim().toLowerCase()} to get a sign-in link.`;
+  });
+}
+
+/** Resend the welcome sign-in link to a member or a pending invite. */
+export async function resendInviteAction(slug: string, email: string): Promise<Result> {
+  return wrap(async () => {
+    const { user, workspace } = await requireAbility(slug, "manage_members");
+    const addr = z.string().email().parse(email.trim().toLowerCase());
+    const { members: list, pending } = await members.listMembers(workspace.id);
+    const m = list.find((x) => x.email.toLowerCase() === addr);
+    const inv = pending.find((x) => x.email.toLowerCase() === addr);
+    if (!m && !inv) throw new Error("That person isn't in this company.");
+    const sent = await sendWelcome(addr, workspace.name, user.name ?? user.email, (m?.role ?? inv!.role) as Role);
+    if (!sent) throw new Error("The email didn't send. Try again in a minute.");
+    return `Sign-in link sent to ${addr}.`;
   });
 }
 

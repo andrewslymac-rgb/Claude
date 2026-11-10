@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { addMemberAction, cancelInviteAction, changeRoleAction, removeMemberAction, setMemberRolesAction } from "@/app/actions";
+import { addMemberAction, cancelInviteAction, changeRoleAction, removeMemberAction, resendInviteAction, setMemberRolesAction } from "@/app/actions";
 import type { Role } from "@/db/schema";
 
 type JobRole = { id: string; name: string; emoji: string; color: string };
@@ -52,7 +52,7 @@ export function MembersPanel({ slug, myRole, myId, canManage, members, pending, 
               Add
             </button>
           </div>
-          <p className="mt-2 text-xs text-ink-faint">{roles[role].help}. They sign in at myorbithq.net with a link emailed to this address.</p>
+          <p className="mt-2 text-xs text-ink-faint">{roles[role].help}. We'll email them a sign-in link right away.</p>
         </form>
       )}
       {msg && <p className={`rounded-lg px-3 py-2 text-sm ${msg.ok ? "bg-ok-soft text-ok" : "bg-danger-soft text-danger"}`}>{msg.text}</p>}
@@ -110,6 +110,9 @@ export function MembersPanel({ slug, myRole, myId, canManage, members, pending, 
                       </option>
                     ))}
                   </select>
+                  <button disabled={busy} onClick={() => run(() => resendInviteAction(slug, m.email))} className="btn btn-ghost btn-sm" title="Email them a fresh sign-in link">
+                    Send link
+                  </button>
                   <button disabled={busy} onClick={() => confirm(`Remove ${m.name ?? m.email} from this workspace?`) && run(() => removeMemberAction(slug, m.userId))} className="btn btn-danger btn-sm">
                     Remove
                   </button>
@@ -129,9 +132,14 @@ export function MembersPanel({ slug, myRole, myId, canManage, members, pending, 
             </div>
             <span className="text-sm text-ink-soft">{roles[p.role].label}</span>
             {canManage && (
-              <button disabled={busy} onClick={() => run(() => cancelInviteAction(slug, p.id))} className="rounded px-2 py-1 text-sm text-ink-soft hover:bg-hover">
-                Cancel
-              </button>
+              <>
+                <button disabled={busy} onClick={() => run(() => resendInviteAction(slug, p.email))} className="btn btn-secondary btn-sm">
+                  Resend link
+                </button>
+                <button disabled={busy} onClick={() => run(() => cancelInviteAction(slug, p.id))} className="btn btn-ghost btn-sm">
+                  Cancel
+                </button>
+              </>
             )}
           </li>
         ))}
