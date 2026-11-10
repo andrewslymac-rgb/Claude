@@ -324,7 +324,7 @@ export async function updateTaskAction(slug: string, id: string, input: Partial<
   const { user, workspace } = await requireAbility(slug, "manage_tasks");
   const taskId = uuid.parse(id);
   const { lastDoneOn, nextDueOn, ...rest } = input;
-  await taskSvc.updateTask(workspace.id, taskId, taskInput.partial().parse(rest));
+  await taskSvc.updateTask(workspace.id, taskId, taskInput.partial().parse(rest), user.id);
   // Order matters: correcting last-done recomputes the next due date; an explicit next-due then wins.
   if (lastDoneOn !== undefined) await taskSvc.correctLastDone(workspace.id, taskId, user.id, lastDoneOn ? isoDate.parse(lastDoneOn) : null);
   if (nextDueOn) await taskSvc.moveDue(workspace.id, taskId, isoDate.parse(nextDueOn));

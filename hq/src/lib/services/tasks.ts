@@ -6,6 +6,7 @@ import { addDays, computeNextDue, dueState, nextDueAfter, todayISO, type DueStat
 
 const { tasks, taskAssignees, taskCompletions, taskNotes, users, pages, workspaceRoles, memberRoles } = schema;
 import { roleByName } from "./roles";
+import { notifyAssigned, recipientsFor } from "./task-notify";
 
 export type TaskRow = {
   id: string;
@@ -107,7 +108,7 @@ async function resolveRoleId(workspaceId: string, input: Partial<TaskInput>): Pr
   return undefined;
 }
 
-export async function createTask(workspaceId: string, input: TaskInput, createdById: string) {
+export async function createTask(workspaceId: string, input: TaskInput, createdById: string, opts: { notify?: boolean } = {}) {
   const roleId = (await resolveRoleId(workspaceId, input)) ?? null;
   const [t] = await db
     .insert(tasks)
@@ -127,12 +128,17 @@ export async function createTask(workspaceId: string, input: TaskInput, createdB
     })
     .returning();
   if (input.assigneeIds?.length) await db.insert(taskAssignees).values(input.assigneeIds.map((userId) => ({ taskId: t.id, userId })));
+  if (opts.notify !== false) {
+    const to = await recipientsFor(workspaceId, { userIds: input.assigneeIds ?? [], roleId });
+    void notifyAssigned(workspaceId, t.id, to, createdById);
+  }
   return t;
 }
 
-export async function updateTask(workspaceId: string, id: string, input: Partial<TaskInput>) {
+export async function updateTask(workspaceId: string, id: string, input: Partial<TaskInput>, actorId: string | null = null) {
   const [t] = await db.select().from(tasks).where(and(eq(tasks.workspaceId, workspaceId), eq(tasks.id, id)));
   if (!t) throw new Error("Task not found");
+  const before = new Set(await recipientsFor(workspaceId, { userIds: (await db.select({ u: taskAssignees.userId }).from(taskAssignees).where(eq(taskAssignees.taskId, id))).map((r) => r.u), roleId: t.roleId }));
   const frequency = input.frequency ?? t.frequency;
   const dueOn = input.dueOn === undefined ? t.dueOn : input.dueOn;
   const roleId = await resolveRoleId(workspaceId, input);
@@ -156,6 +162,13 @@ export async function updateTask(workspaceId: string, id: string, input: Partial
     await db.delete(taskAssignees).where(eq(taskAssignees.taskId, id));
     if (input.assigneeIds.length) await db.insert(taskAssignees).values(input.assigneeIds.map((userId) => ({ taskId: id, userId })));
   }
+  // Email only the people who weren't on it before (newly added directly or via a new role).
+  const after = await recipientsFor(workspaceId, {
+    userIds: input.assigneeIds ?? [...before],
+    roleId: roleId === undefined ? t.roleId : roleId,
+  });
+  const added = after.filter((u) => !before.has(u));
+  if (added.length) void notifyAssigned(workspaceId, id, added, actorId);
 }
 
 /** Push the next due date without marking anything done: to a given date, or one period out. */
@@ -277,7 +290,7 @@ export async function importTasks(workspaceId: string, items: TaskInput[], creat
   let n = 0;
   for (const it of items) {
     if (existing.has(it.title.trim().toLowerCase())) continue;
-    await createTask(workspaceId, it, createdById);
+    await createTask(workspaceId, it, createdById, { notify: false }); // bulk imports don't email anyone
     n++;
   }
   return n;
