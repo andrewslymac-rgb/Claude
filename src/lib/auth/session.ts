@@ -153,6 +153,20 @@ export async function createLoginLink(emailRaw: string) {
   return `${appUrl}/api/auth/magic/verify?token=${token}`;
 }
 
+const INVITE_HOURS = 72;
+
+/**
+ * A sign-in link sent on someone's behalf (a welcome invite or a resend). It lasts
+ * 3 days and signs in wherever it is opened, since nobody is waiting in a browser.
+ */
+export async function createInviteLink(emailRaw: string) {
+  const email = emailRaw.trim().toLowerCase();
+  const token = randomBytes(32).toString("base64url");
+  await db.insert(loginTokens).values({ id: hash(token), email, expiresAt: new Date(Date.now() + INVITE_HOURS * 3600_000), requesterHash: null });
+  const appUrl = process.env.APP_URL ?? "http://localhost:3000";
+  return `${appUrl}/api/auth/magic/verify?token=${token}`;
+}
+
 const OPEN_COOKIE = "orbit_login_open";
 const OPEN_MINUTES = 10;
 
@@ -167,7 +181,8 @@ export async function redeemLoginLink(token: string) {
   if (!row || row.usedAt || row.expiresAt < new Date()) throw new SignInError("That sign-in link has expired or was already used. Request a new one.");
   const jar = await cookies();
   const waiting = jar.get(WAIT_COOKIE)?.value;
-  const sameBrowser = Boolean(waiting && row.requesterHash && hash(waiting) === row.requesterHash);
+  // Invite links have no waiting browser: they sign in right where they're opened.
+  const sameBrowser = !row.requesterHash || Boolean(waiting && hash(waiting) === row.requesterHash);
   await db.update(loginTokens).set({ usedAt: new Date(), ...(sameBrowser ? { claimedAt: new Date() } : {}) }).where(eq(loginTokens.id, row.id));
   if (sameBrowser) {
     jar.delete(WAIT_COOKIE);
