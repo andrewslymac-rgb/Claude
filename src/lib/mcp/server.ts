@@ -15,7 +15,8 @@ import { fmtDate, FREQUENCY_LABELS, DUE_LABELS } from "@/lib/recurrence";
 import type { Actor } from "@/lib/services/actor";
 import type { Frequency } from "@/db/schema";
 import { storeSnapshot } from "@/lib/integrations/jobber";
-import { workspaceForUserBySlug } from "@/lib/services/workspaces";
+import { workspaceForUser, workspaceForUserBySlug, workspacesForUserId } from "@/lib/services/workspaces";
+import * as driveSync from "@/lib/drive/sync";
 
 const MAX_WRITE_CHARS = 60_000;
 
@@ -28,11 +29,95 @@ const fail = (s: string) => ({ content: [{ type: "text" as const, text: s }], is
  * even sees a capability it isn't allowed to use.
  */
 export function buildServer(p: AiPrincipal) {
-  const server = new McpServer({ name: "Orbit", version: "0.4.0" }, { instructions: `You are connected to Orbit, the company headquarters for ${p.workspaceName}. Pages hold SOPs, policies and company knowledge. Tasks are recurring operations work. Always search before answering questions about policy, and cite the page title. Pages marked "Needs review" or "Draft" may not be approved. Edits to SOPs and policies go to an approval queue for a person to review before they apply; tell the user when that happens.` });
+  const server = new McpServer(
+    { name: "Orbit", version: "0.5.0" },
+    {
+      instructions: `You are connected to Orbit, the company headquarters. This connection was made from ${p.workspaceName}, and it reaches every company the signed-in person can open: call list_companies to see them, then pass workspace (the company's slug or name) to any tool to work in a different company. Pages hold SOPs, policies and company knowledge; Google Drive documents are organized into document areas (list_document_areas). Tasks are recurring operations work. Always search before answering questions about policy, and cite the page title. Pages marked "Needs review" or "Draft" may not be approved. Edits to SOPs and policies go to an approval queue for a person to review before they apply; tell the user when that happens.`,
+    },
+  );
   const actor: Actor = { type: "ai", tokenId: p.grantId, userId: p.userId };
-  const ws = p.workspaceId;
+  // The company a tool call works in. Defaults to the one the connection was made from;
+  // a tool's optional `workspace` argument switches it for that call (checked against the person's access).
+  let ws = p.workspaceId;
+  let wsSlug = p.workspaceSlug;
+  let wsName = p.workspaceName;
   const can = (s: string) => (p.scopes as string[]).includes(s);
-  const link = (id: string) => `${process.env.APP_URL ?? ""}/w/${p.workspaceSlug}/p/${id}`;
+  const link = (id: string) => `${process.env.APP_URL ?? ""}/w/${wsSlug}/p/${id}`;
+
+  const WRITE_TOOLS = new Set(["create_page", "update_page", "append_to_page", "create_task", "update_task", "complete_task", "undo_complete_task", "skip_task", "remove_task", "add_task_note", "set_follow_up", "create_flag", "update_flag", "sync_document_area"]);
+  const SELF_ROUTED = new Set(["update_field_service_snapshot", "list_companies"]);
+  const workspaceArg = z.string().max(120).optional().describe("Company slug or name (see list_companies). Omit for the company this connection was made from.");
+  const register = server.registerTool.bind(server);
+  // Every tool gets an optional `workspace` argument and switches company before it runs.
+  (server as { registerTool: unknown }).registerTool = (name: string, config: { inputSchema?: Record<string, z.ZodTypeAny> } & Record<string, unknown>, handler: (args: Record<string, unknown>, extra: unknown) => unknown) => {
+    if (SELF_ROUTED.has(name)) return register(name, config as never, handler as never);
+    return register(name, { ...config, inputSchema: { ...(config.inputSchema ?? {}), workspace: workspaceArg } } as never, (async (args: Record<string, unknown>, extra: unknown) => {
+      const wanted = typeof args.workspace === "string" && args.workspace.trim() ? args.workspace.trim() : null;
+      if (wanted) {
+        const target = await workspaceForUser(p.userId, wanted, WRITE_TOOLS.has(name) ? "admin" : "member");
+        if (!target) return fail(WRITE_TOOLS.has(name) ? `You need to be an owner or admin of "${wanted}" to change things there.` : `You don't have access to a company called "${wanted}". Use list_companies.`);
+        ws = target.id;
+        wsSlug = target.slug;
+        wsName = target.name;
+      } else {
+        ws = p.workspaceId;
+        wsSlug = p.workspaceSlug;
+        wsName = p.workspaceName;
+      }
+      return handler(args, extra);
+    }) as never);
+  };
+
+  server.registerTool("list_companies", { title: "List companies", description: "Every company this person can open in Orbit, with the slug to pass as workspace to other tools.", inputSchema: {} }, async () => {
+    const list = await workspacesForUserId(p.userId);
+    return text(list.map((w) => `- ${w.icon} ${w.name} (workspace: "${w.slug}")${w.id === p.workspaceId ? " · this connection's default" : ""}`).join("\n") || "No companies.");
+  });
+
+  // ------------------------------------------------------------------ document areas (Google Drive)
+  server.registerTool("list_document_areas", { title: "List document areas", description: "Google Drive document areas for a company (SOPs, Legal, Licensing…): which Drive folders each mirrors, how many documents, and when it last synced.", inputSchema: {} }, async () => {
+    const [areas, counts] = await Promise.all([driveSync.listCollections(ws), driveSync.collectionCounts(ws)]);
+    if (!areas.length) return text(`${wsName} has no Google Drive document areas yet. They're set up in Orbit under Settings → Documents & sync.${ws === p.workspaceId ? " If another company has them, pass its workspace." : ""}`);
+    return text(
+      `# ${wsName}: document areas\n` +
+        areas
+          .map((a) => `- ${a.icon} ${a.label} (id: ${a.id}) · ${driveSync.KIND_INFO[a.kind]?.label ?? a.kind} · ${counts.get(a.id) ?? 0} documents · folders: ${a.folderNames.join(", ")} · ${a.lastSyncAt ? `last synced ${a.lastSyncAt.toLocaleString("en-US", { timeZone: "America/Los_Angeles", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}` : "not synced yet"}${a.lastSyncStatus && a.lastSyncStatus !== "ok" ? ` · PROBLEM: ${a.lastSyncStatus}` : ""}${a.lastSyncCounts ? ` · last run: ${a.lastSyncCounts.created} new, ${a.lastSyncCounts.updated} updated, ${a.lastSyncCounts.trashed} removed` : ""}`)
+          .join("\n"),
+    );
+  });
+
+  server.registerTool("list_area_documents", { title: "List documents in an area", description: "Every document and folder in one Google Drive document area, with page ids (read them with get_page) and Drive links.", inputSchema: { area_id: z.string().uuid() } }, async ({ area_id }) => {
+    const area = await driveSync.getCollection(ws, area_id as string);
+    if (!area) return fail("Document area not found. Use list_document_areas.");
+    const rows = await driveSync.collectionPages(ws, area.id);
+    const byId = new Map(rows.map((r) => [r.id, r]));
+    const path = (r: (typeof rows)[number]) => {
+      const parts: string[] = [];
+      let cur = r.parentId ? byId.get(r.parentId) : undefined;
+      while (cur && cur.id !== area.rootPageId) {
+        parts.unshift(cur.title);
+        cur = cur.parentId ? byId.get(cur.parentId) : undefined;
+      }
+      return parts.join(" / ");
+    };
+    const docs = rows.filter((r) => r.id !== area.rootPageId && r.icon !== "📁");
+    if (!docs.length) return text(`${area.label} has no documents yet.`);
+    return text(`# ${area.icon} ${area.label} (${docs.length} documents)\n` + docs.map((d) => `- ${d.title}${path(d) ? ` [${path(d)}]` : ""} (id: ${d.id})${d.sourceLink ? ` · ${d.sourceLink}` : ""}`).join("\n"));
+  });
+
+  if (can("write:pages")) {
+    server.registerTool("sync_document_area", { title: "Sync a document area now", description: "Pulls the latest from Google Drive for one document area (or every area in the company when area_id is omitted). Only reads Drive; never changes it.", inputSchema: { area_id: z.string().uuid().optional() } }, async ({ area_id }) => {
+      if (area_id) {
+        const area = await driveSync.getCollection(ws, area_id as string);
+        if (!area) return fail("Document area not found.");
+        const c = await driveSync.syncCollection(area, { force: true });
+        await logActivity({ workspaceId: ws, grantId: p.grantId, tool: "sync_document_area", summary: `Synced ${area.label} from Google Drive` });
+        return text(`Synced ${area.label}: ${c.created} new, ${c.updated} updated, ${c.trashed} removed, ${c.skipped} unchanged.`);
+      }
+      const c = await driveSync.syncWorkspace(ws);
+      await logActivity({ workspaceId: ws, grantId: p.grantId, tool: "sync_document_area", summary: "Synced every document area from Google Drive" });
+      return text(`Synced ${wsName}: ${c.created} new, ${c.updated} updated, ${c.trashed} removed, ${c.skipped} unchanged.`);
+    });
+  }
   const queued = (what: string) => text(`${what} was sent to Orbit's approval queue because it touches an SOP or policy. An admin will review it under AI activity → Needs approval. Nothing has changed yet.`);
 
   // ------------------------------------------------------------------ read
@@ -88,7 +173,7 @@ export function buildServer(p: AiPrincipal) {
     const links = widgets.filter((w) => w.type === "links").flatMap((w) => w.config.links ?? []);
     return text(
       [
-        `# ${p.workspaceName}`,
+        `# ${wsName}`,
         `Tasks needing attention: ${attention.length}${attention.length ? "\n" + attention.map((t) => `- ${t.title} (${DUE_LABELS[t.state].label})`).join("\n") : ""}`,
         `Documents: ${docs.length} (${docs.filter((d) => d.docStatus === "needs_review").length} need review)`,
         `Open flags: ${flags.filter((f) => f.status === "open").length}`,
