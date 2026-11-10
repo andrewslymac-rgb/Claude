@@ -636,6 +636,20 @@ export async function createAreaPageAction(slug: string, connId: string, parentP
   return page.id;
 }
 
+/** Starts converting an area's Word files to Google Docs in the background. */
+export async function convertWordFilesAction(slug: string, connId: string): Promise<Result> {
+  return wrap(async () => {
+    const { workspace } = await requireAbility(slug, "manage_members");
+    const id = uuid.parse(connId);
+    const conn = await driveSync.getCollection(workspace.id, id);
+    if (!conn?.twoWay) throw new Error("Turn on two-way sync for this area first.");
+    if (conn.lastSyncStatus?.startsWith("converting")) return "Already converting. Refresh to see progress.";
+    const { convertAreaToGoogleDocs } = await import("@/lib/drive/twoway");
+    void convertAreaToGoogleDocs(workspace.id, id).catch((e) => console.error("Word conversion failed", e));
+    return "Converting in the background. It takes a few seconds per file; refresh this page to see progress.";
+  });
+}
+
 export async function resolveDriveConflictAction(slug: string, pageId: string, keep: "orbit" | "drive"): Promise<Result> {
   return wrap(async () => {
     const { workspace } = await requireAbility(slug, "edit");

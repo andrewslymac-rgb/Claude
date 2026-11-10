@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { FolderSync, RefreshCw, Copy, Check, Plus, Pencil, Trash2, ExternalLink, ArrowLeftRight } from "lucide-react";
-import { addCollectionAction, setTwoWayAction, removeCollectionAction, syncDriveAction, saveDriveKeyAction, updateCollectionAction } from "@/app/actions";
+import { addCollectionAction, convertWordFilesAction, setTwoWayAction, removeCollectionAction, syncDriveAction, saveDriveKeyAction, updateCollectionAction } from "@/app/actions";
 import type { CollectionKind } from "@/db/schema";
 
 export type CollectionRow = {
@@ -18,6 +18,7 @@ export type CollectionRow = {
   lastSyncCounts: { created: number; updated: number; trashed: number; skipped: number } | null;
   count: number;
   twoWay?: boolean;
+  wordFiles?: number;
 };
 type KindInfo = Record<CollectionKind, { label: string; icon: string; hint: string }>;
 
@@ -109,7 +110,11 @@ export function DrivePanel({ slug, collections, kinds, serviceEmail, problem, is
                 <div className="mt-0.5 text-xs text-ink-faint">
                   {c.lastSyncAt ? `synced ${new Date(c.lastSyncAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}` : "not synced yet"}
                   {c.lastSyncCounts && ` · ${c.lastSyncCounts.created} new, ${c.lastSyncCounts.updated} updated, ${c.lastSyncCounts.trashed} removed`}
-                  {c.lastSyncStatus && c.lastSyncStatus !== "ok" && <span className="ml-2 rounded bg-danger-soft px-1.5 py-0.5 text-danger">{c.lastSyncStatus}</span>}
+                  {c.lastSyncStatus?.startsWith("converting") ? (
+                    <span className="ml-2 rounded bg-accent-soft px-1.5 py-0.5 text-accent">{c.lastSyncStatus.replace("converting:", "Converting to Google Docs:")}</span>
+                  ) : (
+                    c.lastSyncStatus && c.lastSyncStatus !== "ok" && <span className="ml-2 rounded bg-danger-soft px-1.5 py-0.5 text-danger">{c.lastSyncStatus}</span>
+                  )}
                 </div>
               </div>
               <button
@@ -163,6 +168,27 @@ export function DrivePanel({ slug, collections, kinds, serviceEmail, problem, is
                   </span>
                 </span>
               </label>
+            )}
+            {c.kind === "sop" && (c.wordFiles ?? 0) > 0 && (
+              <div className="mt-2 flex flex-wrap items-center gap-3 rounded-lg border border-warn bg-warn-soft px-3 py-2.5 text-sm">
+                <span className="min-w-0 flex-1 text-ink-soft">
+                  <strong className="text-warn">{c.wordFiles} Word files</strong> in this area stay read-only in Orbit. Converting makes each one a Google Doc in the same folder; its Orbit page, history and change log carry over, and the Word original goes to Drive&apos;s trash (recoverable for 30 days).
+                </span>
+                <button
+                  disabled={busy || !c.twoWay || Boolean(c.lastSyncStatus?.startsWith("converting"))}
+                  title={c.twoWay ? undefined : "Turn on two-way sync first"}
+                  onClick={() =>
+                    confirm(`Convert ${c.wordFiles} Word files in "${c.label}" to Google Docs?\n\nThe Word originals go to Drive's trash (recoverable for 30 days). Formatting is converted by Google, the same as opening a Word file in Google Docs.`) &&
+                    start(async () => {
+                      const r = await convertWordFilesAction(slug, c.id);
+                      setMsg(r.ok ? { ok: true, text: r.message ?? "Started." } : { ok: false, text: r.error });
+                    })
+                  }
+                  className="btn btn-primary btn-sm"
+                >
+                  Convert to Google Docs
+                </button>
+              </div>
             )}
           </div>
         ))}

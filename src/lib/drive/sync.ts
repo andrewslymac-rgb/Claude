@@ -303,6 +303,7 @@ export async function syncAll() {
   if (!(await drive.driveEnabled())) return;
   const rows = await db.select({ conn: driveConnections, name: workspaces.name }).from(driveConnections).innerJoin(workspaces, eq(workspaces.id, driveConnections.workspaceId));
   for (const r of rows) {
+    if (r.conn.lastSyncStatus?.startsWith("converting")) continue; // a Word → Google Docs conversion is running
     try {
       const c = await syncCollection(r.conn);
       if (c.created || c.updated || c.trashed) console.log(`Drive sync ${r.name} / ${r.conn.label}:`, c);
