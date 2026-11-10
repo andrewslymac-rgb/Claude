@@ -7,7 +7,7 @@ const MESSAGES: Record<string, string> = {
   expired: "That sign-in link expired. Please try again.",
   google_failed: "Google sign-in didn't work. Please try again.",
   unverified_email: "Your Google email isn't verified.",
-  google_not_configured: "Google sign-in isn't set up yet.",
+  google_not_configured: "Google sign-in is turned off. Use the emailed sign-in link instead.",
 };
 
 export default async function Login({ searchParams }: { searchParams: Promise<{ error?: string; sent?: string; next?: string }> }) {
@@ -23,7 +23,7 @@ export default async function Login({ searchParams }: { searchParams: Promise<{ 
         <OrbitWordmark size={30} />
         <div className="eyebrow mt-5">Company headquarters</div>
         <h1 className="mt-1 text-xl font-semibold">Sign in to Orbit</h1>
-        <p className="mt-1 text-sm text-ink-soft">Use your Google account, or get a sign-in link by email.</p>
+        <p className="mt-1 text-sm text-ink-soft">{google ? "Use your Google account, or get a sign-in link by email." : "Enter your work email and we'll send you a sign-in link."}</p>
 
         {error && <p className="mt-4 rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger">{MESSAGES[error] ?? error}</p>}
         {sent && <WaitForLink email={sent} />}
@@ -51,7 +51,7 @@ export default async function Login({ searchParams }: { searchParams: Promise<{ 
               Email me a sign-in link
             </label>
             <input id="magic-email" name="email" type="email" required placeholder="you@company.com" className="field outline-none focus:border-ink-faint" />
-            <button className="w-full btn btn-secondary">Send link</button>
+            <button className={`w-full btn ${google ? "btn-secondary" : "btn-primary"}`}>Send sign-in link</button>
             <p className="text-xs text-ink-faint">No password needed. Only people who&apos;ve been added to Orbit can sign in.</p>
           </form>
         )}

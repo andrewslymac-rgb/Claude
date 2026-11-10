@@ -2,13 +2,14 @@ import { NextResponse, type NextRequest } from "next/server";
 import { cookies } from "next/headers";
 import { decodeIdToken } from "arctic";
 import { googleClient } from "@/lib/auth/google";
-import { consumeNext, signInWithVerifiedEmail, SignInError } from "@/lib/auth/session";
+import { consumeNext, googleEnabled, signInWithVerifiedEmail, SignInError } from "@/lib/auth/session";
 
 type GoogleClaims = { email: string; email_verified: boolean; name?: string; picture?: string };
 
 export async function GET(req: NextRequest) {
   const appUrl = process.env.APP_URL ?? req.nextUrl.origin;
   const fail = (code: string) => NextResponse.redirect(new URL(`/login?error=${encodeURIComponent(code)}`, appUrl));
+  if (!googleEnabled()) return fail("google_not_configured");
   const code = req.nextUrl.searchParams.get("code");
   const state = req.nextUrl.searchParams.get("state");
   const jar = await cookies();

@@ -52,7 +52,7 @@ export function MembersPanel({ slug, myRole, myId, canManage, members, pending, 
               Add
             </button>
           </div>
-          <p className="mt-2 text-xs text-ink-faint">{roles[role].help}. They sign in with Google using this email.</p>
+          <p className="mt-2 text-xs text-ink-faint">{roles[role].help}. They sign in at myorbithq.net with a link emailed to this address.</p>
         </form>
       )}
       {msg && <p className={`rounded-lg px-3 py-2 text-sm ${msg.ok ? "bg-ok-soft text-ok" : "bg-danger-soft text-danger"}`}>{msg.text}</p>}

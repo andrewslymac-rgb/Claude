@@ -103,7 +103,11 @@ export async function consumeNext(): Promise<string> {
 export const devLoginEnabled = () =>
   process.env.ALLOW_DEV_LOGIN === "true" || (process.env.NODE_ENV !== "production" && process.env.ALLOW_DEV_LOGIN !== "false");
 
-export const googleEnabled = () => Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
+/**
+ * Google sign-in is off: everyone signs in with an emailed link. It stays in the code
+ * so it can be switched back on with GOOGLE_LOGIN_ENABLED=true plus the client id and secret.
+ */
+export const googleEnabled = () => process.env.GOOGLE_LOGIN_ENABLED === "true" && Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
 
 // ---------------------------------------------------------------------------
 // Email sign-in links
