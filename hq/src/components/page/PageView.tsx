@@ -8,6 +8,7 @@ import { History, MoreHorizontal, BookMarked, Trash2, Check, Loader2, AlertCircl
 import { FlagForm } from "@/components/library/FlagsView";
 import { DocInfo, type DocInfoData } from "./DocInfo";
 import { LogChangeDialog } from "./LogChangeDialog";
+import { ChangeLogPanel } from "./ChangeLogPanel";
 import { archivePageAction, savePageAction, setSopAction } from "@/app/actions";
 import type { EditorChange } from "./Editor";
 import { EmojiPicker } from "./EmojiPicker";
@@ -21,7 +22,7 @@ type SaveState = "idle" | "saving" | "saved" | "error";
 
 type DocOptions = { types: readonly string[]; areas: readonly string[]; audiences: readonly string[] };
 
-export function PageView({ slug, page, crumbs, subpages, canEdit, docInfo, members, docOptions }: { slug: string; page: PageData; crumbs: Crumb[]; subpages: Crumb[]; canEdit: boolean; docInfo: DocInfoData; members: { id: string; name: string }[]; docOptions: DocOptions }) {
+export function PageView({ slug, page, crumbs, subpages, canEdit, canLog = canEdit, docInfo, members, docOptions }: { slug: string; page: PageData; crumbs: Crumb[]; subpages: Crumb[]; canEdit: boolean; canLog?: boolean; docInfo: DocInfoData; members: { id: string; name: string }[]; docOptions: DocOptions }) {
   const router = useRouter();
   const [title, setTitle] = useState(page.title);
   const [icon, setIcon] = useState(page.icon);
@@ -34,6 +35,11 @@ export function PageView({ slug, page, crumbs, subpages, canEdit, docInfo, membe
   const [flagging, setFlagging] = useState(false);
   const [docSetup, setDocSetup] = useState(false);
   const isDoc = Boolean(docInfo.docType || docInfo.docStatus || docInfo.reviewCycle);
+  const isDrive = page.source === "gdrive";
+  const showLog = isSop || isDoc || isDrive;
+  const [logOpen, setLogOpen] = useState(false); // drawer on screens without room for the side panel
+  const [logKey, setLogKey] = useState(0);
+  const [logCount, setLogCount] = useState<number | null>(null);
   const [editorKey, setEditorKey] = useState(0);
   const [content, setContent] = useState(page.content);
   const [, start] = useTransition();
@@ -87,7 +93,8 @@ export function PageView({ slug, page, crumbs, subpages, canEdit, docInfo, membe
   const onEditorChange = useCallback((c: EditorChange) => queue(c), [queue]);
 
   return (
-    <div className="relative min-h-full">
+    <div className="relative flex min-h-full">
+    <div className="relative min-w-0 flex-1">
       {/* Top bar */}
       <div className="sticky top-0 z-20 flex h-11 items-center gap-1 bg-paper/90 px-2 text-sm backdrop-blur md:gap-2 md:px-4">
         <nav className="flex min-w-0 flex-1 items-center gap-1 text-ink-soft">
@@ -111,6 +118,12 @@ export function PageView({ slug, page, crumbs, subpages, canEdit, docInfo, membe
         <button onClick={() => setFlagging(true)} className="flex min-h-10 items-center gap-1 rounded-md px-2 py-1 text-ink-soft hover:bg-hover hover:text-warn md:min-h-0" title="Something off? Flag it for the owners.">
           <Flag size={15} /> <span className="hidden sm:inline">Flag</span>
         </button>
+        {showLog && (
+          <button onClick={() => setLogOpen(true)} aria-label="Change log" title="Change log" className="flex min-h-10 items-center gap-1 rounded-md bg-accent-soft px-2 py-1 font-medium text-accent hover:opacity-90 md:min-h-0 xl:hidden">
+            <ClipboardList size={15} /> <span className="hidden sm:inline">Change log</span>
+            {logCount ? <span className="text-xs opacity-80">{logCount}</span> : null}
+          </button>
+        )}
         <button onClick={() => setHistory(true)} className="flex min-h-10 items-center gap-1 rounded-md px-2 py-1 text-ink-soft hover:bg-hover md:min-h-0">
           <History size={15} /> <span className="hidden sm:inline">History</span>
         </button>
@@ -243,8 +256,34 @@ export function PageView({ slug, page, crumbs, subpages, canEdit, docInfo, membe
         )}
       </article>
 
+    </div>
+
+      {showLog && (
+        <aside className="sticky top-0 hidden h-dvh w-80 shrink-0 self-start border-l border-line bg-side/40 xl:block">
+          <ChangeLogPanel slug={slug} pageId={page.id} canLog={canLog} isDrive={isDrive} versionLabel={docInfo.docVersion} refreshKey={logKey} onCount={setLogCount} onLog={() => setLogChange(true)} onHistory={() => setHistory(true)} />
+        </aside>
+      )}
+      {showLog && logOpen && (
+        <div className="fixed inset-0 z-50 flex justify-end bg-black/60 xl:hidden" onMouseDown={() => setLogOpen(false)}>
+          <div className="h-full w-full max-w-sm border-l border-line bg-card pb-[env(safe-area-inset-bottom)] pt-[env(safe-area-inset-top)] shadow-2xl" onMouseDown={(e) => e.stopPropagation()}>
+            <ChangeLogPanel
+              slug={slug}
+              pageId={page.id}
+              canLog={canLog}
+              isDrive={isDrive}
+              versionLabel={docInfo.docVersion}
+              refreshKey={logKey}
+              onCount={setLogCount}
+              onLog={() => setLogChange(true)}
+              onHistory={() => (setLogOpen(false), setHistory(true))}
+              onClose={() => setLogOpen(false)}
+            />
+          </div>
+        </div>
+      )}
+
       {flagging && <FlagForm slug={slug} pages={[{ id: page.id, title: title || "Untitled", icon }]} presetPageId={page.id} onClose={() => setFlagging(false)} />}
-      {logChange && <LogChangeDialog slug={slug} pageId={page.id} currentVersionLabel={docInfo.docVersion} onClose={() => setLogChange(false)} />}
+      {logChange && <LogChangeDialog slug={slug} pageId={page.id} currentVersionLabel={docInfo.docVersion} isDrive={isDrive} onClose={() => setLogChange(false)} onSaved={() => (setLogKey((k) => k + 1), router.refresh())} />}
 
       {history && (
         <VersionHistory
@@ -259,6 +298,7 @@ export function PageView({ slug, page, crumbs, subpages, canEdit, docInfo, membe
             setContent(restored.content);
             setEditorKey((k) => k + 1); // remount the editor with the restored content
             setSave("saved");
+            setLogKey((k) => k + 1);
           }}
         />
       )}
