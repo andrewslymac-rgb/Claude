@@ -290,7 +290,7 @@ export function buildServer(p: AiPrincipal) {
         const r = a.assignees ? await tasksSvc.resolveAssignees(ws, a.assignees) : null;
         if (r?.unknown.length) return fail(`I don't know who ${r.unknown.join(", ")} is. Use list_members to see the team.`);
         const roleArgValue = a.role !== undefined ? a.role : a.owner_role;
-        await tasksSvc.updateTask(ws, a.task_id, { title: a.title, frequency: a.frequency as Frequency | undefined, whenText: a.when_text, dueOn: a.due_on, category: a.category, instructions: a.instructions, ...(roleArgValue === null ? { roleId: null, ownerRole: null } : roleArgValue ? { ownerRole: roleArgValue } : {}), assigneeIds: r?.ids });
+        await tasksSvc.updateTask(ws, a.task_id, { title: a.title, frequency: a.frequency as Frequency | undefined, whenText: a.when_text, dueOn: a.due_on, category: a.category, instructions: a.instructions, ...(roleArgValue === null ? { roleId: null, ownerRole: null } : roleArgValue ? { ownerRole: roleArgValue } : {}), assigneeIds: r?.ids }, p.userId);
         const t = (await tasksSvc.listTasks(ws)).find((x) => x.id === a.task_id);
         await logActivity({ workspaceId: ws, grantId: p.grantId, tool: "update_task", summary: `Edited task "${t?.title ?? a.task_id}"`, taskId: a.task_id });
         return text(t ? `Updated "${t.title}": ${FREQUENCY_LABELS[t.frequency]}${t.whenText ? ` · ${t.whenText}` : ""} · next due ${t.nextDueOn ? fmtDate(t.nextDueOn) : "—"} · owner: ${t.assignees.map((x) => x.name).join(", ") || t.ownerRole || "anyone"}` : "Updated.");
