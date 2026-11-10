@@ -22,6 +22,8 @@ export const users = pgTable("users", {
   id: uuid("id").primaryKey().defaultRandom(),
   email: text("email").notNull().unique(),
   name: text("name"),
+  firstName: text("first_name"),
+  lastName: text("last_name"),
   avatarUrl: text("avatar_url"),
   /** App admins can create workspaces and see every workspace. */
   isAppAdmin: boolean("is_app_admin").notNull().default(false),
@@ -93,6 +95,8 @@ export const invites = pgTable(
       .references(() => workspaces.id, { onDelete: "cascade" }),
     email: text("email").notNull(),
     role: roleEnum("role").notNull().default("editor"),
+    firstName: text("first_name"),
+    lastName: text("last_name"),
     invitedById: uuid("invited_by_id").references(() => users.id, { onDelete: "set null" }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },

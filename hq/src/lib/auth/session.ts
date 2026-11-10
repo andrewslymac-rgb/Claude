@@ -65,9 +65,17 @@ export async function signInWithVerifiedEmail(input: { email: string; name?: str
     if (count > 0 && !isOwner && pending.length === 0 && !domainOk) {
       throw new SignInError("You haven't been invited yet. Ask an admin to add your email.");
     }
+    const invitedName = pending.find((p) => p.firstName || p.lastName);
     [user] = await db
       .insert(users)
-      .values({ email, name: input.name ?? email.split("@")[0], avatarUrl: input.avatarUrl, isAppAdmin: count === 0 || isOwner })
+      .values({
+        email,
+        firstName: invitedName?.firstName ?? null,
+        lastName: invitedName?.lastName ?? null,
+        name: (invitedName ? [invitedName.firstName, invitedName.lastName].filter(Boolean).join(" ") : null) || input.name || email.split("@")[0],
+        avatarUrl: input.avatarUrl,
+        isAppAdmin: count === 0 || isOwner,
+      })
       .returning();
   }
 

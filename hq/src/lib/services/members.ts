@@ -8,7 +8,7 @@ const { users, memberships, invites, memberRoles, workspaceRoles } = schema;
 
 export async function listMembers(workspaceId: string) {
   const members = await db
-    .select({ userId: users.id, email: users.email, name: users.name, avatarUrl: users.avatarUrl, role: memberships.role, lastSeenAt: users.lastSeenAt })
+    .select({ userId: users.id, email: users.email, name: users.name, firstName: users.firstName, lastName: users.lastName, avatarUrl: users.avatarUrl, role: memberships.role, lastSeenAt: users.lastSeenAt })
     .from(memberships)
     .innerJoin(users, eq(users.id, memberships.userId))
     .where(eq(memberships.workspaceId, workspaceId))
@@ -31,22 +31,44 @@ function assertCanAssign(actorRole: Role, target: Role) {
   }
 }
 
-export async function addMember(workspaceId: string, emailRaw: string, role: Role, actorRole: Role, actorId: string) {
+/** "Jane" + "Doe" → "Jane Doe"; also the display name everywhere in Orbit. */
+export const fullName = (first?: string | null, last?: string | null) => [first?.trim(), last?.trim()].filter(Boolean).join(" ") || null;
+
+export async function setUserName(userId: string, first: string, last: string) {
+  const firstName = first.trim(), lastName = last.trim();
+  if (!firstName || !lastName) throw new Error("Enter both a first and last name.");
+  await db.update(users).set({ firstName, lastName, name: fullName(firstName, lastName) }).where(eq(users.id, userId));
+}
+
+export async function addMember(workspaceId: string, emailRaw: string, role: Role, actorRole: Role, actorId: string, names?: { first: string; last: string }) {
   const email = emailRaw.trim().toLowerCase();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error("That doesn't look like an email address.");
   assertCanAssign(actorRole, role);
   const [existing] = await db.select().from(users).where(eq(users.email, email));
   if (existing) {
+    if (names && (!existing.firstName || !existing.lastName)) await setUserName(existing.id, names.first, names.last);
     await db.insert(memberships).values({ workspaceId, userId: existing.id, role }).onConflictDoUpdate({ target: [memberships.workspaceId, memberships.userId], set: { role } });
     return { status: "added" as const };
   }
-  await db.insert(invites).values({ workspaceId, email, role, invitedById: actorId }).onConflictDoUpdate({ target: [invites.workspaceId, invites.email], set: { role } });
+  const n = { firstName: names?.first.trim() || null, lastName: names?.last.trim() || null };
+  await db.insert(invites).values({ workspaceId, email, role, invitedById: actorId, ...n }).onConflictDoUpdate({ target: [invites.workspaceId, invites.email], set: { role, ...n } });
   return { status: "invited" as const };
 }
 
 async function ownerCount(workspaceId: string) {
   const [{ n }] = await db.select({ n: sql<number>`count(*)::int` }).from(memberships).where(and(eq(memberships.workspaceId, workspaceId), eq(memberships.role, "owner")));
   return n;
+}
+
+/** Admins can fix the name of anyone in their workspace (or a pending invite). */
+export async function renameMember(workspaceId: string, userId: string, first: string, last: string) {
+  const [m] = await db.select().from(memberships).where(and(eq(memberships.workspaceId, workspaceId), eq(memberships.userId, userId)));
+  if (!m) throw new Error("Member not found");
+  await setUserName(userId, first, last);
+}
+
+export async function renameInvite(workspaceId: string, inviteId: string, first: string, last: string) {
+  await db.update(invites).set({ firstName: first.trim() || null, lastName: last.trim() || null }).where(and(eq(invites.workspaceId, workspaceId), eq(invites.id, inviteId)));
 }
 
 export async function changeRole(workspaceId: string, userId: string, role: Role, actorRole: Role) {

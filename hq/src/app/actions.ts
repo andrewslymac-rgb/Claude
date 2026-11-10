@@ -171,14 +171,49 @@ async function sendWelcome(email: string, workspaceName: string, inviterName: st
   return r.ok;
 }
 
-export async function addMemberAction(slug: string, email: string, role: Role): Promise<Result> {
+export async function addMemberAction(slug: string, email: string, role: Role, firstName: string, lastName: string): Promise<Result> {
   return wrap(async () => {
     const { user, workspace, role: myRole } = await requireAbility(slug, "manage_members");
     const parsed = roleSchema.parse(role);
-    await members.addMember(workspace.id, email, parsed, myRole, user.id);
+    const first = z.string().trim().min(1, "Enter their first name.").max(60).parse(firstName);
+    const last = z.string().trim().min(1, "Enter their last name.").max(60).parse(lastName);
+    await members.addMember(workspace.id, email, parsed, myRole, user.id, { first, last });
     revalidatePath(`/w/${slug}/settings`);
     const sent = await sendWelcome(email, workspace.name, user.name ?? user.email, parsed);
     return sent ? `Added. A sign-in link is on its way to ${email.trim().toLowerCase()}.` : `Added, but the welcome email didn't send. They can go to myorbithq.net and enter ${email.trim().toLowerCase()} to get a sign-in link.`;
+  });
+}
+
+const nameSchema = z.object({ first: z.string().trim().min(1, "Enter a first name.").max(60), last: z.string().trim().min(1, "Enter a last name.").max(60) });
+
+/** An admin fixing a teammate's name. */
+export async function renameMemberAction(slug: string, userId: string, first: string, last: string): Promise<Result> {
+  return wrap(async () => {
+    const { workspace } = await requireAbility(slug, "manage_members");
+    const n = nameSchema.parse({ first, last });
+    await members.renameMember(workspace.id, uuid.parse(userId), n.first, n.last);
+    revalidatePath(`/w/${slug}`, "layout");
+  });
+}
+
+export async function renameInviteAction(slug: string, inviteId: string, first: string, last: string): Promise<Result> {
+  return wrap(async () => {
+    const { workspace } = await requireAbility(slug, "manage_members");
+    const n = nameSchema.parse({ first, last });
+    await members.renameInvite(workspace.id, uuid.parse(inviteId), n.first, n.last);
+    revalidatePath(`/w/${slug}/settings`);
+  });
+}
+
+/** Anyone setting their own name. */
+export async function setMyNameAction(first: string, last: string): Promise<Result> {
+  return wrap(async () => {
+    const { getCurrentUser } = await import("@/lib/auth/session");
+    const me = await getCurrentUser();
+    if (!me) throw new Error("Please sign in again.");
+    const n = nameSchema.parse({ first, last });
+    await members.setUserName(me.id, n.first, n.last);
+    revalidatePath("/", "layout");
   });
 }
 

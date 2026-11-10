@@ -112,7 +112,7 @@ async function PeopleTab({ slug, workspaceId, role, canManage, userId }: { slug:
           myId={userId}
           canManage={canManage}
           members={members.map((m) => ({ ...m, lastSeenAt: m.lastSeenAt?.toISOString() ?? null }))}
-          pending={pending.map((p) => ({ id: p.id, email: p.email, role: p.role }))}
+          pending={pending.map((p) => ({ id: p.id, email: p.email, role: p.role, firstName: p.firstName, lastName: p.lastName }))}
           roles={ROLE_LABELS}
           jobRoles={jobRoles.map((r) => ({ id: r.id, name: r.name, emoji: r.emoji, color: r.color }))}
         />

@@ -1,18 +1,22 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { addMemberAction, cancelInviteAction, changeRoleAction, removeMemberAction, resendInviteAction, setMemberRolesAction } from "@/app/actions";
+import { addMemberAction, renameMemberAction, renameInviteAction, cancelInviteAction, changeRoleAction, removeMemberAction, resendInviteAction, setMemberRolesAction } from "@/app/actions";
 import type { Role } from "@/db/schema";
+import { Pencil } from "lucide-react";
 
 type JobRole = { id: string; name: string; emoji: string; color: string };
-type Member = { userId: string; email: string; name: string | null; avatarUrl: string | null; role: Role; lastSeenAt: string | null; jobRoles: JobRole[] };
-type Pending = { id: string; email: string; role: Role };
+type Member = { userId: string; email: string; name: string | null; firstName?: string | null; lastName?: string | null; avatarUrl: string | null; role: Role; lastSeenAt: string | null; jobRoles: JobRole[] };
+type Pending = { id: string; email: string; role: Role; firstName?: string | null; lastName?: string | null };
 type Roles = Record<Role, { label: string; help: string }>;
 const ORDER: Role[] = ["viewer", "editor", "admin", "owner"];
 
 export function MembersPanel({ slug, myRole, myId, canManage, members, pending, roles, jobRoles }: { slug: string; myRole: Role; myId: string; canManage: boolean; members: Member[]; pending: Pending[]; roles: Roles; jobRoles: JobRole[] }) {
   const [picking, setPicking] = useState<string | null>(null);
   const [email, setEmail] = useState("");
+  const [first, setFirst] = useState("");
+  const [last, setLast] = useState("");
+  const [renaming, setRenaming] = useState<string | null>(null);
   const [role, setRole] = useState<Role>("editor");
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [busy, start] = useTransition();
@@ -32,13 +36,17 @@ export function MembersPanel({ slug, myRole, myId, canManage, members, pending, 
           onSubmit={(e) => {
             e.preventDefault();
             run(async () => {
-              const r = await addMemberAction(slug, email, role);
-              if (r.ok) setEmail("");
+              const r = await addMemberAction(slug, email, role, first, last);
+              if (r.ok) (setEmail(""), setFirst(""), setLast(""));
               return r;
             });
           }}
         >
           <div className="mb-2 text-sm font-medium">Add a person</div>
+          <div className="mb-2 grid grid-cols-2 gap-2">
+            <input required value={first} onChange={(e) => setFirst(e.target.value)} placeholder="First name" autoComplete="off" className="min-w-0 rounded-lg border border-line px-3 py-2 text-sm" />
+            <input required value={last} onChange={(e) => setLast(e.target.value)} placeholder="Last name" autoComplete="off" className="min-w-0 rounded-lg border border-line px-3 py-2 text-sm" />
+          </div>
           <div className="flex flex-wrap gap-2">
             <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="name@company.com" className="min-w-0 flex-1 rounded-lg border border-line px-3 py-2 text-sm" />
             <select value={role} onChange={(e) => setRole(e.target.value as Role)} className="rounded-lg border border-line px-2 py-2 text-sm">
@@ -64,9 +72,25 @@ export function MembersPanel({ slug, myRole, myId, canManage, members, pending, 
             <li key={m.userId} className="flex flex-wrap items-center gap-3 px-4 py-3">
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-side text-sm font-semibold text-ink-soft">{(m.name ?? m.email)[0].toUpperCase()}</div>
               <div className="min-w-0 flex-1">
-                <div className="truncate text-sm font-medium">
-                  {m.name ?? m.email} {m.userId === myId && <span className="text-ink-faint">(you)</span>}
-                </div>
+                {renaming === m.userId ? (
+                  <NameEditor
+                    first={m.firstName ?? (m.name ?? "").split(" ")[0] ?? ""}
+                    last={m.lastName ?? (m.name ?? "").split(" ").slice(1).join(" ")}
+                    busy={busy}
+                    onCancel={() => setRenaming(null)}
+                    onSave={(f, l) => run(async () => { const r = await renameMemberAction(slug, m.userId, f, l); if (r.ok) setRenaming(null); return r; })}
+                  />
+                ) : (
+                  <div className="flex items-center gap-1.5 truncate text-sm font-medium">
+                    {m.name ?? m.email} {m.userId === myId && <span className="text-ink-faint">(you)</span>}
+                    {!m.lastName && <span className="rounded bg-warn-soft px-1.5 text-[10px] font-semibold text-warn">needs last name</span>}
+                    {canManage && (
+                      <button onClick={() => setRenaming(m.userId)} className="rounded p-1 text-ink-faint hover:bg-hover hover:text-ink" title="Edit name" aria-label={`Edit name for ${m.name ?? m.email}`}>
+                        <Pencil size={12} />
+                      </button>
+                    )}
+                  </div>
+                )}
                 <div className="truncate text-xs text-ink-faint">{m.email}</div>
                 <div className="mt-1 flex flex-wrap items-center gap-1">
                   {m.jobRoles.map((r) => (
@@ -127,7 +151,25 @@ export function MembersPanel({ slug, myRole, myId, canManage, members, pending, 
           <li key={p.id} className="flex items-center gap-3 px-4 py-3">
             <div className="flex h-8 w-8 items-center justify-center rounded-full border border-dashed border-line text-sm text-ink-faint">?</div>
             <div className="min-w-0 flex-1">
-              <div className="truncate text-sm">{p.email}</div>
+              {renaming === p.id ? (
+                <NameEditor
+                  first={p.firstName ?? ""}
+                  last={p.lastName ?? ""}
+                  busy={busy}
+                  onCancel={() => setRenaming(null)}
+                  onSave={(f, l) => run(async () => { const r = await renameInviteAction(slug, p.id, f, l); if (r.ok) setRenaming(null); return r; })}
+                />
+              ) : (
+                <div className="flex items-center gap-1.5 truncate text-sm">
+                  {p.firstName || p.lastName ? <span className="font-medium">{[p.firstName, p.lastName].filter(Boolean).join(" ")}</span> : <span className="rounded bg-warn-soft px-1.5 text-[10px] font-semibold text-warn">no name yet</span>}
+                  <span className="truncate text-xs text-ink-faint">{p.email}</span>
+                  {canManage && (
+                    <button onClick={() => setRenaming(p.id)} className="rounded p-1 text-ink-faint hover:bg-hover hover:text-ink" title="Edit name" aria-label={`Edit name for ${p.email}`}>
+                      <Pencil size={12} />
+                    </button>
+                  )}
+                </div>
+              )}
               <div className="text-xs text-ink-faint">Invited · hasn&apos;t signed in yet</div>
             </div>
             <span className="text-sm text-ink-soft">{roles[p.role].label}</span>
@@ -145,5 +187,24 @@ export function MembersPanel({ slug, myRole, myId, canManage, members, pending, 
         ))}
       </ul>
     </div>
+  );
+}
+
+function NameEditor({ first, last, busy, onSave, onCancel }: { first: string; last: string; busy: boolean; onSave: (first: string, last: string) => void; onCancel: () => void }) {
+  const [f, setF] = useState(first);
+  const [l, setL] = useState(last);
+  return (
+    <form
+      className="flex flex-wrap items-center gap-1.5"
+      onSubmit={(e) => {
+        e.preventDefault();
+        onSave(f, l);
+      }}
+    >
+      <input autoFocus required value={f} onChange={(e) => setF(e.target.value)} placeholder="First name" className="w-28 rounded-lg border border-line px-2 py-1 text-sm" />
+      <input required value={l} onChange={(e) => setL(e.target.value)} placeholder="Last name" className="w-32 rounded-lg border border-line px-2 py-1 text-sm" />
+      <button disabled={busy} className="btn btn-primary btn-sm">Save</button>
+      <button type="button" onClick={onCancel} className="btn btn-ghost btn-sm">Cancel</button>
+    </form>
   );
 }
