@@ -78,7 +78,7 @@ export function DrivePanel({ slug, collections, kinds, serviceEmail, problem, is
           <div className="min-w-0 flex-1">
             <div className="font-medium">How it works</div>
             <p className="mt-1 text-ink-soft">
-              Each <strong>document area</strong> (SOPs, Legal, Licensing…) mirrors one or more Drive folders as read-only pages, with its own entry in the sidebar. Share the folders with this address as <strong>Viewer</strong>. Titles match the file names in Drive, and changes show up within 10 minutes. Edit the originals in Drive.
+              Each <strong>document area</strong> (SOPs, Legal, Licensing…) mirrors one or more Drive folders as read-only pages, with its own entry in the sidebar. Share the folders with this address as <strong>Viewer</strong> (or <strong>Editor</strong> for an SOP area you want to sync both ways). Titles match the file names in Drive, and changes show up within 10 minutes.
             </p>
             <div className="mt-2 flex items-center gap-2">
               <code className="truncate rounded bg-paper px-2 py-1 text-xs">{serviceEmail}</code>

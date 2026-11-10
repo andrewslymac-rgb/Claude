@@ -67,7 +67,7 @@ export default async function Settings({ params, searchParams }: { params: Promi
           <div className="space-y-8">
             <section>
               <h2 className="text-lg font-semibold">Google Drive</h2>
-              <p className="mt-1 text-sm text-ink-soft">Keep documents in Drive; Orbit mirrors each area (SOPs, Legal, Licensing…) as read-only pages with its own spot in the sidebar.</p>
+              <p className="mt-1 text-sm text-ink-soft">Keep documents in Drive; Orbit mirrors each area (SOPs, Legal, Licensing…) with its own spot in the sidebar. Pages are read-only unless you turn on two-way sync for an SOP area.</p>
               <DriveTab slug={slug} workspaceId={workspace.id} isAppAdmin={user.isAppAdmin} />
             </section>
             {user.isAppAdmin && workspace.slug === "lemon-and-lavender" && (
