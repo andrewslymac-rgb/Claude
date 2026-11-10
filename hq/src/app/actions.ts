@@ -66,7 +66,8 @@ export async function movePageAction(slug: string, pageId: string, parentId: str
 export async function archivePageAction(slug: string, pageId: string) {
   const { workspace } = await requireAbility(slug, "edit");
   const { mirrorTrash } = await import("@/lib/drive/twoway");
-  await mirrorTrash(workspace.id, uuid.parse(pageId), true); // two-way areas: the Doc goes to Drive's trash too
+  // Two-way areas: the Doc goes to Drive's trash too (needs Content manager; never blocks the Orbit trash).
+  await mirrorTrash(workspace.id, uuid.parse(pageId), true).catch((e) => console.error("Couldn't trash the Google Doc", e));
   await pages.archivePage(workspace.id, uuid.parse(pageId));
   revalidatePath(`/w/${slug}`, "layout");
 }
