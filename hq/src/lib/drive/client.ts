@@ -247,3 +247,14 @@ export async function setTrashed(fileId: string, trashed: boolean) {
   });
   if (!res.ok) throw await writeError(res);
 }
+
+/** Google converts an Office file into a native Google Doc (a new file) in the given folder. */
+export async function copyAsGoogleDoc(fileId: string, name: string, parentId: string): Promise<DriveFile> {
+  const res = await fetch(`${API}/files/${fileId}/copy?supportsAllDrives=true&fields=id,name,mimeType,modifiedTime,webViewLink,parents`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${await writeToken()}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ name, mimeType: GDOC, parents: [parentId] }),
+  });
+  if (!res.ok) throw await writeError(res);
+  return res.json();
+}

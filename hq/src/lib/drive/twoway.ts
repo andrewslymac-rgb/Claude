@@ -103,3 +103,64 @@ export async function mirrorTrash(workspaceId: string, pageId: string, trashed: 
   if (!row?.twoWay || !row.fileId || row.icon === "📁") return;
   await drive.setTrashed(row.fileId, trashed);
 }
+
+export const WORD_TYPES = [drive.DOCX, "application/msword"];
+
+/** How many Word files an area still has (these stay read-only until converted). */
+export async function wordFileCount(connId: string) {
+  const [{ n }] = await db
+    .select({ n: sql<number>`count(*)::int` })
+    .from(pages)
+    .where(and(eq(pages.driveConnectionId, connId), isNull(pages.archivedAt), sql`${pages.driveMimeType} in (${sql.join(WORD_TYPES.map((t) => sql`${t}`), sql`, `)})`));
+  return n;
+}
+
+/**
+ * Converts every Word file in an area to a Google Doc: Google makes the converted copy
+ * in the same folder, the Orbit page is pointed at it (keeping its history and change
+ * log), and the Word original goes to Drive's trash (recoverable for 30 days).
+ * Runs in the background; progress shows on the area in Settings.
+ */
+export async function convertAreaToGoogleDocs(workspaceId: string, connId: string) {
+  const [conn] = await db.select().from(driveConnections).where(and(eq(driveConnections.workspaceId, workspaceId), eq(driveConnections.id, connId)));
+  if (!conn) throw new Error("That document area no longer exists.");
+  if (!conn.twoWay) throw new Error("Turn on two-way sync for this area first (Orbit needs edit access to the folder).");
+  const rows = await db
+    .select({ id: pages.id, title: pages.title, fileId: pages.driveFileId })
+    .from(pages)
+    .where(and(eq(pages.driveConnectionId, connId), isNull(pages.archivedAt), sql`${pages.driveMimeType} in (${sql.join(WORD_TYPES.map((t) => sql`${t}`), sql`, `)})`));
+  const status = (s: string) => db.update(driveConnections).set({ lastSyncStatus: s, lastSyncAt: new Date() }).where(eq(driveConnections.id, connId));
+  let done = 0;
+  const failed: string[] = [];
+  await status(`converting: 0 of ${rows.length}`);
+  for (const r of rows) {
+    if (!r.fileId) continue;
+    try {
+      const orig = await drive.getFile(r.fileId);
+      const parent = orig.parents?.[0];
+      if (!parent) throw new Error("no parent folder");
+      const name = orig.name.replace(/\.(docx?|DOCX?)$/, "").trim();
+      const copy = await drive.copyAsGoogleDoc(r.fileId, name, parent);
+      try {
+        await drive.setTrashed(r.fileId, true);
+      } catch (e) {
+        await drive.setTrashed(copy.id, true).catch(() => {}); // don't leave two copies behind
+        throw e;
+      }
+      await db
+        .update(pages)
+        .set({ driveFileId: copy.id, driveMimeType: drive.GDOC, sourceLink: copy.webViewLink ?? null, driveModifiedAt: new Date(0), drivePushPending: false, driveConflict: false, title: name })
+        .where(eq(pages.id, r.id));
+      await resyncPage(workspaceId, r.id).catch(() => {}); // pull Google's version so both sides match exactly
+      done++;
+    } catch (e) {
+      failed.push(`${r.title}: ${(e as Error).message.slice(0, 120)}`);
+      // A permissions problem will hit every file; stop instead of repeating it 100 times.
+      if (/can't edit|Content manager|403/i.test((e as Error).message)) break;
+    }
+    if ((done + failed.length) % 5 === 0) await status(`converting: ${done + failed.length} of ${rows.length}`);
+  }
+  await status(failed.length ? `error: converted ${done} of ${rows.length}. ${failed[0]}` : "ok");
+  if (failed.length) console.error("Word conversion problems:", failed);
+  return { done, failed };
+}
