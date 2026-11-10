@@ -164,7 +164,7 @@ export function buildServer(p: AiPrincipal) {
     const page = await pagesSvc.getPage(ws, page_id);
     if (!page || page.archivedAt) return fail("Page not found.");
     const md = page.contentText || (await blocksToMarkdown(page.content));
-    const meta = [page.docType && `Type: ${page.docType}`, page.docStatus && `Status: ${page.docStatus.replace("_", " ")}`, page.lastReviewedOn && `Last reviewed: ${fmtDate(page.lastReviewedOn)}`, page.source === "gdrive" && "Source: Google Drive (read-only here)", `Link: ${link(page.id)}`].filter(Boolean).join(" · ");
+    const meta = [page.docType && `Type: ${page.docType}`, page.docStatus && `Status: ${page.docStatus.replace("_", " ")}`, page.lastReviewedOn && `Last reviewed: ${fmtDate(page.lastReviewedOn)}`, page.source === "gdrive" && (page.driveMimeType === "application/vnd.google-apps.document" && page.drivePushPending !== undefined ? "Source: Google Drive" : "Source: Google Drive (read-only here)"), `Link: ${link(page.id)}`].filter(Boolean).join(" · ");
     return text(`# ${page.icon ?? ""} ${page.title || "Untitled"}\n_${meta}_\n\n${md}`);
   });
 
@@ -218,11 +218,11 @@ export function buildServer(p: AiPrincipal) {
 
     server.registerTool(
       "update_page",
-      { title: "Replace a page's content", description: "Replaces the whole body of a page with new Markdown (title optional). The previous version is kept and can be restored. Not allowed on Google Drive-synced pages.", inputSchema: { page_id: z.string().uuid(), markdown: z.string().max(MAX_WRITE_CHARS), title: z.string().min(1).max(200).optional(), reason: z.string().min(3).max(300).describe("One sentence on what changed and why; shown in the page's history") } },
+      { title: "Replace a page's content", description: "Replaces the whole body of a page with new Markdown (title optional). The previous version is kept and can be restored. Not allowed on Google Drive-synced pages unless their area has two-way sync on (then the edit is also written to the Google Doc).", inputSchema: { page_id: z.string().uuid(), markdown: z.string().max(MAX_WRITE_CHARS), title: z.string().min(1).max(200).optional(), reason: z.string().min(3).max(300).describe("One sentence on what changed and why; shown in the page's history") } },
       async ({ page_id, markdown, title, reason }) => {
         const before = await pagesSvc.getPage(ws, page_id);
         if (!before || before.archivedAt) return fail("Page not found.");
-        if (before.source === "gdrive") return fail("This page is synced from Google Drive. Edit the Google Doc instead.");
+        if (before.source === "gdrive" && !(await pagesSvc.isTwoWayEditable(before))) return fail("This page is synced from Google Drive. Edit the Google Doc instead.");
         if (await needsApproval(ws, { pageId: page_id })) {
           await createProposal(ws, p.grantId, { tool: "update_page", pageId: page_id, title: title ?? null, markdown, reason });
           return queued(`Rewriting "${before.title}"`);
@@ -241,7 +241,7 @@ export function buildServer(p: AiPrincipal) {
       async ({ page_id, markdown, reason }) => {
         const before = await pagesSvc.getPage(ws, page_id);
         if (!before || before.archivedAt) return fail("Page not found.");
-        if (before.source === "gdrive") return fail("This page is synced from Google Drive. Edit the Google Doc instead.");
+        if (before.source === "gdrive" && !(await pagesSvc.isTwoWayEditable(before))) return fail("This page is synced from Google Drive. Edit the Google Doc instead.");
         if (await needsApproval(ws, { pageId: page_id })) {
           await createProposal(ws, p.grantId, { tool: "append_to_page", pageId: page_id, markdown, reason });
           return queued(`Adding to "${before.title}"`);
