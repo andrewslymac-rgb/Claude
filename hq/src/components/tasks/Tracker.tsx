@@ -216,7 +216,7 @@ export function Tracker({ slug, tasks, members, roles = [], pages, categories, m
                 })}
                 {ts.length === 0 && g.tasks.length > 0 && <li className="px-2 py-1 text-xs text-ink-faint">All done {period}. 🎉</li>}
               </ul>
-              {canEdit && <QuickAdd slug={slug} frequency={tab} memberId={g.memberId} roleId={g.roleId ?? null} onMore={() => setCreating({ memberId: g.memberId, roleId: g.roleId ?? null, frequency: tab })} />}
+              {canEdit && <QuickAdd slug={slug} frequency={tab} memberId={g.memberId} roleId={g.roleId ?? null} ownerName={g.memberId ? g.name.split(" ")[0] : g.roleId ? g.name : "anyone"} onMore={() => setCreating({ memberId: g.memberId, roleId: g.roleId ?? null, frequency: tab })} />}
             </section>
           );
         })}
@@ -273,26 +273,57 @@ function MenuItem({ icon, danger, onClick, children }: { icon: React.ReactNode; 
   );
 }
 
-function QuickAdd({ slug, frequency, memberId, roleId, onMore }: { slug: string; frequency: Frequency; memberId: string | null; roleId: string | null; onMore: () => void }) {
+function QuickAdd({ slug, frequency, memberId, roleId, ownerName, onMore }: { slug: string; frequency: Frequency; memberId: string | null; roleId: string | null; ownerName: string; onMore: () => void }) {
   const [v, setV] = useState("");
+  const [pending, setPending] = useState<string[]>([]);
   const [busy, start] = useTransition();
+  const add = () => {
+    const title = v.trim();
+    if (!title) return;
+    setV("");
+    setPending((p) => [...p, title]); // show it right away; the real row replaces it when the save lands
+    start(async () => {
+      await createTaskAction(slug, { title, frequency, assigneeIds: memberId ? [memberId] : [], roleId });
+      setPending((p) => p.filter((x) => x !== title));
+    });
+  };
+  const label = FREQUENCY_LABELS[frequency].toLowerCase();
   return (
-    <form
-      className="mt-1 flex items-center gap-1"
-      onSubmit={(e) => {
-        e.preventDefault();
-        const title = v.trim();
-        if (!title) return;
-        setV("");
-        start(async () => void (await createTaskAction(slug, { title, frequency, assigneeIds: memberId ? [memberId] : [], roleId })));
-      }}
-    >
-      <Plus size={14} className="shrink-0 text-ink-faint" />
-      <input value={v} onChange={(e) => setV(e.target.value)} placeholder={`Add a ${FREQUENCY_LABELS[frequency].toLowerCase()} task…`} className="min-w-0 flex-1 bg-transparent px-1 py-1.5 text-sm outline-none placeholder:text-ink-faint" disabled={busy} />
-      <button type="button" onClick={onMore} className="shrink-0 rounded px-1.5 py-1 text-[11px] text-ink-faint hover:bg-hover hover:text-ink" title="More options">
-        details
-      </button>
-    </form>
+    <div className="mt-1.5">
+      {pending.map((t) => (
+        <div key={t} className="flex min-h-10 items-center gap-2 rounded-md px-1 py-1 opacity-60">
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-dashed border-ink-faint" />
+          <span className="min-w-0 flex-1 truncate text-sm">{t}</span>
+          <span className="text-[10px] text-ink-faint">adding…</span>
+        </div>
+      ))}
+      <form
+        className="flex items-center gap-1.5 rounded-lg border border-dashed border-line px-2 py-1 focus-within:border-solid focus-within:border-accent/60 focus-within:bg-paper/40"
+        onSubmit={(e) => {
+          e.preventDefault();
+          add();
+        }}
+      >
+        <Plus size={14} className="shrink-0 text-ink-faint" />
+        <input
+          value={v}
+          onChange={(e) => setV(e.target.value)}
+          enterKeyHint="done"
+          aria-label={`New ${label} task for ${ownerName}`}
+          placeholder={`New ${label} task for ${ownerName}`}
+          className="min-w-0 flex-1 bg-transparent py-1.5 text-sm outline-none placeholder:text-ink-faint focus-visible:outline-none"
+        />
+        {v.trim() ? (
+          <button disabled={busy} className="btn btn-primary btn-sm shrink-0">
+            Add
+          </button>
+        ) : (
+          <button type="button" onClick={onMore} className="shrink-0 rounded px-1.5 py-1 text-[11px] text-ink-faint hover:bg-hover hover:text-ink" title="Due date, instructions, how-to page…">
+            more options
+          </button>
+        )}
+      </form>
+    </div>
   );
 }
 
