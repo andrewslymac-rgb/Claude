@@ -4,6 +4,8 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { ChevronDown, ChevronRight, Home, LogOut, MoreHorizontal, Plus, Search, Settings, Trash2, CheckSquare, BookOpen, Library, Flag, Bot, FolderOpen, AlertTriangle, MessageSquareHeart } from "lucide-react";
+import { NamePrompt } from "@/components/NamePrompt";
+import { createPortal } from "react-dom";
 import { NewTaskButton } from "@/components/tasks/NewTaskButton";
 import { OverduePanel, type OverdueItem } from "./tasks/OverduePanel";
 import { archivePageAction, createPageAction, movePageAction, signOutAction } from "@/app/actions";
@@ -15,7 +17,7 @@ type Ws = { slug: string; name: string; icon: string; color: string };
 type Node = { id: string; parentId: string | null; title: string; icon: string | null; position: number; isSop: boolean; source: string };
 export type CollectionNav = { id: string; label: string; icon: string; count: number; rootPageId: string | null };
 
-export function Sidebar(props: { workspace: Ws; workspaces: Ws[]; tree: Node[]; collections: CollectionNav[]; user: { name: string; email: string; isAppAdmin: boolean }; canEdit: boolean; canManage: boolean; attention?: number; overdue: OverdueItem[]; me: string; openFlags?: number; pendingAi?: number; newFeedback?: number; canManageTasks?: boolean }) {
+export function Sidebar(props: { workspace: Ws; workspaces: Ws[]; tree: Node[]; collections: CollectionNav[]; user: { name: string; email: string; isAppAdmin: boolean; firstName?: string | null; lastName?: string | null }; canEdit: boolean; canManage: boolean; attention?: number; overdue: OverdueItem[]; me: string; openFlags?: number; pendingAi?: number; newFeedback?: number; canManageTasks?: boolean }) {
   const { workspace, canEdit, collections } = props;
   const [overdueOpen, setOverdueOpen] = useState(false);
   useEffect(() => {
@@ -41,6 +43,7 @@ export function Sidebar(props: { workspace: Ws; workspaces: Ws[]; tree: Node[]; 
   const router = useRouter();
   const pathname = usePathname();
   const [searchOpen, setSearchOpen] = useState(false);
+  const [nameOpen, setNameOpen] = useState(false);
   const [pending, start] = useTransition();
   const base = `/w/${workspace.slug}`;
 
@@ -132,15 +135,20 @@ export function Sidebar(props: { workspace: Ws; workspaces: Ws[]; tree: Node[]; 
         <NavItem href={`${base}/trash`} icon={<Trash2 size={16} />} label="Trash" active={pathname === `${base}/trash`} />
         <NavItem href={`${base}/settings`} icon={<Settings size={16} />} label="Settings" active={pathname.startsWith(`${base}/settings`)} />
         <NavItem href={`${base}/feedback${pathname.startsWith(`${base}/feedback`) ? "" : `?from=${encodeURIComponent(pathname)}`}`} icon={<MessageSquareHeart size={16} />} label="Feedback & bugs" active={pathname.startsWith(`${base}/feedback`)} badge={props.newFeedback || undefined} />
-        <form action={signOutAction} className="mt-1 border-t border-line pt-2">
-          <button className="nav-item w-full" title={props.user.email}>
+        <div className="mt-1 flex items-center gap-1 border-t border-line pt-2">
+          <button onClick={() => setNameOpen(true)} className="nav-item min-w-0 flex-1" title={`${props.user.email} · Edit your name`}>
             <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent-soft text-[11px] font-semibold text-accent">{(props.user.name || "?")[0].toUpperCase()}</span>
             <span className="min-w-0 flex-1 truncate text-left">{props.user.name}</span>
-            <LogOut size={14} className="text-ink-faint" />
           </button>
-        </form>
+          <form action={signOutAction}>
+            <button className="nav-item px-2" title="Sign out" aria-label="Sign out">
+              <LogOut size={14} className="text-ink-faint" />
+            </button>
+          </form>
+        </div>
       </div>
 
+      {nameOpen && typeof document !== "undefined" && createPortal(<NamePrompt first={props.user.firstName ?? ""} last={props.user.lastName ?? ""} onClose={() => setNameOpen(false)} />, document.querySelector("[data-ws-theme]") ?? document.body)}
       {searchOpen && <SearchPalette slug={workspace.slug} onClose={() => setSearchOpen(false)} />}
       {overdueOpen && <OverduePanel slug={workspace.slug} items={props.overdue} me={props.me} canEdit={canEdit} onClose={() => setOverdueOpen(false)} />}
     </aside>

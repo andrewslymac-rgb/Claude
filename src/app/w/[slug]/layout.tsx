@@ -3,6 +3,7 @@ import { listTree } from "@/lib/services/pages";
 import { can } from "@/lib/permissions";
 import { Sidebar } from "@/components/Sidebar";
 import { NewTaskButton } from "@/components/tasks/NewTaskButton";
+import { NamePrompt } from "@/components/NamePrompt";
 import { MobileShell } from "@/components/MobileShell";
 import { listTasks } from "@/lib/services/tasks";
 import { listFlags } from "@/lib/services/flags";
@@ -28,7 +29,7 @@ export default async function WorkspaceLayout({ children, params }: { children: 
         workspaces={workspaces.map((w) => ({ slug: w.slug, name: w.name, icon: w.icon, color: w.color }))}
         tree={tree}
         collections={collections.map((c) => ({ id: c.id, label: c.label, icon: c.icon, rootPageId: c.rootPageId, count: counts.get(c.id) ?? 0 }))}
-        user={{ name: user.name ?? user.email, email: user.email, isAppAdmin: user.isAppAdmin }}
+        user={{ name: user.name ?? user.email, email: user.email, isAppAdmin: user.isAppAdmin, firstName: user.firstName, lastName: user.lastName }}
         canEdit={can(abilities, "edit")}
         canManage={can(abilities, "manage_members")}
         attention={attention}
@@ -41,6 +42,7 @@ export default async function WorkspaceLayout({ children, params }: { children: 
       />
       }>
         {children}
+        {(!user.firstName || !user.lastName) && <NamePrompt required first={user.firstName ?? ""} last={user.lastName ?? ""} />}
         {can(abilities, "manage_tasks") && <NewTaskButton slug={workspace.slug} variant="fab" />}
       </MobileShell>
     </div>
