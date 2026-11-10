@@ -105,16 +105,17 @@ export default async function Home({ params }: { params: Promise<{ slug: string 
   const today = new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", timeZone: "America/Los_Angeles" });
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-6 md:px-8 md:py-8">
-      <div className="flex items-center gap-3">
-        <span className="text-3xl md:text-4xl">{workspace.icon}</span>
-        <div>
-          <h1 className="text-xl font-semibold tracking-tight md:text-2xl">
+    <div className="page">
+      <div className="flex items-center gap-3.5">
+        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-2xl md:h-14 md:w-14 md:text-3xl" style={{ background: `${workspace.color}33`, boxShadow: `inset 0 0 0 1px ${workspace.color}66` }}>
+          {workspace.icon}
+        </span>
+        <div className="min-w-0">
+          <div className="eyebrow">{today}</div>
+          <h1 className="page-title">
             {greeting}, {(user.name ?? "").split(" ")[0] || "there"}
           </h1>
-          <p className="text-sm text-ink-soft">
-            {workspace.name} · {today}
-          </p>
+          <p className="text-sm text-ink-soft">{workspace.name}</p>
         </div>
       </div>
       <Dashboard

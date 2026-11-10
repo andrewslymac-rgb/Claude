@@ -96,27 +96,27 @@ export function TaskDrawer({ slug, task, members, roles = [], pages, categories,
 
         <div className="mt-6 flex gap-2">
           {task.state === "done" && task.canUndo ? (
-            <button onClick={() => onUndo(task)} className="flex items-center gap-1 rounded-lg border border-line px-3 py-2 text-sm hover:bg-hover">
+            <button onClick={() => onUndo(task)} className="flex items-center gap-1 btn btn-secondary">
               <Undo2 size={14} /> Undo
             </button>
           ) : (
-            <button onClick={() => onDone(task)} className="flex items-center gap-1 rounded-lg bg-accent px-3 py-2 text-sm font-medium text-paper">
+            <button onClick={() => onDone(task)} className="flex items-center gap-1 btn btn-primary">
               <Check size={14} /> Mark done
             </button>
           )}
           {canEdit && (
-            <button onClick={() => setEditing(true)} className="rounded-lg border border-line px-3 py-2 text-sm hover:bg-hover">
+            <button onClick={() => setEditing(true)} className="btn btn-secondary">
               Edit
             </button>
           )}
           {canEdit && task.state !== "done" && (
-            <button onClick={() => start(async () => (await moveDueAction(slug, task.id), onClose()))} className="flex items-center gap-1 rounded-lg border border-line px-3 py-2 text-sm hover:bg-hover" title={task.frequency === "once" ? "Push a week" : "Skip this time; due again next period"}>
+            <button onClick={() => start(async () => (await moveDueAction(slug, task.id), onClose()))} className="flex items-center gap-1 btn btn-secondary" title={task.frequency === "once" ? "Push a week" : "Skip this time; due again next period"}>
               <SkipForward size={14} /> Skip
             </button>
           )}
           <button
             onClick={() => (history ? setHistory(null) : listCompletionsAction(slug, task.id).then(setHistory))}
-            className="ml-auto flex items-center gap-1 rounded-lg px-3 py-2 text-sm text-ink-soft hover:bg-hover"
+            className="ml-auto flex items-center gap-1 btn btn-ghost"
           >
             <History size={14} /> History
           </button>
@@ -145,12 +145,12 @@ export function TaskDrawer({ slug, task, members, roles = [], pages, categories,
             <div className="flex flex-wrap items-center gap-2">
               <label className="text-xs text-ink-faint">
                 Done on
-                <input type="date" required max={today} value={doneOn.date} onChange={(e) => setDoneOn({ ...doneOn, date: e.target.value })} className="ml-2 rounded-lg border border-line bg-paper px-2 py-1.5 text-sm" />
+                <input type="date" required max={today} value={doneOn.date} onChange={(e) => setDoneOn({ ...doneOn, date: e.target.value })} className="ml-2 field w-auto py-1.5" />
               </label>
             </div>
-            <textarea value={doneOn.note} onChange={(e) => setDoneOn({ ...doneOn, note: e.target.value })} rows={2} placeholder="What happened? (optional) e.g. 'Reconciled through Oct 31; two checks still outstanding.'" className="w-full rounded-lg border border-line bg-paper px-3 py-2 text-sm" />
+            <textarea value={doneOn.note} onChange={(e) => setDoneOn({ ...doneOn, note: e.target.value })} rows={2} placeholder="What happened? (optional) e.g. 'Reconciled through Oct 31; two checks still outstanding.'" className="field" />
             <div className="flex justify-end">
-              <button disabled={busy} className="rounded-lg bg-accent px-3 py-1.5 text-xs font-medium text-paper disabled:opacity-50">
+              <button disabled={busy} className="btn btn-primary btn-sm">
                 {busy ? "Saving…" : "Save completion"}
               </button>
             </div>
@@ -173,17 +173,17 @@ export function TaskDrawer({ slug, task, members, roles = [], pages, categories,
                 <div className="flex flex-wrap items-center gap-2">
                   <label className="text-xs text-ink-faint">
                     Follow up on
-                    <input type="date" required value={followUp.date} onChange={(e) => setFollowUp({ ...followUp, date: e.target.value })} className="ml-2 rounded-lg border border-line bg-paper px-2 py-1.5 text-sm" />
+                    <input type="date" required value={followUp.date} onChange={(e) => setFollowUp({ ...followUp, date: e.target.value })} className="ml-2 field w-auto py-1.5" />
                   </label>
                 </div>
-                <input value={followUp.note} onChange={(e) => setFollowUp({ ...followUp, note: e.target.value })} placeholder="What to check on (optional)" className="w-full rounded-lg border border-line bg-paper px-3 py-2 text-sm" />
+                <input value={followUp.note} onChange={(e) => setFollowUp({ ...followUp, note: e.target.value })} placeholder="What to check on (optional)" className="field" />
                 <div className="flex justify-end gap-2">
                   {task.followUpOn && (
                     <button type="button" disabled={busy} onClick={() => start(async () => (await setFollowUpAction(slug, task.id, null), setFollowUp(null)))} className="flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs text-ink-soft hover:bg-hover">
                       <BellOff size={12} /> Clear
                     </button>
                   )}
-                  <button disabled={busy || !followUp.date} className="rounded-lg bg-accent px-3 py-1.5 text-xs font-medium text-paper disabled:opacity-50">
+                  <button disabled={busy || !followUp.date} className="btn btn-primary btn-sm">
                     Save follow-up
                   </button>
                 </div>
@@ -239,7 +239,7 @@ export function TaskDrawer({ slug, task, members, roles = [], pages, categories,
             }}
           >
             <input value={noteText} onChange={(e) => setNoteText(e.target.value)} placeholder="Add a note… (what happened, what to remember, a handoff)" className="min-w-0 flex-1 rounded-lg border border-line bg-paper px-3 py-2 text-sm" />
-            <button disabled={busy || !noteText.trim()} className="rounded-lg bg-accent px-3 py-2 text-sm font-medium text-paper disabled:opacity-50">
+            <button disabled={busy || !noteText.trim()} className="btn btn-primary">
               Add
             </button>
           </form>
@@ -308,11 +308,11 @@ export function TaskForm({ slug, task, members, roles = [], pages, categories, p
       <div className="pb-safe max-h-[92dvh] w-full max-w-lg overflow-y-auto rounded-t-2xl border border-line bg-card p-6 shadow-2xl sm:rounded-xl" onMouseDown={(e) => e.stopPropagation()}>
         <h2 className="text-lg font-semibold">{task ? "Edit task" : "New task"}</h2>
         <div className="mt-4 space-y-3 text-sm">
-          <input autoFocus value={title} onChange={(e) => setTitle(e.target.value)} placeholder="What needs doing?" className="w-full rounded-lg border border-line bg-paper px-3 py-2 text-base" />
+          <input autoFocus value={title} onChange={(e) => setTitle(e.target.value)} placeholder="What needs doing?" className="field" />
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <label className="block">
               <span className="text-xs text-ink-faint">Repeats</span>
-              <select value={frequency} onChange={(e) => setFrequency(e.target.value as Frequency)} className="mt-1 w-full rounded-lg border border-line bg-paper px-2 py-2">
+              <select value={frequency} onChange={(e) => setFrequency(e.target.value as Frequency)} className="field mt-1">
                 {(Object.keys(FREQUENCY_LABELS) as Frequency[]).map((f) => (
                   <option key={f} value={f}>
                     {FREQUENCY_LABELS[f]}
@@ -322,14 +322,14 @@ export function TaskForm({ slug, task, members, roles = [], pages, categories, p
             </label>
             <label className="block">
               <span className="text-xs text-ink-faint">{frequency === "once" ? "Due date" : "First due (optional)"}</span>
-              <input type="date" value={dueOn} onChange={(e) => setDueOn(e.target.value)} className="mt-1 w-full rounded-lg border border-line bg-paper px-2 py-2" />
+              <input type="date" value={dueOn} onChange={(e) => setDueOn(e.target.value)} className="field mt-1" />
             </label>
           </div>
-          {frequency !== "once" && <input value={whenText} onChange={(e) => setWhenText(e.target.value)} placeholder='When, in words (e.g. "First Monday of the month")' className="w-full rounded-lg border border-line bg-paper px-3 py-2" />}
+          {frequency !== "once" && <input value={whenText} onChange={(e) => setWhenText(e.target.value)} placeholder='When, in words (e.g. "First Monday of the month")' className="field" />}
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <label className="block">
               <span className="text-xs text-ink-faint">Category</span>
-              <select value={category} onChange={(e) => setCategory(e.target.value)} className="mt-1 w-full rounded-lg border border-line bg-paper px-2 py-2">
+              <select value={category} onChange={(e) => setCategory(e.target.value)} className="field mt-1">
                 <option value="">None</option>
                 {categories.map((c) => (
                   <option key={c}>{c}</option>
@@ -338,7 +338,7 @@ export function TaskForm({ slug, task, members, roles = [], pages, categories, p
             </label>
             <label className="block">
               <span className="text-xs text-ink-faint">How-to page</span>
-              <select value={sopPageId} onChange={(e) => setSopPageId(e.target.value)} className="mt-1 w-full rounded-lg border border-line bg-paper px-2 py-2">
+              <select value={sopPageId} onChange={(e) => setSopPageId(e.target.value)} className="field mt-1">
                 <option value="">None</option>
                 {pages.map((p) => (
                   <option key={p.id} value={p.id}>
@@ -379,15 +379,15 @@ export function TaskForm({ slug, task, members, roles = [], pages, categories, p
           </div>
           <label className="block">
             <span className="text-xs text-ink-faint">Instructions</span>
-            <textarea value={instructions} onChange={(e) => setInstructions(e.target.value)} rows={4} className="mt-1 w-full rounded-lg border border-line bg-paper px-3 py-2" />
+            <textarea value={instructions} onChange={(e) => setInstructions(e.target.value)} rows={4} className="mt-1 field" />
           </label>
           {error && <p className="text-danger">{error}</p>}
         </div>
         <div className="mt-5 flex justify-end gap-2">
-          <button onClick={onClose} className="rounded-lg px-4 py-2 text-sm hover:bg-hover">
+          <button onClick={onClose} className="btn btn-ghost">
             Cancel
           </button>
-          <button onClick={submit} disabled={busy || !title.trim()} className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-paper disabled:opacity-50">
+          <button onClick={submit} disabled={busy || !title.trim()} className="btn btn-primary">
             {busy ? "Saving…" : "Save"}
           </button>
         </div>

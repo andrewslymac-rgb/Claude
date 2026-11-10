@@ -78,7 +78,7 @@ export function DocInfo({ slug, pageId, initial, members, options, canEdit, forc
         )}
         <span className="ml-auto flex items-center gap-1">
           {canEdit && (
-            <button onClick={review} className="flex items-center gap-1 rounded-md border border-line px-2 py-1 text-xs hover:bg-hover" title="Stamp today as the review date">
+            <button onClick={review} className="flex items-center gap-1 btn btn-secondary btn-sm" title="Stamp today as the review date">
               <ClipboardCheck size={13} /> Mark reviewed
             </button>
           )}

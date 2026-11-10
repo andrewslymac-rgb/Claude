@@ -38,7 +38,8 @@ export default async function Settings({ params, searchParams }: { params: Promi
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-6 md:px-10 md:py-10">
-      <h1 className="text-2xl font-semibold">Settings</h1>
+      <div className="eyebrow mb-1.5">Company</div>
+      <h1 className="page-title">Settings</h1>
       <p className="mt-1 text-sm text-ink-soft">
         {workspace.icon} {workspace.name} · you are {ROLE_LABELS[role].label === "Admin" || ROLE_LABELS[role].label === "Owner" ? "an" : "a"} <strong>{ROLE_LABELS[role].label}</strong>
       </p>

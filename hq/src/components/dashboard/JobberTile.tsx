@@ -49,7 +49,7 @@ export function JobberTile({ slug, fieldTool, connected, manual, canManage }: { 
         <div className="font-medium text-ink">No field-service software set for this company.</div>
         <p className="mt-1">Pick Jobber or GorillaDesk under Settings → Workspace, or remove this tile.</p>
         {canManage && (
-          <Link href={`/w/${slug}/settings?tab=workspace`} className="mt-3 inline-block rounded-lg bg-accent px-3 py-1.5 text-xs font-medium text-paper">
+          <Link href={`/w/${slug}/settings?tab=workspace`} className="mt-3 inline-block btn btn-primary btn-sm">
             Open workspace settings
           </Link>
         )}
@@ -62,7 +62,7 @@ export function JobberTile({ slug, fieldTool, connected, manual, canManage }: { 
         <div className="font-medium text-ink">No {tool.label} numbers yet.</div>
         <p className="mt-1">Once Claude&apos;s daily update runs, today&apos;s schedule, {tool.words.requests.toLowerCase()}, {tool.words.quotes.toLowerCase()} and overdue invoices show up right here.</p>
         {canManage && (
-          <Link href={`/w/${slug}/settings?tab=integrations`} className="mt-3 inline-block rounded-lg bg-accent px-3 py-1.5 text-xs font-medium text-paper">
+          <Link href={`/w/${slug}/settings?tab=integrations`} className="mt-3 inline-block btn btn-primary btn-sm">
             Set up the daily update
           </Link>
         )}

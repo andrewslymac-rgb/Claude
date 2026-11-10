@@ -62,7 +62,7 @@ export function Sidebar(props: { workspace: Ws; workspaces: Ws[]; tree: Node[]; 
 
   return (
     <aside className="pt-safe flex h-full w-full flex-col border-r border-line bg-side text-[15px] md:text-[14px]">
-      <Link href="/" className="flex items-center gap-2 px-4 pt-4 text-accent hover:opacity-80" title="All companies">
+      <Link href="/" className="flex items-center gap-2 px-4 pb-1 pt-4 text-accent hover:opacity-80" title="All companies">
         <OrbitLogo size={22} />
         <span className="text-lg font-bold tracking-tight text-ink">orbit</span>
       </Link>
@@ -70,14 +70,14 @@ export function Sidebar(props: { workspace: Ws; workspaces: Ws[]; tree: Node[]; 
 
       <nav className="space-y-0.5 px-2 pb-2">
         <NavItem href={base} icon={<Home size={16} />} label="Home" active={pathname === base} />
-        <button onClick={() => setSearchOpen(true)} className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-ink-soft hover:bg-hover">
-          <Search size={16} /> Search
-          <kbd className="ml-auto rounded border border-line bg-card px-1 text-[10px] text-ink-faint">Ctrl K</kbd>
+        <button onClick={() => setSearchOpen(true)} className="nav-item w-full">
+          <span className="text-ink-faint"><Search size={16} /></span> Search
+          <kbd className="ml-auto hidden rounded border border-line bg-card px-1 text-[10px] text-ink-faint md:inline">⌘K</kbd>
         </button>
         <NavItem href={`${base}/tasks`} icon={<CheckSquare size={16} />} label="Tracker" active={pathname.startsWith(`${base}/tasks`)} badge={props.attention || undefined} />
-        <button onClick={() => setOverdueOpen(true)} className={`flex min-h-10 w-full items-center gap-2 rounded-md px-2 py-1.5 md:min-h-0 ${props.overdue.length ? "text-danger hover:bg-danger-soft" : "text-ink-soft hover:bg-hover"}`}>
-          <AlertTriangle size={16} /> <span className="flex-1 text-left">Past due</span>
-          {props.overdue.length > 0 && <span className="rounded-full bg-danger px-1.5 text-[11px] font-semibold text-paper">{props.overdue.length}</span>}
+        <button onClick={() => setOverdueOpen(true)} className={`nav-item w-full ${props.overdue.length ? "text-danger hover:bg-danger-soft hover:text-danger" : ""}`}>
+          <span className={props.overdue.length ? "text-danger" : "text-ink-faint"}><AlertTriangle size={16} /></span> <span className="flex-1 text-left">Past due</span>
+          {props.overdue.length > 0 && <span className="num rounded-full bg-danger px-1.5 text-[11px] font-semibold text-paper">{props.overdue.length}</span>}
         </button>
         <NavItem href={`${base}/library`} icon={<Library size={16} />} label="Document Library" active={pathname.startsWith(`${base}/library`)} />
         <NavItem href={`${base}/flags`} icon={<Flag size={16} />} label="Flags" active={pathname.startsWith(`${base}/flags`)} badge={props.openFlags || undefined} />
@@ -85,26 +85,26 @@ export function Sidebar(props: { workspace: Ws; workspaces: Ws[]; tree: Node[]; 
 
       {collections.length > 0 && (
         <>
-          <div className="flex items-center justify-between px-4 pb-1 pt-3 text-xs font-medium text-ink-faint">
+          <div className="eyebrow flex items-center justify-between px-4 pb-1 pt-4">
             <span className="flex items-center gap-1">
-              <FolderOpen size={12} /> Documents
+              <FolderOpen size={11} /> Documents
             </span>
           </div>
           <nav className="space-y-0.5 px-2">
             {collections.map((c) => (
-              <Link key={c.id} href={`${base}/docs/${c.id}`} className={`flex min-h-10 items-center gap-2 rounded-md px-2 py-1.5 md:min-h-0 ${pathname.startsWith(`${base}/docs/${c.id}`) ? "bg-hover font-medium text-ink" : "text-ink-soft hover:bg-hover"}`}>
+              <Link key={c.id} href={`${base}/docs/${c.id}`} data-active={pathname.startsWith(`${base}/docs/${c.id}`) ? "true" : "false"} className="nav-item">
                 <span className="w-5 shrink-0 text-center">{c.icon}</span>
                 <span className="flex-1 truncate">{c.label}</span>
-                <span className="text-[11px] text-ink-faint">{c.count}</span>
+                <span className="num text-[11px] text-ink-faint">{c.count}</span>
               </Link>
             ))}
           </nav>
         </>
       )}
 
-      <div className="flex items-center justify-between px-4 pb-1 pt-3 text-xs font-medium text-ink-faint">
+      <div className="eyebrow flex items-center justify-between px-4 pb-1 pt-4">
         <span className="flex items-center gap-1">
-          <BookOpen size={12} /> Pages
+          <BookOpen size={11} /> Pages
         </span>
         {canEdit && (
           <button onClick={() => newPage(null)} disabled={pending} className="rounded p-0.5 hover:bg-hover hover:text-ink" title="New page">
@@ -125,9 +125,11 @@ export function Sidebar(props: { workspace: Ws; workspaces: Ws[]; tree: Node[]; 
         <NavItem href={`${base}/ai`} icon={<Bot size={16} />} label="AI" active={pathname === `${base}/ai`} badge={props.pendingAi || undefined} />
         <NavItem href={`${base}/trash`} icon={<Trash2 size={16} />} label="Trash" active={pathname === `${base}/trash`} />
         <NavItem href={`${base}/settings`} icon={<Settings size={16} />} label="Settings" active={pathname.startsWith(`${base}/settings`)} />
-        <form action={signOutAction}>
-          <button className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-ink-soft hover:bg-hover" title={props.user.email}>
-            <LogOut size={16} /> <span className="truncate">Sign out ({props.user.name})</span>
+        <form action={signOutAction} className="mt-1 border-t border-line pt-2">
+          <button className="nav-item w-full" title={props.user.email}>
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent-soft text-[11px] font-semibold text-accent">{(props.user.name || "?")[0].toUpperCase()}</span>
+            <span className="min-w-0 flex-1 truncate text-left">{props.user.name}</span>
+            <LogOut size={14} className="text-ink-faint" />
           </button>
         </form>
       </div>
@@ -140,9 +142,9 @@ export function Sidebar(props: { workspace: Ws; workspaces: Ws[]; tree: Node[]; 
 
 function NavItem({ href, icon, label, active, badge }: { href: string; icon: React.ReactNode; label: string; active?: boolean; badge?: number }) {
   return (
-    <Link href={href} className={`flex min-h-10 items-center gap-2 rounded-md px-2 py-1.5 md:min-h-0 ${active ? "bg-hover font-medium text-ink" : "text-ink-soft hover:bg-hover"}`}>
-      {icon} {label}
-      {badge ? <span className="ml-auto rounded-full bg-warn-soft px-1.5 text-[11px] font-semibold text-warn">{badge}</span> : null}
+    <Link href={href} data-active={active ? "true" : "false"} className="nav-item">
+      <span className={active ? "text-accent" : "text-ink-faint"}>{icon}</span> {label}
+      {badge ? <span className="num ml-auto rounded-full bg-warn-soft px-1.5 text-[11px] font-semibold text-warn">{badge}</span> : null}
     </Link>
   );
 }
@@ -159,11 +161,14 @@ function WorkspaceSwitcher({ current, all, canCreate }: { current: Ws; all: Ws[]
 
   return (
     <div ref={ref} className="relative p-2">
-      <button onClick={() => setOpen((o) => !o)} className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-left hover:bg-hover">
-        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-base ring-1" style={{ background: `${current.color}40`, ["--tw-ring-color" as string]: `${current.color}99` }}>
+      <button onClick={() => setOpen((o) => !o)} className="flex w-full items-center gap-2.5 rounded-xl border border-line bg-card/60 px-2.5 py-2 text-left hover:bg-hover" style={{ boxShadow: `inset 0 0 0 1px ${current.color}22` }}>
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-base ring-1" style={{ background: `${current.color}40`, ["--tw-ring-color" as string]: `${current.color}99` }}>
           {current.icon}
         </span>
-        <span className="flex-1 truncate font-semibold">{current.name}</span>
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-sm font-semibold leading-tight">{current.name}</span>
+          <span className="block text-[11px] text-ink-faint">Switch company</span>
+        </span>
         <ChevronDown size={14} className="text-ink-faint" />
       </button>
       {open && (

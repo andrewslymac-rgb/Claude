@@ -61,7 +61,7 @@ export function CollectionBrowser({ slug, collection, rows }: { slug: string; co
         <div className="flex items-center gap-3">
           <span className="text-3xl md:text-4xl">{collection.icon}</span>
           <div>
-            <h1 className="text-xl font-semibold md:text-2xl">{collection.label}</h1>
+            <h1 className="page-title">{collection.label}</h1>
             <p className="text-sm text-ink-soft">
               {collection.kindLabel} · {total} documents
               {collection.lastSyncAt && ` · synced ${fmt(collection.lastSyncAt)}`}
@@ -70,7 +70,7 @@ export function CollectionBrowser({ slug, collection, rows }: { slug: string; co
         </div>
         <div className="flex flex-wrap gap-2">
           {collection.folderIds.map((id, i) => (
-            <a key={id} href={`https://drive.google.com/drive/folders/${id}`} target="_blank" rel="noreferrer" className="flex items-center gap-1 rounded-lg border border-line px-3 py-1.5 text-sm text-ink-soft hover:bg-hover">
+            <a key={id} href={`https://drive.google.com/drive/folders/${id}`} target="_blank" rel="noreferrer" className="flex items-center gap-1 btn btn-secondary">
               <FolderOpen size={14} /> {collection.folderIds.length > 1 ? collection.folderNames[i] : "Open in Drive"} <ExternalLink size={11} />
             </a>
           ))}
@@ -127,7 +127,7 @@ export function CollectionBrowser({ slug, collection, rows }: { slug: string; co
       {files.length > 0 && view === "grid" && (
         <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {files.map((f) => (
-            <div key={f.id} className="group flex items-start gap-3 rounded-xl border border-line bg-card p-3 hover:border-ink-faint">
+            <div key={f.id} className="group flex items-start gap-3 card p-3 hover:border-ink-faint">
               <span className="mt-0.5 text-2xl">{f.icon ?? "📄"}</span>
               <div className="min-w-0 flex-1">
                 <Link href={`/w/${slug}/p/${f.id}`} className="line-clamp-2 block text-sm font-medium hover:underline">

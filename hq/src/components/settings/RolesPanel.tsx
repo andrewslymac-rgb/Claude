@@ -23,7 +23,7 @@ export function RolesPanel({ slug, canManage, roles, members, permissionInfo }: 
       {msg && <p className={`rounded-lg px-3 py-2 ${msg.ok ? "bg-ok-soft text-ok" : "bg-danger-soft text-danger"}`}>{msg.text}</p>}
       <ul className="grid gap-2 sm:grid-cols-2">
         {roles.map((r) => (
-          <li key={r.id} className="rounded-xl border border-line p-3">
+          <li key={r.id} className="card p-3">
             <div className="flex items-start gap-2">
               <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-xl" style={{ background: `${r.color}33`, boxShadow: `inset 0 0 0 1px ${r.color}88` }}>
                 {r.emoji}
@@ -69,7 +69,7 @@ export function RolesPanel({ slug, canManage, roles, members, permissionInfo }: 
       </ul>
       {roles.length === 0 && <p className="rounded-xl border border-dashed border-line p-4 text-ink-faint">No job roles yet. Add the roles people hold in your company, then assign tasks to them.</p>}
       {canManage && (
-        <button onClick={() => setEditing("new")} className="flex items-center gap-1 rounded-lg bg-accent px-3 py-1.5 text-xs font-medium text-paper">
+        <button onClick={() => setEditing("new")} className="flex items-center gap-1 btn btn-primary btn-sm">
           <Plus size={13} /> New job role
         </button>
       )}
@@ -136,7 +136,7 @@ function RoleForm({ slug, role, permissionInfo, onClose, onDone }: { slug: strin
             ))}
           </datalist>
         </div>
-        <input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="What this role is responsible for (optional)" className="mt-2 w-full rounded-lg border border-line bg-paper px-3 py-2 text-sm" />
+        <input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="What this role is responsible for (optional)" className="mt-2 field" />
         <div className="mt-3 flex flex-wrap items-center gap-1.5">
           {BRAND_SWATCHES.map((c) => (
             <button type="button" key={c} onClick={() => setColor(c)} className={`h-6 w-6 rounded-full ${color === c ? "ring-2 ring-offset-2 ring-offset-card" : ""}`} style={{ background: c, ["--tw-ring-color" as string]: c }} aria-label={c} />
@@ -159,10 +159,10 @@ function RoleForm({ slug, role, permissionInfo, onClose, onDone }: { slug: strin
         </div>
         {err && <p className="mt-3 rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger">{err}</p>}
         <div className="mt-5 flex justify-end gap-2">
-          <button type="button" onClick={onClose} className="rounded-lg px-4 py-2 text-sm hover:bg-hover">
+          <button type="button" onClick={onClose} className="btn btn-ghost">
             Cancel
           </button>
-          <button disabled={busy || !name.trim()} className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-paper disabled:opacity-50">
+          <button disabled={busy || !name.trim()} className="btn btn-primary">
             {busy ? "Saving…" : "Save"}
           </button>
         </div>
@@ -191,10 +191,10 @@ function AssignDialog({ role, members, onClose, onSave }: { role: RoleRow; membe
           {members.length === 0 && <span className="text-sm text-ink-faint">Add people under People first.</span>}
         </div>
         <div className="mt-4 flex justify-end gap-2">
-          <button onClick={onClose} className="rounded-lg px-4 py-2 text-sm hover:bg-hover">
+          <button onClick={onClose} className="btn btn-ghost">
             Cancel
           </button>
-          <button onClick={() => onSave(ids)} className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-paper">
+          <button onClick={() => onSave(ids)} className="btn btn-primary">
             Save
           </button>
         </div>
