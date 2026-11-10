@@ -634,3 +634,33 @@ export const appSettings = pgTable("app_settings", {
   value: text("value").notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+// ---------------------------------------------------------------------------
+// Feedback: bug reports and suggestions about Orbit itself, from anyone.
+// ---------------------------------------------------------------------------
+
+export const FEEDBACK_KINDS = ["bug", "idea", "question"] as const;
+export type FeedbackKind = (typeof FEEDBACK_KINDS)[number];
+export const FEEDBACK_STATUSES = ["new", "planned", "in_progress", "done", "wont_do"] as const;
+export type FeedbackStatus = (typeof FEEDBACK_STATUSES)[number];
+
+export const feedback = pgTable(
+  "feedback",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }),
+    kind: text("kind").$type<FeedbackKind>().notNull().default("idea"),
+    body: text("body").notNull(),
+    /** Where they were when they wrote it, e.g. /w/adapt/tasks. */
+    pagePath: text("page_path"),
+    status: text("status").$type<FeedbackStatus>().notNull().default("new"),
+    /** Reply from whoever handles it. */
+    response: text("response"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("feedback_ws_idx").on(t.workspaceId, t.createdAt)],
+);

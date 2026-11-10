@@ -288,6 +288,8 @@ export function TaskForm({ slug, task, members, roles = [], pages, categories, p
   const [roleId, setRoleId] = useState<string | null>(task?.roleId ?? preset?.roleId ?? null);
   const [sopPageId, setSopPageId] = useState(task?.sopPageId ?? "");
   const [dueOn, setDueOn] = useState(task?.dueOn ?? "");
+  const [nextDue, setNextDue] = useState(task?.nextDueOn ?? "");
+  const [lastDone, setLastDone] = useState(task?.lastDoneOn && task.lastDoneOn !== "today" ? task.lastDoneOn : "");
   const [busy, start] = useTransition();
   const [error, setError] = useState("");
 
@@ -295,7 +297,14 @@ export function TaskForm({ slug, task, members, roles = [], pages, categories, p
     start(async () => {
       try {
         const input = { title, frequency, whenText: whenText || null, category: category || null, instructions, assigneeIds: assignees, roleId, sopPageId: sopPageId || null, dueOn: dueOn || null };
-        if (task) await updateTaskAction(slug, task.id, input);
+        if (task) {
+          const origLast = task.lastDoneOn && task.lastDoneOn !== "today" ? task.lastDoneOn : "";
+          await updateTaskAction(slug, task.id, {
+            ...input,
+            ...(lastDone !== origLast ? { lastDoneOn: lastDone || null } : {}),
+            ...(nextDue && nextDue !== (task.nextDueOn ?? "") ? { nextDueOn: nextDue } : {}),
+          });
+        }
         else await createTaskAction(slug, input);
         onClose();
       } catch (e) {
@@ -325,6 +334,26 @@ export function TaskForm({ slug, task, members, roles = [], pages, categories, p
               <input type="date" value={dueOn} onChange={(e) => setDueOn(e.target.value)} className="field mt-1" />
             </label>
           </div>
+          {task && (
+            <div className="grid grid-cols-1 gap-3 rounded-lg border border-line bg-side/40 p-3 sm:grid-cols-2">
+              <label className="block">
+                <span className="text-xs text-ink-faint">Next due</span>
+                <input type="date" value={nextDue} onChange={(e) => setNextDue(e.target.value)} className="field mt-1" />
+              </label>
+              <label className="block">
+                <span className="text-xs text-ink-faint">Last done</span>
+                <div className="mt-1 flex gap-1.5">
+                  <input type="date" value={lastDone} max={new Date().toLocaleDateString("en-CA", { timeZone: "America/Los_Angeles" })} onChange={(e) => setLastDone(e.target.value)} className="field" />
+                  {lastDone && (
+                    <button type="button" onClick={() => setLastDone("")} className="btn btn-ghost btn-sm" title="Never done">
+                      clear
+                    </button>
+                  )}
+                </div>
+              </label>
+              <p className="text-[11px] text-ink-faint sm:col-span-2">Changing Last done moves the most recent completion to that date, and Next due follows the schedule from there. Set Next due yourself to override it.</p>
+            </div>
+          )}
           {frequency !== "once" && <input value={whenText} onChange={(e) => setWhenText(e.target.value)} placeholder='When, in words (e.g. "First Monday of the month")' className="field" />}
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <label className="block">
