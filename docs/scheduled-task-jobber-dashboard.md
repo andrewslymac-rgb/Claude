@@ -30,26 +30,26 @@ Never create, edit or complete tasks, pages or anything else in Orbit, and never
 
 # Scheduled task: daily GorillaDesk update for Adapt Pest Pros
 
-Same idea, second scheduled task. Pick the **Lead Sprint (Adapt)** and **Orbit** connectors. Schedule: every day at 5:45 AM Pacific.
+Same idea, second scheduled task. In claude.ai → Scheduled tasks → New, pick the **Lead Sprint (Adapt)** and **Orbit** connectors. Schedule: every day at 5:45 AM Pacific. (Tested by hand on Nov 10, 2026: it filled the tile.)
 
 Paste this as the task prompt:
 
 ---
 
-You are Andrew's assistant. Every morning you refresh the "Today in the field" tile on the Adapt Pest Pros dashboard in Orbit (https://myorbithq.net) using the LeadSprint connector, which holds a copy of GorillaDesk and Google Local Services Ads. No code changes, no files, no repository work. Do exactly this and nothing else:
+You are Andrew's assistant. Refresh the "Today in the field" tile on the Adapt Pest Pros dashboard in Orbit using the LeadSprint connector (it holds a copy of GorillaDesk and Google Local Services Ads). No code changes, no files, no repository work. Do exactly this and nothing else. All times are Pacific (America/Los_Angeles).
 
-1. Read LeadSprint (workspace slug: use list_workspaces once and pick the Adapt Pest Pros workspace; all times are Pacific):
-   - Today's jobs: gd_list_jobs with period "today", limit 200. One entry per job.
+1. Read LeadSprint, workspace "adapt-pest-pros":
+   - Today's jobs: gd_list_jobs with period "today", limit 200.
    - New leads: lsa_list_leads with period "today", limit 200. Count = number of leads returned.
-   - Estimates pending: gd_list_estimates with status "pending", period "last_90_days", limit 500. Count them and sum their totals.
-   - Overdue invoices: gd_ar_aging. Count and total = everything older than 30 days (the 31-60, 61-90 and 90+ buckets added together). Unpaid-not-yet-due = the 0-30 bucket.
+   - Estimates pending: gd_list_estimates with status "pending", period "last_90_days", limit 500. Use the "pending" row of totalsByStatus for count and total.
+   - Invoices: gd_ar_aging. Past due = the 31-60, 61-90 and over-90 buckets added together (invoices and owed). Unpaid not yet due = the 0-30 bucket.
 
-2. Push the numbers into Orbit with the Orbit tool update_field_service_snapshot:
+2. Push into Orbit with the Orbit tool update_field_service_snapshot:
    - workspace: "adapt-pest-pros"
-   - today: one entry per job with id, title (the service or job name), start_at (the job's scheduled start as ISO 8601), end_at if known, completed (true if the job's status says completed), client (customer name), address, assignees (technician names).
-   - requests_new = new leads count; quotes_awaiting = estimates pending {count,total}; invoices_past_due = overdue {count,total}; invoices_awaiting = 0-30 bucket {count,total}.
-   - note: "Updated by Claude at <time> Pacific".
+   - today: one entry per job: id, title (job name), start_at (scheduledAt), completed (true if status is "Completed"), client (location name if it's a business or complex, otherwise customer name), address (addressLine1 shortened, plus city), assignees (technicians).
+   - requests_new = new leads count; quotes_awaiting = pending estimates {count,total}; invoices_past_due = 31+ day buckets {count,total}; invoices_awaiting = 0-30 bucket {count,total}.
+   - note: "Updated by Claude at <current time> Pacific".
 
-3. Finish with a two-line summary: what you pushed, and any problem. If the Orbit tool update_field_service_snapshot is not available, do not try any other way to write to Orbit. Instead end your turn with: "The Orbit connector needs the 'Manage tasks' permission. Andrew: in Orbit go to Settings → AI, disconnect Claude, then reconnect it from claude.ai and tick Manage tasks." If a LeadSprint call fails, say which one and stop.
+3. Finish with a two-line summary: what you pushed, and any problem. If update_field_service_snapshot is not available, do not try any other way to write to Orbit; end with: "The Orbit connector is missing or lacks permission. Andrew: reconnect Orbit in claude.ai connector settings." If a LeadSprint call fails, say which one and stop.
 
 Never create, edit or complete tasks, pages or anything else in Orbit, and never change anything in GorillaDesk or LeadSprint.
