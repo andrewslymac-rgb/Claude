@@ -278,7 +278,7 @@ export function TaskDrawer({ slug, task, members, roles = [], pages, categories,
 
 export const Chip = ({ children }: { children: React.ReactNode }) => <span className="rounded bg-hover px-2 py-0.5 text-ink-soft">{children}</span>;
 
-export function TaskForm({ slug, task, members, roles = [], pages, categories, preset, onClose }: { slug: string; task?: TaskRow; members: Member[]; roles?: JobRole[]; pages: PageOpt[]; categories: readonly string[]; preset?: { frequency?: Frequency; assigneeIds?: string[]; roleId?: string | null }; onClose: () => void }) {
+export function TaskForm({ slug, task, members, roles = [], pages, categories, preset, onClose, onCreated }: { slug: string; task?: TaskRow; members: Member[]; roles?: JobRole[]; pages: PageOpt[]; categories: readonly string[]; preset?: { frequency?: Frequency; assigneeIds?: string[]; roleId?: string | null }; onClose: () => void; onCreated?: (title: string) => void }) {
   const [title, setTitle] = useState(task?.title ?? "");
   const [frequency, setFrequency] = useState<Frequency>(task?.frequency ?? preset?.frequency ?? "weekly");
   const [whenText, setWhenText] = useState(task?.whenText ?? "");
@@ -305,7 +305,10 @@ export function TaskForm({ slug, task, members, roles = [], pages, categories, p
             ...(nextDue && nextDue !== (task.nextDueOn ?? "") ? { nextDueOn: nextDue } : {}),
           });
         }
-        else await createTaskAction(slug, input);
+        else {
+          await createTaskAction(slug, input);
+          onCreated?.(title);
+        }
         onClose();
       } catch (e) {
         setError((e as Error).message || "Couldn't save");
@@ -318,22 +321,20 @@ export function TaskForm({ slug, task, members, roles = [], pages, categories, p
         <h2 className="text-lg font-semibold">{task ? "Edit task" : "New task"}</h2>
         <div className="mt-4 space-y-3 text-sm">
           <input autoFocus value={title} onChange={(e) => setTitle(e.target.value)} placeholder="What needs doing?" className="field" />
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <label className="block">
-              <span className="text-xs text-ink-faint">Repeats</span>
-              <select value={frequency} onChange={(e) => setFrequency(e.target.value as Frequency)} className="field mt-1">
-                {(Object.keys(FREQUENCY_LABELS) as Frequency[]).map((f) => (
-                  <option key={f} value={f}>
-                    {FREQUENCY_LABELS[f]}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="block">
-              <span className="text-xs text-ink-faint">{frequency === "once" ? "Due date" : "First due (optional)"}</span>
-              <input type="date" value={dueOn} onChange={(e) => setDueOn(e.target.value)} className="field mt-1" />
-            </label>
+          <div>
+            <span className="text-xs text-ink-faint">How often</span>
+            <div className="mt-1 grid grid-cols-3 gap-1.5 sm:grid-cols-6">
+              {(Object.keys(FREQUENCY_LABELS) as Frequency[]).map((f) => (
+                <button key={f} type="button" onClick={() => setFrequency(f)} className={`rounded-lg border px-2 py-1.5 text-xs font-medium ${frequency === f ? "border-accent bg-accent-soft text-accent" : "border-line text-ink-soft hover:bg-hover"}`}>
+                  {FREQUENCY_LABELS[f]}
+                </button>
+              ))}
+            </div>
           </div>
+          <label className="block">
+            <span className="text-xs text-ink-faint">{frequency === "once" ? "Due date" : "First due (optional)"}</span>
+            <input type="date" value={dueOn} onChange={(e) => setDueOn(e.target.value)} className="field mt-1" />
+          </label>
           {task && (
             <div className="grid grid-cols-1 gap-3 rounded-lg border border-line bg-side/40 p-3 sm:grid-cols-2">
               <label className="block">
@@ -384,7 +385,7 @@ export function TaskForm({ slug, task, members, roles = [], pages, categories, p
                 const on = assignees.includes(m.id);
                 return (
                   <button key={m.id} type="button" onClick={() => setAssignees(on ? assignees.filter((x) => x !== m.id) : [...assignees, m.id])} className={`rounded-full border px-3 py-1 ${on ? "border-accent bg-accent-soft text-accent" : "border-line text-ink-soft hover:bg-hover"}`}>
-                    {m.name}
+                    {on && "✓ "}{m.name}
                   </button>
                 );
               })}
@@ -396,8 +397,8 @@ export function TaskForm({ slug, task, members, roles = [], pages, categories, p
                   {roles.map((r) => {
                     const on = roleId === r.id;
                     return (
-                      <button key={r.id} type="button" onClick={() => setRoleId(on ? null : r.id)} className={`rounded-full border px-3 py-1 ${on ? "border-accent bg-accent-soft text-accent" : "border-line text-ink-soft hover:bg-hover"}`} style={on ? { borderColor: r.color, color: r.color, background: `${r.color}22` } : undefined}>
-                        {r.emoji} {r.name}
+                      <button key={r.id} type="button" onClick={() => setRoleId(on ? null : r.id)} className={`rounded-full border px-3 py-1 ${on ? "border-accent bg-accent-soft font-medium text-ink" : "border-line text-ink-soft hover:bg-hover"}`} style={on ? { borderColor: r.color, background: `${r.color}44` } : undefined}>
+                        {on ? "✓" : r.emoji} {r.name}
                       </button>
                     );
                   })}
@@ -417,7 +418,7 @@ export function TaskForm({ slug, task, members, roles = [], pages, categories, p
             Cancel
           </button>
           <button onClick={submit} disabled={busy || !title.trim()} className="btn btn-primary">
-            {busy ? "Saving…" : "Save"}
+            {busy ? "Saving…" : task ? "Save" : "Add task"}
           </button>
         </div>
       </div>

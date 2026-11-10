@@ -19,6 +19,8 @@ import * as aiAuth from "@/lib/services/ai-auth";
 import * as proposals from "@/lib/services/ai-proposals";
 import * as driveSync from "@/lib/drive/sync";
 import { COLLECTION_KINDS, FEEDBACK_KINDS, FEEDBACK_STATUSES, FIELD_TOOLS, ROLE_PERMISSIONS, type FieldTool } from "@/db/schema";
+import { db, schema } from "@/db";
+import { eq } from "drizzle-orm";
 import * as feedbackSvc from "@/lib/services/feedback";
 import * as rolesSvc from "@/lib/services/roles";
 
@@ -258,6 +260,19 @@ const taskInput = z.object({
   assigneeIds: z.array(uuid).max(20).optional(),
 });
 
+/** What the New task form needs, loaded on demand so the button can live anywhere. */
+export async function taskFormOptionsAction(slug: string) {
+  const { workspace } = await requireAbility(slug, "manage_tasks");
+  const [{ listMembers }, { listRoles }, { TASK_CATEGORIES }] = await Promise.all([import("@/lib/services/members"), import("@/lib/services/roles"), import("@/db/schema")]);
+  const [{ members }, tree, roles] = await Promise.all([listMembers(workspace.id), pages.listTree(workspace.id), listRoles(workspace.id)]);
+  return {
+    members: members.map((m) => ({ id: m.userId, name: m.name ?? m.email })),
+    roles: roles.map((r) => ({ id: r.id, name: r.name, emoji: r.emoji, color: r.color })),
+    pages: tree.map((p) => ({ id: p.id, title: p.title || "Untitled", icon: p.icon })),
+    categories: [...TASK_CATEGORIES],
+  };
+}
+
 export async function createTaskAction(slug: string, input: z.infer<typeof taskInput>) {
   const { user, workspace } = await requireAbility(slug, "manage_tasks");
   const t = await taskSvc.createTask(workspace.id, taskInput.parse(input), user.id);
@@ -359,11 +374,43 @@ export async function markReviewedAction(slug: string, pageId: string) {
   return todayISO();
 }
 
-export async function logChangeAction(slug: string, pageId: string, entry: { note: string; why?: string; teamTold?: boolean; docVersion?: string | null }) {
+export async function logChangeAction(
+  slug: string,
+  pageId: string,
+  entry: { note: string; why?: string; teamTold?: boolean; docVersion?: string | null; writeToDrive?: boolean },
+): Promise<{ drive: "written" | "skipped" | { error: string } }> {
   const { user, workspace } = await requireAbility(slug, "edit");
-  const parsed = z.object({ note: z.string().trim().min(1).max(500), why: z.string().max(1000).optional(), teamTold: z.boolean().optional(), docVersion: z.string().max(40).nullable().optional() }).parse(entry);
-  await pages.logChange(workspace.id, uuid.parse(pageId), parsed, userActor(user.id));
+  const { writeToDrive, ...parsed } = z
+    .object({ note: z.string().trim().min(1).max(500), why: z.string().max(1000).optional(), teamTold: z.boolean().optional(), docVersion: z.string().max(40).nullable().optional(), writeToDrive: z.boolean().optional() })
+    .parse(entry);
+  const id = uuid.parse(pageId);
+  await pages.logChange(workspace.id, id, parsed, userActor(user.id));
+  let drive: "written" | "skipped" | { error: string } = "skipped";
+  const page = await pages.getPage(workspace.id, id);
+  if (writeToDrive && page?.source === "gdrive" && page.driveFileId) {
+    try {
+      const { getFile, GDOC, appendChangeLogToDoc } = await import("@/lib/drive/client");
+      const f = await getFile(page.driveFileId);
+      if (f.mimeType !== GDOC) {
+        drive = { error: "This is a Word file in Drive, which Orbit can't edit. Convert it to a Google Doc (File → Save as Google Docs) to get change-log write-back." };
+      } else {
+        const [me] = await db.select({ name: schema.users.name, email: schema.users.email }).from(schema.users).where(eq(schema.users.id, user.id));
+        const date = new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "America/Los_Angeles" });
+        const who = me?.name || me?.email?.split("@")[0] || "Orbit";
+        const line = `${date}${parsed.docVersion ? ` · ${parsed.docVersion}` : ""} · ${who} — ${parsed.note}${parsed.why ? ` Why: ${parsed.why}` : ""}${parsed.teamTold ? " (Team told)" : ""}`.replace(/\s+/g, " ");
+        const r = await appendChangeLogToDoc(page.driveFileId, line);
+        if (r.ok) {
+          drive = "written";
+          const { resyncPage } = await import("@/lib/drive/sync");
+          await resyncPage(workspace.id, id).catch(() => {});
+        } else drive = { error: r.reason };
+      }
+    } catch (e) {
+      drive = { error: (e as Error).message.slice(0, 200) };
+    }
+  }
   revalidatePath(`/w/${slug}`, "layout");
+  return { drive };
 }
 
 export async function setTeamToldAction(slug: string, pageId: string, versionId: string, teamTold: boolean) {

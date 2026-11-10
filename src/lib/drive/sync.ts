@@ -304,3 +304,14 @@ export async function syncAll() {
     }
   }
 }
+
+/** Re-imports one Drive-synced page right away (e.g. after Orbit wrote to the Doc). */
+export async function resyncPage(workspaceId: string, pageId: string) {
+  const [p] = await db.select().from(pages).where(and(eq(pages.workspaceId, workspaceId), eq(pages.id, pageId)));
+  if (!p?.driveFileId) return;
+  const f = await drive.getFile(p.driveFileId);
+  const c = await fileToBlocks(f);
+  if (!c) return;
+  await pagesSvc.updatePage(workspaceId, p.id, { content: c.blocks, contentText: c.text }, SYNC_ACTOR, "Updated from Google Drive");
+  await db.update(pages).set({ driveModifiedAt: new Date(f.modifiedTime) }).where(eq(pages.id, p.id));
+}

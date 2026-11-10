@@ -45,6 +45,7 @@ export default async function PageRoute({ params }: { params: Promise<{ slug: st
       crumbs={crumbs}
       subpages={children}
       canEdit={can(abilities, "edit") && page.source === "local" && !page.archivedAt}
+      canLog={can(abilities, "edit") && !page.archivedAt}
       docInfo={{
         docType: page.docType,
         area: page.area,

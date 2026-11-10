@@ -121,3 +121,62 @@ export async function download(id: string): Promise<Buffer> {
   const res = (await get(`/files/${id}`, { alt: "media" }, true)) as Response;
   return Buffer.from(await res.arrayBuffer());
 }
+
+// --- Writing back to Google Docs ---------------------------------------------
+// Only used to append change-log entries. Needs the Google Docs API turned on in
+// the service account's Cloud project, and Editor access on the document.
+
+let docsJwt: JWT | null = null;
+let docsJwtEmail = "";
+async function docsToken() {
+  const sa = await serviceAccount();
+  if (!sa) throw new Error("Google Drive isn't set up: no service account key.");
+  if (!docsJwt || docsJwtEmail !== sa.client_email) {
+    docsJwt = new JWT({ email: sa.client_email, key: sa.private_key, scopes: ["https://www.googleapis.com/auth/documents"] });
+    docsJwtEmail = sa.client_email;
+  }
+  const t = await docsJwt.getAccessToken();
+  if (!t.token) throw new Error("Couldn't get a Google access token");
+  return t.token;
+}
+
+/** Turns a Docs API failure into something an owner can act on. */
+function docsError(status: number, body: string, email: string) {
+  if (/has not been used|is disabled|SERVICE_DISABLED/i.test(body)) return "The Google Docs API is turned off for Orbit's Google Cloud project. Turn on \"Google Docs API\" in Google Cloud, then try again.";
+  if (status === 403 || status === 401) return `Orbit can read this document but can't edit it. In Google Drive, share the document (or its folder) with ${email} as Editor.`;
+  if (status === 404) return "Google couldn't find this document. It may have been moved or deleted.";
+  return `Google Docs said ${status}: ${body.slice(0, 160)}`;
+}
+
+type DocsParagraph = { paragraph?: { paragraphStyle?: { namedStyleType?: string }; elements?: { textRun?: { content?: string } }[] }; endIndex?: number };
+
+/**
+ * Appends one line under a "Change log" heading at the end of a Google Doc,
+ * adding the heading the first time.
+ */
+export async function appendChangeLogToDoc(docId: string, line: string): Promise<{ ok: true } | { ok: false; reason: string }> {
+  const sa = await serviceAccount();
+  if (!sa) return { ok: false, reason: "Google Drive isn't connected." };
+  const headers = { Authorization: `Bearer ${await docsToken()}`, "Content-Type": "application/json" };
+  const base = `https://docs.googleapis.com/v1/documents/${docId}`;
+  const res = await fetch(base, { headers });
+  if (!res.ok) return { ok: false, reason: docsError(res.status, await res.text(), sa.client_email) };
+  const doc = (await res.json()) as { body?: { content?: DocsParagraph[] } };
+  const content = doc.body?.content ?? [];
+  const textOf = (p: DocsParagraph) => (p.paragraph?.elements ?? []).map((e) => e.textRun?.content ?? "").join("").trim();
+  const hasHeading = content.some((p) => p.paragraph?.paragraphStyle?.namedStyleType?.startsWith("HEADING") && /^change log$/i.test(textOf(p)));
+  const end = Math.max(1, (content.at(-1)?.endIndex ?? 2) - 1);
+
+  const heading = "Change log";
+  const text = (hasHeading ? "" : `\n${heading}`) + `\n${line}`;
+  const entryStart = end + (hasHeading ? 1 : heading.length + 2);
+  const requests: unknown[] = [{ insertText: { location: { index: end }, text } }];
+  if (!hasHeading) requests.push({ updateParagraphStyle: { range: { startIndex: end + 1, endIndex: end + 1 + heading.length }, paragraphStyle: { namedStyleType: "HEADING_2" }, fields: "namedStyleType" } });
+  requests.push({ updateParagraphStyle: { range: { startIndex: entryStart, endIndex: entryStart + line.length }, paragraphStyle: { namedStyleType: "NORMAL_TEXT" }, fields: "namedStyleType" } });
+  const dateLen = line.indexOf(" — ");
+  if (dateLen > 0) requests.push({ updateTextStyle: { range: { startIndex: entryStart, endIndex: entryStart + dateLen }, textStyle: { bold: true }, fields: "bold" } });
+
+  const up = await fetch(`${base}:batchUpdate`, { method: "POST", headers, body: JSON.stringify({ requests }) });
+  if (!up.ok) return { ok: false, reason: docsError(up.status, await up.text(), sa.client_email) };
+  return { ok: true };
+}

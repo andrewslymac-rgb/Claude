@@ -2,6 +2,7 @@ import { requireWorkspacePage, listWorkspacesForUser } from "@/lib/access";
 import { listTree } from "@/lib/services/pages";
 import { can } from "@/lib/permissions";
 import { Sidebar } from "@/components/Sidebar";
+import { NewTaskButton } from "@/components/tasks/NewTaskButton";
 import { MobileShell } from "@/components/MobileShell";
 import { listTasks } from "@/lib/services/tasks";
 import { listFlags } from "@/lib/services/flags";
@@ -36,9 +37,11 @@ export default async function WorkspaceLayout({ children, params }: { children: 
         openFlags={openFlags}
         newFeedback={can(abilities, "manage_members") ? fb.filter((f) => f.status === "new").length : 0}
         pendingAi={pendingAi}
+        canManageTasks={can(abilities, "manage_tasks")}
       />
       }>
         {children}
+        {can(abilities, "manage_tasks") && <NewTaskButton slug={workspace.slug} variant="fab" />}
       </MobileShell>
     </div>
   );

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { ChevronDown, ChevronRight, Home, LogOut, MoreHorizontal, Plus, Search, Settings, Trash2, CheckSquare, BookOpen, Library, Flag, Bot, FolderOpen, AlertTriangle, MessageSquareHeart } from "lucide-react";
+import { NewTaskButton } from "@/components/tasks/NewTaskButton";
 import { OverduePanel, type OverdueItem } from "./tasks/OverduePanel";
 import { archivePageAction, createPageAction, movePageAction, signOutAction } from "@/app/actions";
 import { SearchPalette } from "./SearchPalette";
@@ -14,7 +15,7 @@ type Ws = { slug: string; name: string; icon: string; color: string };
 type Node = { id: string; parentId: string | null; title: string; icon: string | null; position: number; isSop: boolean; source: string };
 export type CollectionNav = { id: string; label: string; icon: string; count: number; rootPageId: string | null };
 
-export function Sidebar(props: { workspace: Ws; workspaces: Ws[]; tree: Node[]; collections: CollectionNav[]; user: { name: string; email: string; isAppAdmin: boolean }; canEdit: boolean; canManage: boolean; attention?: number; overdue: OverdueItem[]; me: string; openFlags?: number; pendingAi?: number; newFeedback?: number }) {
+export function Sidebar(props: { workspace: Ws; workspaces: Ws[]; tree: Node[]; collections: CollectionNav[]; user: { name: string; email: string; isAppAdmin: boolean }; canEdit: boolean; canManage: boolean; attention?: number; overdue: OverdueItem[]; me: string; openFlags?: number; pendingAi?: number; newFeedback?: number; canManageTasks?: boolean }) {
   const { workspace, canEdit, collections } = props;
   const [overdueOpen, setOverdueOpen] = useState(false);
   useEffect(() => {
@@ -67,6 +68,11 @@ export function Sidebar(props: { workspace: Ws; workspaces: Ws[]; tree: Node[]; 
         <span className="text-lg font-bold tracking-tight text-ink">orbit</span>
       </Link>
       <WorkspaceSwitcher current={workspace} all={props.workspaces} canCreate={props.user.isAppAdmin} />
+      {props.canManageTasks && (
+        <div className="px-3 pb-2">
+          <NewTaskButton slug={workspace.slug} variant="sidebar" />
+        </div>
+      )}
 
       <nav className="space-y-0.5 px-2 pb-2">
         <NavItem href={base} icon={<Home size={16} />} label="Home" active={pathname === base} />
