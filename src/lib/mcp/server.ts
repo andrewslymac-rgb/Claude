@@ -17,6 +17,7 @@ import type { Frequency } from "@/db/schema";
 import { storeSnapshot } from "@/lib/integrations/jobber";
 import { workspaceForUser, workspaceForUserBySlug, workspacesForUserId } from "@/lib/services/workspaces";
 import * as driveSync from "@/lib/drive/sync";
+import * as feedbackSvc from "@/lib/services/feedback";
 
 const MAX_WRITE_CHARS = 60_000;
 
@@ -44,7 +45,7 @@ export function buildServer(p: AiPrincipal) {
   const can = (s: string) => (p.scopes as string[]).includes(s);
   const link = (id: string) => `${process.env.APP_URL ?? ""}/w/${wsSlug}/p/${id}`;
 
-  const WRITE_TOOLS = new Set(["create_page", "update_page", "append_to_page", "create_task", "update_task", "complete_task", "undo_complete_task", "skip_task", "remove_task", "add_task_note", "set_follow_up", "create_flag", "update_flag", "sync_document_area"]);
+  const WRITE_TOOLS = new Set(["update_feedback", "create_page", "update_page", "append_to_page", "create_task", "update_task", "complete_task", "undo_complete_task", "skip_task", "remove_task", "add_task_note", "set_follow_up", "create_flag", "update_flag", "sync_document_area"]);
   const SELF_ROUTED = new Set(["update_field_service_snapshot", "list_companies"]);
   const workspaceArg = z.string().max(120).optional().describe("Company slug or name (see list_companies). Omit for the company this connection was made from.");
   const register = server.registerTool.bind(server);
@@ -72,6 +73,20 @@ export function buildServer(p: AiPrincipal) {
     const list = await workspacesForUserId(p.userId);
     return text(list.map((w) => `- ${w.icon} ${w.name} (workspace: "${w.slug}")${w.id === p.workspaceId ? " · this connection's default" : ""}`).join("\n") || "No companies.");
   });
+
+  // ------------------------------------------------------------------ feedback
+  server.registerTool("list_feedback", { title: "List feedback", description: "Bug reports, upgrade ideas and questions people have sent about Orbit, newest first, with status and any response.", inputSchema: { status: z.enum(["open", "all", "new", "planned", "in_progress", "done", "wont_do"]).optional() } }, async ({ status }) => {
+    const rows = (await feedbackSvc.listFeedback(ws)).filter((f) => !status || status === "all" || (status === "open" ? ["new", "planned", "in_progress"].includes(f.status) : f.status === status));
+    if (!rows.length) return text("No feedback here.");
+    return text(rows.map((f) => `- [${f.kind}] [${f.status}] ${f.body.replace(/\s+/g, " ").slice(0, 400)} (id: ${f.id}) · ${f.by ?? f.byEmail ?? "someone"} · ${fmtDate(f.createdAt.toISOString().slice(0, 10))}${f.pagePath ? ` · from ${f.pagePath}` : ""}${f.response ? `\n  Response: ${f.response}` : ""}`).join("\n"));
+  });
+  if (can("write:tasks")) {
+    server.registerTool("update_feedback", { title: "Update feedback", description: "Sets a feedback entry's status (new, planned, in_progress, done, wont_do) and/or a response the sender sees.", inputSchema: { feedback_id: z.string().uuid(), status: z.enum(["new", "planned", "in_progress", "done", "wont_do"]).optional(), response: z.string().max(2000).optional() } }, async ({ feedback_id, status, response }) => {
+      await feedbackSvc.updateFeedback(ws, feedback_id as string, { status: status as never, response: response as string | undefined });
+      await logActivity({ workspaceId: ws, grantId: p.grantId, tool: "update_feedback", summary: `Updated feedback ${feedback_id}${status ? ` → ${status}` : ""}` });
+      return text("Feedback updated.");
+    });
+  }
 
   // ------------------------------------------------------------------ document areas (Google Drive)
   server.registerTool("list_document_areas", { title: "List document areas", description: "Google Drive document areas for a company (SOPs, Legal, Licensing…): which Drive folders each mirrors, how many documents, and when it last synced.", inputSchema: {} }, async () => {

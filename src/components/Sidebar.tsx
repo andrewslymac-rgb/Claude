@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
-import { ChevronDown, ChevronRight, Home, LogOut, MoreHorizontal, Plus, Search, Settings, Trash2, CheckSquare, BookOpen, Library, Flag, Bot, FolderOpen, AlertTriangle } from "lucide-react";
+import { ChevronDown, ChevronRight, Home, LogOut, MoreHorizontal, Plus, Search, Settings, Trash2, CheckSquare, BookOpen, Library, Flag, Bot, FolderOpen, AlertTriangle, MessageSquareHeart } from "lucide-react";
 import { OverduePanel, type OverdueItem } from "./tasks/OverduePanel";
 import { archivePageAction, createPageAction, movePageAction, signOutAction } from "@/app/actions";
 import { SearchPalette } from "./SearchPalette";
@@ -14,7 +14,7 @@ type Ws = { slug: string; name: string; icon: string; color: string };
 type Node = { id: string; parentId: string | null; title: string; icon: string | null; position: number; isSop: boolean; source: string };
 export type CollectionNav = { id: string; label: string; icon: string; count: number; rootPageId: string | null };
 
-export function Sidebar(props: { workspace: Ws; workspaces: Ws[]; tree: Node[]; collections: CollectionNav[]; user: { name: string; email: string; isAppAdmin: boolean }; canEdit: boolean; canManage: boolean; attention?: number; overdue: OverdueItem[]; me: string; openFlags?: number; pendingAi?: number }) {
+export function Sidebar(props: { workspace: Ws; workspaces: Ws[]; tree: Node[]; collections: CollectionNav[]; user: { name: string; email: string; isAppAdmin: boolean }; canEdit: boolean; canManage: boolean; attention?: number; overdue: OverdueItem[]; me: string; openFlags?: number; pendingAi?: number; newFeedback?: number }) {
   const { workspace, canEdit, collections } = props;
   const [overdueOpen, setOverdueOpen] = useState(false);
   useEffect(() => {
@@ -125,6 +125,7 @@ export function Sidebar(props: { workspace: Ws; workspaces: Ws[]; tree: Node[]; 
         <NavItem href={`${base}/ai`} icon={<Bot size={16} />} label="AI" active={pathname === `${base}/ai`} badge={props.pendingAi || undefined} />
         <NavItem href={`${base}/trash`} icon={<Trash2 size={16} />} label="Trash" active={pathname === `${base}/trash`} />
         <NavItem href={`${base}/settings`} icon={<Settings size={16} />} label="Settings" active={pathname.startsWith(`${base}/settings`)} />
+        <NavItem href={`${base}/feedback${pathname.startsWith(`${base}/feedback`) ? "" : `?from=${encodeURIComponent(pathname)}`}`} icon={<MessageSquareHeart size={16} />} label="Feedback & bugs" active={pathname.startsWith(`${base}/feedback`)} badge={props.newFeedback || undefined} />
         <form action={signOutAction} className="mt-1 border-t border-line pt-2">
           <button className="nav-item w-full" title={props.user.email}>
             <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent-soft text-[11px] font-semibold text-accent">{(props.user.name || "?")[0].toUpperCase()}</span>

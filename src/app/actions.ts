@@ -18,7 +18,8 @@ import { todayISO } from "@/lib/recurrence";
 import * as aiAuth from "@/lib/services/ai-auth";
 import * as proposals from "@/lib/services/ai-proposals";
 import * as driveSync from "@/lib/drive/sync";
-import { COLLECTION_KINDS, FIELD_TOOLS, ROLE_PERMISSIONS, type FieldTool } from "@/db/schema";
+import { COLLECTION_KINDS, FEEDBACK_KINDS, FEEDBACK_STATUSES, FIELD_TOOLS, ROLE_PERMISSIONS, type FieldTool } from "@/db/schema";
+import * as feedbackSvc from "@/lib/services/feedback";
 import * as rolesSvc from "@/lib/services/roles";
 
 const userActor = (userId: string): Actor => ({ type: "user", userId });
@@ -264,9 +265,14 @@ export async function createTaskAction(slug: string, input: z.infer<typeof taskI
   return t.id;
 }
 
-export async function updateTaskAction(slug: string, id: string, input: Partial<z.infer<typeof taskInput>>) {
-  const { workspace } = await requireAbility(slug, "manage_tasks");
-  await taskSvc.updateTask(workspace.id, uuid.parse(id), taskInput.partial().parse(input));
+export async function updateTaskAction(slug: string, id: string, input: Partial<z.infer<typeof taskInput>> & { lastDoneOn?: string | null; nextDueOn?: string | null }) {
+  const { user, workspace } = await requireAbility(slug, "manage_tasks");
+  const taskId = uuid.parse(id);
+  const { lastDoneOn, nextDueOn, ...rest } = input;
+  await taskSvc.updateTask(workspace.id, taskId, taskInput.partial().parse(rest));
+  // Order matters: correcting last-done recomputes the next due date; an explicit next-due then wins.
+  if (lastDoneOn !== undefined) await taskSvc.correctLastDone(workspace.id, taskId, user.id, lastDoneOn ? isoDate.parse(lastDoneOn) : null);
+  if (nextDueOn) await taskSvc.moveDue(workspace.id, taskId, isoDate.parse(nextDueOn));
   revalidatePath(`/w/${slug}`, "layout");
 }
 
@@ -617,5 +623,35 @@ export async function saveDriveKeyAction(json: string): Promise<Result> {
     await setSetting(DRIVE_KEY_SETTING, json.trim());
     revalidatePath("/", "layout");
     return `Key saved. Orbit will read Drive as ${status.email}.`;
+  });
+}
+
+// ---------------------------------------------------------------- feedback
+
+/** Anyone who can open the company can report a problem or suggest something. */
+export async function createFeedbackAction(slug: string, input: { kind: string; body: string; pagePath?: string | null }): Promise<Result> {
+  return wrap(async () => {
+    const { user, workspace } = await requireAbility(slug, "read");
+    await feedbackSvc.createFeedback(workspace.id, user.id, { kind: z.enum(FEEDBACK_KINDS).parse(input.kind), body: z.string().min(1).max(5000).parse(input.body), pagePath: input.pagePath ? z.string().max(300).parse(input.pagePath) : null });
+    revalidatePath(`/w/${slug}`, "layout");
+    return "Thanks. It's on the list.";
+  });
+}
+
+export async function updateFeedbackAction(slug: string, id: string, patch: { status?: string; response?: string | null }): Promise<Result> {
+  return wrap(async () => {
+    const { workspace } = await requireAbility(slug, "manage_members");
+    await feedbackSvc.updateFeedback(workspace.id, uuid.parse(id), { status: patch.status ? z.enum(FEEDBACK_STATUSES).parse(patch.status) : undefined, response: patch.response === undefined ? undefined : patch.response ? z.string().max(2000).parse(patch.response) : null });
+    revalidatePath(`/w/${slug}`, "layout");
+    return "Saved.";
+  });
+}
+
+export async function deleteFeedbackAction(slug: string, id: string): Promise<Result> {
+  return wrap(async () => {
+    const { workspace } = await requireAbility(slug, "manage_members");
+    await feedbackSvc.deleteFeedback(workspace.id, uuid.parse(id));
+    revalidatePath(`/w/${slug}`, "layout");
+    return "Deleted.";
   });
 }

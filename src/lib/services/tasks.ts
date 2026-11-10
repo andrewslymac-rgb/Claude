@@ -183,6 +183,30 @@ export async function completeTask(workspaceId: string, id: string, userId: stri
   await recompute(t.id);
 }
 
+/**
+ * Correct the "last done" date. Moves the most recent completion to the new date
+ * (keeping who did it and the note), or records one if there was none. null removes
+ * the most recent completion. Completions after the new date are dropped so the
+ * history stays consistent.
+ */
+export async function correctLastDone(workspaceId: string, id: string, userId: string, doneOn: string | null) {
+  const [t] = await db.select().from(tasks).where(and(eq(tasks.workspaceId, workspaceId), eq(tasks.id, id)));
+  if (!t) throw new Error("Task not found");
+  const [latest] = await db.select().from(taskCompletions).where(eq(taskCompletions.taskId, id)).orderBy(desc(taskCompletions.doneOn), desc(taskCompletions.createdAt)).limit(1);
+  if (doneOn === null) {
+    if (latest) await db.delete(taskCompletions).where(eq(taskCompletions.id, latest.id));
+  } else {
+    await db.delete(taskCompletions).where(and(eq(taskCompletions.taskId, id), sql`${taskCompletions.doneOn} > ${doneOn}`, latest ? sql`${taskCompletions.id} <> ${latest.id}` : sql`true`));
+    const [sameDay] = await db.select({ id: taskCompletions.id }).from(taskCompletions).where(and(eq(taskCompletions.taskId, id), eq(taskCompletions.doneOn, doneOn)));
+    if (latest && !sameDay) await db.update(taskCompletions).set({ doneOn }).where(eq(taskCompletions.id, latest.id));
+    else if (latest && sameDay && sameDay.id !== latest.id) await db.delete(taskCompletions).where(eq(taskCompletions.id, latest.id));
+    else if (!latest) await db.insert(taskCompletions).values({ taskId: id, doneOn, doneById: userId });
+  }
+  // A manual correction resets any earlier "skip"; the next due follows from the new last-done date.
+  await db.update(tasks).set({ dueOverride: null }).where(eq(tasks.id, id));
+  await recompute(id);
+}
+
 /** Remove the most recent completion. */
 export async function undoComplete(workspaceId: string, id: string) {
   const [t] = await db.select().from(tasks).where(and(eq(tasks.workspaceId, workspaceId), eq(tasks.id, id)));
