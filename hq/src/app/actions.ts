@@ -65,6 +65,8 @@ export async function movePageAction(slug: string, pageId: string, parentId: str
 
 export async function archivePageAction(slug: string, pageId: string) {
   const { workspace } = await requireAbility(slug, "edit");
+  const { mirrorTrash } = await import("@/lib/drive/twoway");
+  await mirrorTrash(workspace.id, uuid.parse(pageId), true); // two-way areas: the Doc goes to Drive's trash too
   await pages.archivePage(workspace.id, uuid.parse(pageId));
   revalidatePath(`/w/${slug}`, "layout");
 }
@@ -72,6 +74,8 @@ export async function archivePageAction(slug: string, pageId: string) {
 export async function restorePageAction(slug: string, pageId: string) {
   const { workspace } = await requireAbility(slug, "edit");
   await pages.restorePage(workspace.id, uuid.parse(pageId));
+  const { mirrorTrash } = await import("@/lib/drive/twoway");
+  await mirrorTrash(workspace.id, uuid.parse(pageId), false).catch(() => {});
   revalidatePath(`/w/${slug}`, "layout");
 }
 
@@ -607,6 +611,39 @@ const collectionInput = z.object({
   folderLinks: z.array(z.string().max(500)).min(1).max(10),
   excludeLinks: z.array(z.string().max(500)).max(20),
 });
+
+export async function setTwoWayAction(slug: string, id: string, on: boolean): Promise<Result> {
+  return wrap(async () => {
+    const { workspace } = await requireAbility(slug, "manage_members");
+    await driveSync.setTwoWay(workspace.id, uuid.parse(id), on);
+    revalidatePath(`/w/${slug}`, "layout");
+    return on ? "Two-way sync is on. Google Docs in this area can now be edited in Orbit." : "Two-way sync is off. This area is read-only in Orbit again.";
+  });
+}
+
+/** "New document" inside a two-way area: an Orbit page that becomes a Google Doc in that folder. */
+export async function createAreaPageAction(slug: string, connId: string, parentPageId: string | null) {
+  const { user, workspace } = await requireAbility(slug, "edit");
+  const conn = await driveSync.getCollection(workspace.id, uuid.parse(connId));
+  if (!conn?.twoWay || !conn.rootPageId) throw new Error("Two-way sync isn't on for this area.");
+  const parent = parentPageId ? await pages.getPage(workspace.id, uuid.parse(parentPageId)) : null;
+  const parentId = parent && parent.driveConnectionId === conn.id ? parent.id : conn.rootPageId;
+  const page = await pages.createPage(workspace.id, { parentId, title: "" }, userActor(user.id));
+  const isSop = conn.kind === "sop";
+  await db.update(schema.pages).set({ driveConnectionId: conn.id, isSop, docType: isSop ? "SOP" : null, docStatus: "active" }).where(eq(schema.pages.id, page.id));
+  revalidatePath(`/w/${slug}`, "layout");
+  return page.id;
+}
+
+export async function resolveDriveConflictAction(slug: string, pageId: string, keep: "orbit" | "drive"): Promise<Result> {
+  return wrap(async () => {
+    const { workspace } = await requireAbility(slug, "edit");
+    const { resolveConflict } = await import("@/lib/drive/twoway");
+    await resolveConflict(workspace.id, uuid.parse(pageId), z.enum(["orbit", "drive"]).parse(keep));
+    revalidatePath(`/w/${slug}`, "layout");
+    return keep === "orbit" ? "Done. The Google Doc now matches Orbit." : "Done. Orbit now matches the Google Doc. Your Orbit edits are in History.";
+  });
+}
 
 export async function addCollectionAction(slug: string, input: z.infer<typeof collectionInput>): Promise<Result> {
   return wrap(async () => {

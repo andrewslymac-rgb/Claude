@@ -135,7 +135,7 @@ async function DriveTab({ slug, workspaceId, isAppAdmin }: { slug: string; works
       problem={saStatus.state === "invalid" ? saStatus.reason : null}
       isAppAdmin={isAppAdmin}
       kinds={Object.fromEntries(Object.entries(KIND_INFO).map(([k, v]) => [k, { label: v.label, icon: v.icon, hint: v.hint }])) as Parameters<typeof DrivePanel>[0]["kinds"]}
-      collections={conns.map((c) => ({ id: c.id, label: c.label, icon: c.icon, kind: c.kind, folderIds: c.folderIds, folderNames: c.folderNames, excludeFolderIds: c.excludeFolderIds, lastSyncAt: c.lastSyncAt?.toISOString() ?? null, lastSyncStatus: c.lastSyncStatus, lastSyncCounts: c.lastSyncCounts, count: counts.get(c.id) ?? 0 }))}
+      collections={conns.map((c) => ({ id: c.id, label: c.label, icon: c.icon, kind: c.kind, folderIds: c.folderIds, folderNames: c.folderNames, excludeFolderIds: c.excludeFolderIds, lastSyncAt: c.lastSyncAt?.toISOString() ?? null, lastSyncStatus: c.lastSyncStatus, lastSyncCounts: c.lastSyncCounts, twoWay: c.twoWay, count: counts.get(c.id) ?? 0 }))}
     />
   );
 }

@@ -1,16 +1,20 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
-import { ChevronRight, ExternalLink, Search, FolderOpen, LayoutGrid, List } from "lucide-react";
+import { useMemo, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { createAreaPageAction } from "@/app/actions";
+import { ChevronRight, ExternalLink, Search, FolderOpen, LayoutGrid, List, Plus, ArrowLeftRight } from "lucide-react";
 
 type Row = { id: string; parentId: string | null; title: string; icon: string | null; sourceLink: string | null; isFolder: boolean; docType: string | null; docStatus: string | null; updatedAt: string };
-type Coll = { id: string; label: string; icon: string; kindLabel: string; rootPageId: string | null; folderIds: string[]; folderNames: string[]; lastSyncAt: string | null };
+type Coll = { id: string; label: string; icon: string; kindLabel: string; rootPageId: string | null; folderIds: string[]; folderNames: string[]; lastSyncAt: string | null; twoWay?: boolean };
 
 const fmt = (iso: string) => new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 
 /** Folder-style browser for one document area: subfolders as cards, files as rows, search across everything. */
-export function CollectionBrowser({ slug, collection, rows }: { slug: string; collection: Coll; rows: Row[] }) {
+export function CollectionBrowser({ slug, collection, rows, canEdit = false }: { slug: string; collection: Coll; rows: Row[]; canEdit?: boolean }) {
+  const router = useRouter();
+  const [creating, startCreate] = useTransition();
   const [folder, setFolder] = useState<string | null>(collection.rootPageId);
   const [q, setQ] = useState("");
   const [view, setView] = useState<"grid" | "list">("grid");
@@ -65,10 +69,25 @@ export function CollectionBrowser({ slug, collection, rows }: { slug: string; co
             <p className="text-sm text-ink-soft">
               {collection.kindLabel} · {total} documents
               {collection.lastSyncAt && ` · synced ${fmt(collection.lastSyncAt)}`}
+              {collection.twoWay && (
+                <span className="ml-2 inline-flex items-center gap-1 rounded bg-accent-soft px-1.5 py-0.5 text-xs font-medium text-accent">
+                  <ArrowLeftRight size={11} /> Two-way sync
+                </span>
+              )}
             </p>
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
+          {collection.twoWay && canEdit && (
+            <button
+              disabled={creating}
+              onClick={() => startCreate(async () => router.push(`/w/${slug}/p/${await createAreaPageAction(slug, collection.id, folder)}`))}
+              className="btn btn-primary"
+              title="Creates a page here; it becomes a Google Doc in this folder about a minute after you stop typing."
+            >
+              <Plus size={14} /> New document
+            </button>
+          )}
           {collection.folderIds.map((id, i) => (
             <a key={id} href={`https://drive.google.com/drive/folders/${id}`} target="_blank" rel="noreferrer" className="flex items-center gap-1 btn btn-secondary">
               <FolderOpen size={14} /> {collection.folderIds.length > 1 ? collection.folderNames[i] : "Open in Drive"} <ExternalLink size={11} />

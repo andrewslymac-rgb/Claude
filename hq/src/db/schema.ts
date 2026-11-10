@@ -135,6 +135,12 @@ export const pages = pgTable(
     driveModifiedAt: timestamp("drive_modified_at", { withTimezone: true }),
     /** Which document area (drive_connections row) this synced page belongs to. */
     driveConnectionId: uuid("drive_connection_id"),
+    /** The Drive file's type (Google Doc, Word, PDF…). Only Google Docs can sync both ways. */
+    driveMimeType: text("drive_mime_type"),
+    /** Two-way areas: Orbit has edits the Google Doc doesn't have yet. */
+    drivePushPending: boolean("drive_push_pending").notNull().default(false),
+    /** Two-way areas: both sides changed; a person picks which version wins. */
+    driveConflict: boolean("drive_conflict").notNull().default(false),
     version: integer("version").notNull().default(1),
     // --- Document info (compliance) --------------------------------------
     docType: text("doc_type"),
@@ -600,6 +606,8 @@ export const driveConnections = pgTable(
     rootPageId: uuid("root_page_id").references(() => pages.id, { onDelete: "set null" }),
     /** Folder ids to skip (e.g. a subfolder that belongs to another area). */
     excludeFolderIds: jsonb("exclude_folder_ids").$type<string[]>().notNull().default([]),
+    /** Edits made in Orbit are written back to the Google Docs (and new Orbit pages become Docs). */
+    twoWay: boolean("two_way").notNull().default(false),
     position: doublePrecision("position").notNull().default(0),
     lastSyncAt: timestamp("last_sync_at", { withTimezone: true }),
     lastSyncStatus: text("last_sync_status"),

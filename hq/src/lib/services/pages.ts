@@ -83,11 +83,23 @@ export async function createPage(workspaceId: string, input: { parentId?: string
 
 export type PageUpdate = { title?: string; icon?: string | null; content?: unknown[]; contentText?: string };
 
+const GDOC = "application/vnd.google-apps.document";
+
+/** A Drive-synced Google Doc in an area with two-way sync on can be edited in Orbit. */
+export async function isTwoWayEditable(page: Pick<Page, "source" | "driveConnectionId" | "driveMimeType">) {
+  if (page.source !== "gdrive" || page.driveMimeType !== GDOC || !page.driveConnectionId) return false;
+  const [c] = await db.select({ twoWay: schema.driveConnections.twoWay }).from(schema.driveConnections).where(eq(schema.driveConnections.id, page.driveConnectionId));
+  return Boolean(c?.twoWay);
+}
+
 export async function updatePage(workspaceId: string, id: string, patch: PageUpdate, actor: Actor, note?: string) {
   const page = await getPage(workspaceId, id);
   if (!page) throw new Error("Page not found");
-  if (page.source === "gdrive" && actor.type !== "sync" && (patch.content || patch.contentText)) {
-    throw new Error("This page is synced from Google Drive. Edit it in Google Docs.");
+  let markPush = false;
+  if (page.source === "gdrive" && actor.type !== "sync" && (patch.content || patch.contentText || (patch.title !== undefined && patch.title !== page.title))) {
+    if (!(await isTwoWayEditable(page))) {
+      if (patch.content || patch.contentText) throw new Error("This page is synced from Google Drive. Edit it in Google Docs.");
+    } else markPush = true;
   }
   const uid = actorUserId(actor);
   const now = new Date();
@@ -125,7 +137,7 @@ export async function updatePage(workspaceId: string, id: string, patch: PageUpd
     }
     const [updated] = await tx
       .update(pages)
-      .set({ ...next, icon: patch.icon === undefined ? page.icon : patch.icon, version, updatedAt: now, updatedById: uid })
+      .set({ ...next, icon: patch.icon === undefined ? page.icon : patch.icon, version, updatedAt: now, updatedById: uid, ...(markPush ? { drivePushPending: true } : {}) })
       .where(eq(pages.id, id))
       .returning();
     return updated;

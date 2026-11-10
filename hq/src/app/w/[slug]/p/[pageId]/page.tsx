@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { requireWorkspacePage } from "@/lib/access";
 import { can } from "@/lib/permissions";
-import { getPage, listTree } from "@/lib/services/pages";
+import { getPage, listTree, isTwoWayEditable } from "@/lib/services/pages";
 import { PageView } from "@/components/page/PageView";
 import { listMembers } from "@/lib/services/members";
 import { DOC_AREAS, DOC_AUDIENCES, DOC_TYPES } from "@/db/schema";
@@ -26,6 +26,7 @@ export default async function PageRoute({ params }: { params: Promise<{ slug: st
   }
   const { members } = await listMembers(workspace.id);
   const reviewer = page.lastReviewedById ? (await db.select({ name: schema.users.name }).from(schema.users).where(eq(schema.users.id, page.lastReviewedById)))[0] : null;
+  const twoWay = await isTwoWayEditable(page);
   const children = tree.filter((n) => n.parentId === page.id).map((n) => ({ id: n.id, title: n.title || "Untitled", icon: n.icon }));
 
   return (
@@ -39,12 +40,15 @@ export default async function PageRoute({ params }: { params: Promise<{ slug: st
         content: page.content,
         isSop: page.isSop,
         source: page.source,
+        twoWay,
+        drivePending: page.drivePushPending,
+        driveConflict: page.driveConflict,
         archived: Boolean(page.archivedAt),
         updatedAt: page.updatedAt.toISOString(),
       }}
       crumbs={crumbs}
       subpages={children}
-      canEdit={can(abilities, "edit") && page.source === "local" && !page.archivedAt}
+      canEdit={can(abilities, "edit") && (page.source === "local" || twoWay) && !page.archivedAt}
       canLog={can(abilities, "edit") && !page.archivedAt}
       docInfo={{
         docType: page.docType,

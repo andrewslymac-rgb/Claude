@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { FolderSync, RefreshCw, Copy, Check, Plus, Pencil, Trash2, ExternalLink } from "lucide-react";
-import { addCollectionAction, removeCollectionAction, syncDriveAction, saveDriveKeyAction, updateCollectionAction } from "@/app/actions";
+import { FolderSync, RefreshCw, Copy, Check, Plus, Pencil, Trash2, ExternalLink, ArrowLeftRight } from "lucide-react";
+import { addCollectionAction, setTwoWayAction, removeCollectionAction, syncDriveAction, saveDriveKeyAction, updateCollectionAction } from "@/app/actions";
 import type { CollectionKind } from "@/db/schema";
 
 export type CollectionRow = {
@@ -17,6 +17,7 @@ export type CollectionRow = {
   lastSyncStatus: string | null;
   lastSyncCounts: { created: number; updated: number; trashed: number; skipped: number } | null;
   count: number;
+  twoWay?: boolean;
 };
 type KindInfo = Record<CollectionKind, { label: string; icon: string; hint: string }>;
 
@@ -135,6 +136,34 @@ export function DrivePanel({ slug, collections, kinds, serviceEmail, problem, is
                 <Trash2 size={13} />
               </button>
             </div>
+            {c.kind === "sop" && (
+              <label className={`mt-3 flex items-start gap-3 rounded-lg border px-3 py-2.5 text-sm ${c.twoWay ? "border-accent bg-accent-soft" : "border-line"}`}>
+                <input
+                  type="checkbox"
+                  className="mt-0.5"
+                  checked={Boolean(c.twoWay)}
+                  disabled={busy}
+                  onChange={(e) => {
+                    const on = e.target.checked;
+                    if (on && !confirm(`Turn on two-way sync for "${c.label}"?\n\nGoogle Docs in this area become editable in Orbit, and Orbit's edits replace the Doc's text about a minute after someone stops typing. Doc comments, suggestions, images and complex layouts may be lost when Orbit writes. Trashing a page in Orbit also trashes the Doc (recoverable in Drive for 30 days).`)) return;
+                    start(async () => {
+                      const r = await setTwoWayAction(slug, c.id, on);
+                      setMsg(r.ok ? { ok: true, text: r.message ?? "Saved." } : { ok: false, text: r.error });
+                    });
+                  }}
+                />
+                <span>
+                  <span className="flex items-center gap-1.5 font-medium">
+                    <ArrowLeftRight size={14} /> Two-way sync
+                  </span>
+                  <span className="block text-xs text-ink-faint">
+                    {c.twoWay
+                      ? "On. Edit these SOPs in Orbit or in Google Docs and the other side follows. New pages made here become Google Docs in this folder."
+                      : "Off. Orbit shows these documents read-only and you edit them in Google Docs. Turn on to edit in Orbit too (Orbit needs Editor access to the folder)."}
+                  </span>
+                </span>
+              </label>
+            )}
           </div>
         ))}
         {collections.length === 0 && <div className="rounded-xl border border-dashed border-line p-4 text-ink-faint">No document areas yet. Add one for your SOPs, one for Legal, one for Licensing…</div>}
