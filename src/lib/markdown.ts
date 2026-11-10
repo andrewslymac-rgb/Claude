@@ -33,3 +33,9 @@ export async function blocksToMarkdown(blocks: unknown[]): Promise<string> {
 export async function htmlToBlocks(html: string): Promise<unknown[]> {
   return get().tryParseHTMLToBlocks(html);
 }
+
+/** Editor blocks → plain HTML (what Orbit sends to Google Docs). */
+export async function blocksToHtml(blocks: unknown[]): Promise<string> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return get().blocksToHTMLLossy(blocks as any);
+}

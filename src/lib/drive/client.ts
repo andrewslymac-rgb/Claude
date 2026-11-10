@@ -180,3 +180,70 @@ export async function appendChangeLogToDoc(docId: string, line: string): Promise
   if (!up.ok) return { ok: false, reason: docsError(up.status, await up.text(), sa.client_email) };
   return { ok: true };
 }
+
+// --- Two-way sync: writing Google Docs ------------------------------------------
+// Needs the service account added to the folder (or shared drive) as Editor/Content manager.
+
+let writeJwt: JWT | null = null;
+let writeJwtEmail = "";
+async function writeToken() {
+  const sa = await serviceAccount();
+  if (!sa) throw new Error("Google Drive isn't set up: no service account key.");
+  if (!writeJwt || writeJwtEmail !== sa.client_email) {
+    writeJwt = new JWT({ email: sa.client_email, key: sa.private_key, scopes: ["https://www.googleapis.com/auth/drive"] });
+    writeJwtEmail = sa.client_email;
+  }
+  const t = await writeJwt.getAccessToken();
+  if (!t.token) throw new Error("Couldn't get a Google access token");
+  return t.token;
+}
+
+async function writeError(res: Response) {
+  const body = await res.text();
+  const sa = await serviceAccount();
+  if (res.status === 403 || res.status === 401) return new Error(`Orbit can read this but can't edit it. Share the folder with ${sa?.client_email ?? "Orbit's service account"} as Editor (Content manager on a shared drive).`);
+  return new Error(`Google Drive said ${res.status}: ${body.slice(0, 160)}`);
+}
+
+/** Whether Orbit's service account may add and edit files in a folder. */
+export async function folderWritable(folderId: string): Promise<boolean> {
+  const j = await get(`/files/${folderId}`, { fields: "capabilities(canAddChildren,canEdit)" });
+  return Boolean(j.capabilities?.canAddChildren);
+}
+
+const UPLOAD = "https://www.googleapis.com/upload/drive/v3/files";
+const BOUNDARY = "orbit-boundary-7e3f";
+const multipart = (meta: object, html: string) =>
+  `--${BOUNDARY}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(meta)}\r\n--${BOUNDARY}\r\nContent-Type: text/html; charset=UTF-8\r\n\r\n${html}\r\n--${BOUNDARY}--`;
+
+/** Replaces a Google Doc's body (and optionally its name) with HTML. Google converts it. */
+export async function updateDocHtml(fileId: string, html: string, name?: string): Promise<{ modifiedTime: string }> {
+  const res = await fetch(`${UPLOAD}/${fileId}?uploadType=multipart&supportsAllDrives=true&fields=id,modifiedTime`, {
+    method: "PATCH",
+    headers: { Authorization: `Bearer ${await writeToken()}`, "Content-Type": `multipart/related; boundary=${BOUNDARY}` },
+    body: multipart(name ? { name } : {}, html),
+  });
+  if (!res.ok) throw await writeError(res);
+  return res.json();
+}
+
+/** Creates a Google Doc from HTML inside a folder. */
+export async function createDocFromHtml(folderId: string, name: string, html: string): Promise<DriveFile> {
+  const res = await fetch(`${UPLOAD}?uploadType=multipart&supportsAllDrives=true&fields=id,name,mimeType,modifiedTime,webViewLink,parents`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${await writeToken()}`, "Content-Type": `multipart/related; boundary=${BOUNDARY}` },
+    body: multipart({ name, mimeType: GDOC, parents: [folderId] }, html),
+  });
+  if (!res.ok) throw await writeError(res);
+  return res.json();
+}
+
+/** Moves a file to (or back out of) Drive's trash. Recoverable there for 30 days. */
+export async function setTrashed(fileId: string, trashed: boolean) {
+  const res = await fetch(`${API}/files/${fileId}?supportsAllDrives=true`, {
+    method: "PATCH",
+    headers: { Authorization: `Bearer ${await writeToken()}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ trashed }),
+  });
+  if (!res.ok) throw await writeError(res);
+}

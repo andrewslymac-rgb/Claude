@@ -77,7 +77,7 @@ export async function syncCollection(conn: Collection, opts: { force?: boolean }
   const existingByFile = new Map(
     (
       await db
-        .select({ id: pages.id, title: pages.title, driveFileId: pages.driveFileId, driveModifiedAt: pages.driveModifiedAt, archivedAt: pages.archivedAt, parentId: pages.parentId, driveConnectionId: pages.driveConnectionId })
+        .select({ id: pages.id, title: pages.title, driveFileId: pages.driveFileId, driveModifiedAt: pages.driveModifiedAt, archivedAt: pages.archivedAt, parentId: pages.parentId, driveConnectionId: pages.driveConnectionId, driveMimeType: pages.driveMimeType, drivePushPending: pages.drivePushPending })
         .from(pages)
         .where(and(eq(pages.workspaceId, workspaceId), eq(pages.source, "gdrive")))
     )
@@ -90,11 +90,11 @@ export async function syncCollection(conn: Collection, opts: { force?: boolean }
     const ex = existingByFile.get(f.id);
     if (ex) {
       if (ex.archivedAt) await pagesSvc.restorePage(workspaceId, ex.id);
-      await db.update(pages).set({ title: f.name.trim(), parentId: parentPageId, driveConnectionId: conn.id }).where(eq(pages.id, ex.id));
+      await db.update(pages).set({ title: f.name.trim(), parentId: parentPageId, driveConnectionId: conn.id, driveMimeType: drive.FOLDER }).where(eq(pages.id, ex.id));
       return ex.id;
     }
     const p = await pagesSvc.createPage(workspaceId, { parentId: parentPageId, title: f.name.trim(), icon: "📁" }, SYNC_ACTOR);
-    await db.update(pages).set({ source: "gdrive", driveFileId: f.id, driveConnectionId: conn.id, driveModifiedAt: new Date(f.modifiedTime), sourceLink: f.webViewLink ?? null, area }).where(eq(pages.id, p.id));
+    await db.update(pages).set({ source: "gdrive", driveFileId: f.id, driveMimeType: drive.FOLDER, driveConnectionId: conn.id, driveModifiedAt: new Date(f.modifiedTime), sourceLink: f.webViewLink ?? null, area }).where(eq(pages.id, p.id));
     counts.created++;
     return p.id;
   }
@@ -106,10 +106,17 @@ export async function syncCollection(conn: Collection, opts: { force?: boolean }
     const convertible = f.mimeType === drive.GDOC || f.mimeType === drive.DOCX;
     const title = cleanTitle(f.name);
     if (ex && !opts.force && ex.driveModifiedAt && ex.driveModifiedAt >= modified && !ex.archivedAt) {
-      // Content unchanged. Still keep the title, parent and area in step with Drive.
-      if (ex.parentId !== parentPageId || ex.title !== title || ex.driveConnectionId !== conn.id) {
-        await db.update(pages).set({ parentId: parentPageId, title, driveConnectionId: conn.id }).where(eq(pages.id, ex.id));
+      // Content unchanged. Still keep the title, parent and area in step with Drive
+      // (unless Orbit has a rename of its own waiting to go out).
+      if (ex.parentId !== parentPageId || (ex.title !== title && !ex.drivePushPending) || ex.driveConnectionId !== conn.id || ex.driveMimeType !== f.mimeType) {
+        await db.update(pages).set({ parentId: parentPageId, ...(ex.drivePushPending ? {} : { title }), driveConnectionId: conn.id, driveMimeType: f.mimeType }).where(eq(pages.id, ex.id));
       }
+      counts.skipped++;
+      return;
+    }
+    if (ex && ex.drivePushPending && !ex.archivedAt) {
+      // Changed in Drive while Orbit has unsent edits: don't overwrite either side.
+      await db.update(pages).set({ driveConflict: true, driveMimeType: f.mimeType }).where(eq(pages.id, ex.id));
       counts.skipped++;
       return;
     }
@@ -127,7 +134,7 @@ export async function syncCollection(conn: Collection, opts: { force?: boolean }
     if (ex) {
       if (ex.archivedAt) await pagesSvc.restorePage(workspaceId, ex.id);
       await pagesSvc.updatePage(workspaceId, ex.id, { title, content, contentText: text }, SYNC_ACTOR, "Updated from Google Drive");
-      await db.update(pages).set({ driveModifiedAt: modified, parentId: parentPageId, sourceLink: f.webViewLink ?? null, driveConnectionId: conn.id }).where(eq(pages.id, ex.id));
+      await db.update(pages).set({ driveModifiedAt: modified, parentId: parentPageId, sourceLink: f.webViewLink ?? null, driveConnectionId: conn.id, driveMimeType: f.mimeType, driveConflict: false }).where(eq(pages.id, ex.id));
       counts.updated++;
     } else {
       const p = await pagesSvc.createPage(workspaceId, { parentId: parentPageId, title, icon: convertible ? "📄" : iconFor(f.mimeType) }, SYNC_ACTOR);
@@ -136,6 +143,7 @@ export async function syncCollection(conn: Collection, opts: { force?: boolean }
         .set({
           source: "gdrive",
           driveFileId: f.id,
+          driveMimeType: f.mimeType,
           driveConnectionId: conn.id,
           driveModifiedAt: modified,
           sourceLink: f.webViewLink ?? null,
@@ -313,5 +321,20 @@ export async function resyncPage(workspaceId: string, pageId: string) {
   const c = await fileToBlocks(f);
   if (!c) return;
   await pagesSvc.updatePage(workspaceId, p.id, { content: c.blocks, contentText: c.text }, SYNC_ACTOR, "Updated from Google Drive");
-  await db.update(pages).set({ driveModifiedAt: new Date(f.modifiedTime) }).where(eq(pages.id, p.id));
+  await db.update(pages).set({ driveModifiedAt: new Date(f.modifiedTime), driveMimeType: f.mimeType }).where(eq(pages.id, p.id));
+}
+
+/** Turn two-way sync on or off for an area. Turning it on checks Orbit can actually write there. */
+export async function setTwoWay(workspaceId: string, id: string, on: boolean) {
+  const conn = await getCollection(workspaceId, id);
+  if (!conn) throw new Error("That document area no longer exists.");
+  if (on) {
+    for (const [i, folderId] of conn.folderIds.entries()) {
+      if (!(await drive.folderWritable(folderId))) {
+        const sa = await drive.serviceAccount();
+        throw new Error(`Orbit can only read "${conn.folderNames[i] ?? "this folder"}". In Google Drive, share it with ${sa?.client_email ?? "Orbit's service account"} as Editor (Content manager on a shared drive), then try again.`);
+      }
+    }
+  }
+  await db.update(driveConnections).set({ twoWay: on }).where(eq(driveConnections.id, conn.id));
 }

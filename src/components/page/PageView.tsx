@@ -4,19 +4,19 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
-import { History, MoreHorizontal, BookMarked, Trash2, Check, Loader2, AlertCircle, ExternalLink, FileCheck2, ClipboardList, Flag, ChevronLeft } from "lucide-react";
+import { History, MoreHorizontal, BookMarked, Trash2, Check, Loader2, AlertCircle, ExternalLink, ArrowLeftRight, FileCheck2, ClipboardList, Flag, ChevronLeft } from "lucide-react";
 import { FlagForm } from "@/components/library/FlagsView";
 import { DocInfo, type DocInfoData } from "./DocInfo";
 import { LogChangeDialog } from "./LogChangeDialog";
 import { ChangeLogPanel } from "./ChangeLogPanel";
-import { archivePageAction, savePageAction, setSopAction } from "@/app/actions";
+import { archivePageAction, resolveDriveConflictAction, savePageAction, setSopAction } from "@/app/actions";
 import type { EditorChange } from "./Editor";
 import { EmojiPicker } from "./EmojiPicker";
 import { VersionHistory } from "./VersionHistory";
 
 const Editor = dynamic(() => import("./Editor"), { ssr: false, loading: () => <div className="h-40 animate-pulse rounded-lg bg-side" /> });
 
-type PageData = { id: string; title: string; icon: string | null; content: unknown[]; isSop: boolean; source: string; archived: boolean; updatedAt: string };
+type PageData = { id: string; title: string; icon: string | null; content: unknown[]; isSop: boolean; source: string; twoWay?: boolean; drivePending?: boolean; driveConflict?: boolean; archived: boolean; updatedAt: string };
 type Crumb = { id: string; title: string; icon: string | null };
 type SaveState = "idle" | "saving" | "saved" | "error";
 
@@ -181,15 +181,39 @@ export function PageView({ slug, page, crumbs, subpages, canEdit, canLog = canEd
       </div>
 
       {page.archived && <Banner>This page is in the Trash. Restore it from the Trash to edit it again.</Banner>}
-      {page.source === "gdrive" && (
-        <Banner>
-          This page is synced from Google Drive and updates automatically. To change it, edit the original.
-          {docInfo.sourceLink && (
-            <a href={docInfo.sourceLink} target="_blank" rel="noreferrer" className="ml-2 inline-flex items-center gap-1 font-medium underline">
-              Open in Google Drive <ExternalLink size={13} />
-            </a>
-          )}
-        </Banner>
+      {page.source === "gdrive" && page.driveConflict && (
+        <ConflictBanner
+          slug={slug}
+          pageId={page.id}
+          sourceLink={docInfo.sourceLink}
+          onResolved={(keep) => {
+            if (keep === "drive") router.refresh();
+            setTimeout(() => window.location.reload(), 300);
+          }}
+          flush={flush}
+        />
+      )}
+      {page.source === "gdrive" && !page.driveConflict && (
+        page.twoWay ? (
+          <div className="mx-auto mt-2 flex max-w-[760px] flex-wrap items-center gap-x-2 gap-y-1 rounded-lg border border-line bg-side/60 px-4 py-2 text-xs text-ink-soft">
+            <ArrowLeftRight size={13} className="text-accent" />
+            <span>Synced both ways with Google Docs. Edits here reach the Doc about a minute after you stop typing{page.drivePending || save !== "idle" ? " (waiting to send)" : ""}.</span>
+            {docInfo.sourceLink && (
+              <a href={docInfo.sourceLink} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 font-medium text-accent hover:underline">
+                Open the Doc <ExternalLink size={12} />
+              </a>
+            )}
+          </div>
+        ) : (
+          <Banner>
+            This page is synced from Google Drive and updates automatically. To change it, edit the original.
+            {docInfo.sourceLink && (
+              <a href={docInfo.sourceLink} target="_blank" rel="noreferrer" className="ml-2 inline-flex items-center gap-1 font-medium underline">
+                Open in Google Drive <ExternalLink size={13} />
+              </a>
+            )}
+          </Banner>
+        )
       )}
 
       <article className="mx-auto max-w-[760px] px-4 pb-40 pt-6 md:px-14 md:pt-10">
@@ -315,4 +339,38 @@ function SaveIndicator({ state }: { state: SaveState }) {
   if (state === "saved") return <span className="flex items-center gap-1 text-xs text-ink-faint"><Check size={12} /> Saved</span>;
   if (state === "error") return <span className="flex items-center gap-1 text-xs text-danger"><AlertCircle size={12} /> Not saved — retrying</span>;
   return null;
+}
+
+function ConflictBanner({ slug, pageId, sourceLink, onResolved, flush }: { slug: string; pageId: string; sourceLink: string | null; onResolved: (keep: "orbit" | "drive") => void; flush: () => Promise<void> }) {
+  const [busy, start] = useTransition();
+  const [error, setError] = useState("");
+  const pick = (keep: "orbit" | "drive") =>
+    start(async () => {
+      await flush();
+      const r = await resolveDriveConflictAction(slug, pageId, keep);
+      if (r.ok) onResolved(keep);
+      else setError(r.error);
+    });
+  return (
+    <div className="mx-auto mt-2 max-w-[760px] rounded-lg border border-warn bg-warn-soft px-4 py-3 text-sm text-warn">
+      <div className="font-semibold">This SOP was changed in Orbit and in Google Docs at the same time.</div>
+      <p className="mt-0.5 text-ink-soft">
+        Nothing was overwritten. Pick which version to keep; the other stays in History (Orbit) or Version history (Google Docs).
+        {sourceLink && (
+          <a href={sourceLink} target="_blank" rel="noreferrer" className="ml-1 inline-flex items-center gap-1 font-medium text-accent hover:underline">
+            Compare with the Doc <ExternalLink size={12} />
+          </a>
+        )}
+      </p>
+      <div className="mt-2 flex flex-wrap gap-2">
+        <button disabled={busy} onClick={() => pick("orbit")} className="btn btn-primary btn-sm">
+          Keep Orbit&rsquo;s version
+        </button>
+        <button disabled={busy} onClick={() => pick("drive")} className="btn btn-secondary btn-sm">
+          Use the Google Doc
+        </button>
+      </div>
+      {error && <p className="mt-2 text-danger">{error}</p>}
+    </div>
+  );
 }
