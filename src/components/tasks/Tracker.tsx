@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState, useTransition } from "react";
 import { Check, Plus, MoreHorizontal, Users, ChevronRight, SkipForward, Trash2, Pencil, UserPlus, Bell, MessageSquare } from "lucide-react";
 import { archiveTaskAction, completeTaskAction, createTaskAction, moveDueAction, undoTaskAction, updateTaskAction } from "@/app/actions";
@@ -146,7 +147,13 @@ export function Tracker({ slug, tasks, members, roles = [], pages, categories, m
                     <Avatar name={g.name} />
                   )}
                   <span className="min-w-0 flex-1 truncate text-sm font-medium">
-                    {g.name}
+                    {g.memberId && canEdit ? (
+                      <Link href={`/w/${slug}/team/${g.memberId}`} className="hover:text-accent hover:underline" title={`See ${g.name}'s progress`}>
+                        {g.name}
+                      </Link>
+                    ) : (
+                      g.name
+                    )}
                     {g.roleId && <span className="ml-1 text-xs font-normal text-ink-faint">{g.holders?.length ? g.holders.join(", ") : "nobody assigned yet"}</span>}
                   </span>
                   <span className="text-xs text-ink-faint">
