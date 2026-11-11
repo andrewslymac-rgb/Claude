@@ -5,12 +5,12 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
-import { History, MoreHorizontal, BookMarked, Trash2, Check, Loader2, AlertCircle, ExternalLink, ArrowLeftRight, FileCheck2, ClipboardList, Flag, ChevronLeft } from "lucide-react";
+import { History, MoreHorizontal, BookMarked, Trash2, Check, Loader2, AlertCircle, ExternalLink, ArrowLeftRight, FileCheck2, FileText, ClipboardList, Flag, ChevronLeft } from "lucide-react";
 import { FlagForm } from "@/components/library/FlagsView";
 import { PopMenu, MenuItem } from "@/components/ui/Menu";
 import { DocInfo, type DocInfoData } from "./DocInfo";
 import { LogChangeDialog } from "./LogChangeDialog";
-import { ChangeLogPanel } from "./ChangeLogPanel";
+import { ChangeLogPanel, type PageRelations } from "./ChangeLogPanel";
 import { archivePageAction, resolveDriveConflictAction, savePageAction, setSopAction } from "@/app/actions";
 import type { EditorChange } from "./Editor";
 import { EmojiPicker } from "./EmojiPicker";
@@ -24,7 +24,7 @@ type SaveState = "idle" | "saving" | "saved" | "error";
 
 type DocOptions = { types: readonly string[]; areas: readonly string[]; audiences: readonly string[] };
 
-export function PageView({ slug, page, crumbs, subpages, canEdit, canLog = canEdit, docInfo, members, docOptions }: { slug: string; page: PageData; crumbs: Crumb[]; subpages: Crumb[]; canEdit: boolean; canLog?: boolean; docInfo: DocInfoData; members: { id: string; name: string }[]; docOptions: DocOptions }) {
+export function PageView({ slug, page, crumbs, subpages, canEdit, canLog = canEdit, docInfo, members, docOptions, relations }: { slug: string; page: PageData; crumbs: Crumb[]; subpages: Crumb[]; canEdit: boolean; canLog?: boolean; relations?: PageRelations; docInfo: DocInfoData; members: { id: string; name: string }[]; docOptions: DocOptions }) {
   const router = useRouter();
   const [title, setTitle] = useState(page.title);
   const [icon, setIcon] = useState(page.icon);
@@ -122,8 +122,8 @@ export function PageView({ slug, page, crumbs, subpages, canEdit, canLog = canEd
           <Flag size={15} /> <span className="hidden sm:inline">Flag</span>
         </button>
         {showLog && (
-          <button onClick={() => setLogOpen(true)} aria-label="Change log" title="Change log" className="flex min-h-10 items-center gap-1 rounded-md bg-accent-soft px-2 py-1 font-medium text-accent hover:opacity-90 md:min-h-0 xl:hidden">
-            <ClipboardList size={15} /> <span className="hidden sm:inline">Change log</span>
+          <button onClick={() => setLogOpen(true)} aria-label="Document panel" title="Document panel" className="flex min-h-10 items-center gap-1 rounded-md bg-accent-soft px-2 py-1 font-medium text-accent hover:opacity-90 md:min-h-0 xl:hidden">
+            <FileText size={15} /> <span className="hidden sm:inline">Document</span>
             {logCount ? <span className="text-xs opacity-80">{logCount}</span> : null}
           </button>
         )}
@@ -275,7 +275,7 @@ export function PageView({ slug, page, crumbs, subpages, canEdit, canLog = canEd
 
       {showLog && (
         <aside className="sticky top-0 hidden h-dvh w-80 shrink-0 self-start border-l border-line bg-side/40 xl:block">
-          <ChangeLogPanel slug={slug} pageId={page.id} canLog={canLog} isDrive={isDrive} versionLabel={docInfo.docVersion} refreshKey={logKey} onCount={setLogCount} onLog={() => setLogChange(true)} onHistory={() => setHistory(true)} />
+          <ChangeLogPanel slug={slug} pageId={page.id} canLog={canLog} isDrive={isDrive} versionLabel={docInfo.docVersion} refreshKey={logKey} relations={relations} onCount={setLogCount} onLog={() => setLogChange(true)} onHistory={() => setHistory(true)} />
         </aside>
       )}
       {showLog && logOpen && (
@@ -288,6 +288,7 @@ export function PageView({ slug, page, crumbs, subpages, canEdit, canLog = canEd
               isDrive={isDrive}
               versionLabel={docInfo.docVersion}
               refreshKey={logKey}
+              relations={relations}
               onCount={setLogCount}
               onLog={() => setLogChange(true)}
               onHistory={() => (setLogOpen(false), setHistory(true))}

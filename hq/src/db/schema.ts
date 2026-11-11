@@ -695,6 +695,26 @@ export const appSettings = pgTable("app_settings", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+/**
+ * Revision notes on a document: what still needs changing, who said so and when.
+ * Resolved when the change has been made (usually alongside a change-log entry).
+ */
+export const docNotes = pgTable(
+  "doc_notes",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    pageId: uuid("page_id")
+      .notNull()
+      .references(() => pages.id, { onDelete: "cascade" }),
+    userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }),
+    body: text("body").notNull(),
+    resolvedAt: timestamp("resolved_at", { withTimezone: true }),
+    resolvedById: uuid("resolved_by_id").references(() => users.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("doc_notes_page_idx").on(t.pageId, t.resolvedAt)],
+);
+
 // ---------------------------------------------------------------------------
 // Feedback: bug reports and suggestions about Orbit itself, from anyone.
 // ---------------------------------------------------------------------------

@@ -566,6 +566,39 @@ export async function logChangeAction(
   return { drive };
 }
 
+// ---------------------------------------------------------------- revision notes
+
+export async function listDocNotesAction(slug: string, pageId: string) {
+  const { workspace } = await requireAbility(slug, "read");
+  const page = await pages.getPage(workspace.id, uuid.parse(pageId));
+  if (!page) throw new Error("Page not found");
+  return (await pages.listDocNotes(page.id)).map((n) => ({ ...n, createdAt: n.createdAt.toISOString(), resolvedAt: n.resolvedAt?.toISOString() ?? null }));
+}
+
+export async function addDocNoteAction(slug: string, pageId: string, body: string): Promise<Result> {
+  return wrap(async () => {
+    const { user, workspace } = await requireAbility(slug, "read"); // anyone can point out what needs changing
+    await pages.addDocNote(workspace.id, uuid.parse(pageId), user.id, z.string().max(2000).parse(body));
+    revalidatePath(`/w/${slug}/library`);
+  });
+}
+
+export async function resolveDocNoteAction(slug: string, pageId: string, noteId: string, resolved: boolean): Promise<Result> {
+  return wrap(async () => {
+    const { user, workspace } = await requireAbility(slug, "edit");
+    await pages.resolveDocNote(workspace.id, uuid.parse(pageId), uuid.parse(noteId), user.id, resolved);
+    revalidatePath(`/w/${slug}/library`);
+  });
+}
+
+export async function deleteDocNoteAction(slug: string, pageId: string, noteId: string): Promise<Result> {
+  return wrap(async () => {
+    const { workspace } = await requireAbility(slug, "edit");
+    await pages.deleteDocNote(workspace.id, uuid.parse(pageId), uuid.parse(noteId));
+    revalidatePath(`/w/${slug}/library`);
+  });
+}
+
 export async function setTeamToldAction(slug: string, pageId: string, versionId: string, teamTold: boolean) {
   const { workspace } = await requireAbility(slug, "edit");
   const page = await pages.getPage(workspace.id, uuid.parse(pageId));

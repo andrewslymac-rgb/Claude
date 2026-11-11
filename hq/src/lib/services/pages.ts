@@ -1,5 +1,6 @@
 import "server-only";
 import { and, asc, desc, eq, ilike, inArray, isNull, isNotNull, max, or, sql } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import { db, schema } from "@/db";
 import type { Page } from "@/db/schema";
 import { actorUserId, type Actor } from "./actor";
@@ -341,4 +342,62 @@ export async function listChangeLog(workspaceId: string, limit = 50) {
     .where(and(eq(pages.workspaceId, workspaceId), isNotNull(pageVersions.note), sql`${pageVersions.note} <> 'Created'`))
     .orderBy(desc(pageVersions.createdAt))
     .limit(limit);
+}
+
+// ---------------------------------------------------------------- revision notes ("needs changing")
+
+const { docNotes, tasks: tasksT, flags: flagsT } = schema;
+const resolvedBy = alias(users, "resolved_by");
+
+export async function listDocNotes(pageId: string) {
+  return db
+    .select({ id: docNotes.id, body: docNotes.body, createdAt: docNotes.createdAt, resolvedAt: docNotes.resolvedAt, by: users.name, byEmail: users.email, resolvedBy: resolvedBy.name })
+    .from(docNotes)
+    .leftJoin(users, eq(users.id, docNotes.userId))
+    .leftJoin(resolvedBy, eq(resolvedBy.id, docNotes.resolvedById))
+    .where(eq(docNotes.pageId, pageId))
+    .orderBy(asc(docNotes.resolvedAt), desc(docNotes.createdAt));
+}
+
+export async function addDocNote(workspaceId: string, pageId: string, userId: string | null, body: string) {
+  const page = await getPage(workspaceId, pageId);
+  if (!page) throw new Error("Page not found");
+  const text = body.trim();
+  if (!text) throw new Error("Write what needs to change first.");
+  const [n] = await db.insert(docNotes).values({ pageId, userId, body: text.slice(0, 2000) }).returning();
+  return n;
+}
+
+export async function resolveDocNote(workspaceId: string, pageId: string, noteId: string, userId: string, resolved: boolean) {
+  const page = await getPage(workspaceId, pageId);
+  if (!page) throw new Error("Page not found");
+  await db.update(docNotes).set(resolved ? { resolvedAt: new Date(), resolvedById: userId } : { resolvedAt: null, resolvedById: null }).where(and(eq(docNotes.pageId, pageId), eq(docNotes.id, noteId)));
+}
+
+export async function deleteDocNote(workspaceId: string, pageId: string, noteId: string) {
+  const page = await getPage(workspaceId, pageId);
+  if (!page) throw new Error("Page not found");
+  await db.delete(docNotes).where(and(eq(docNotes.pageId, pageId), eq(docNotes.id, noteId)));
+}
+
+/** Open revision notes per page, for the library list. */
+export async function openDocNoteCounts(workspaceId: string) {
+  const rows = await db
+    .select({ pageId: docNotes.pageId, n: sql<number>`count(*)::int` })
+    .from(docNotes)
+    .innerJoin(pages, eq(pages.id, docNotes.pageId))
+    .where(and(eq(pages.workspaceId, workspaceId), isNull(docNotes.resolvedAt)))
+    .groupBy(docNotes.pageId);
+  return new Map(rows.map((r) => [r.pageId, r.n]));
+}
+
+/** What else points at this document: tasks that use it as their how-to, open flags about it, who last edited it. */
+export async function pageRelations(workspaceId: string, pageId: string) {
+  const [usedBy, openFlags, [page]] = await Promise.all([
+    db.select({ id: tasksT.id, title: tasksT.title, frequency: tasksT.frequency }).from(tasksT).where(and(eq(tasksT.workspaceId, workspaceId), eq(tasksT.sopPageId, pageId), isNull(tasksT.archivedAt))).orderBy(asc(tasksT.title)),
+    db.select({ id: flagsT.id, title: flagsT.title, severity: flagsT.severity, status: flagsT.status }).from(flagsT).where(and(eq(flagsT.workspaceId, workspaceId), eq(flagsT.pageId, pageId), sql`${flagsT.status} in ('open','in_progress')`)),
+    db.select({ updatedAt: pages.updatedAt, updatedBy: users.name, contentText: pages.contentText, driveModifiedAt: pages.driveModifiedAt, createdAt: pages.createdAt }).from(pages).leftJoin(users, eq(users.id, pages.updatedById)).where(eq(pages.id, pageId)),
+  ]);
+  const words = page?.contentText ? page.contentText.split(/\s+/).filter(Boolean).length : 0;
+  return { usedBy, openFlags, meta: { updatedAt: page?.updatedAt ?? null, updatedBy: page?.updatedBy ?? null, driveModifiedAt: page?.driveModifiedAt ?? null, createdAt: page?.createdAt ?? null, words } };
 }

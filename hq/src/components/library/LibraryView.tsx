@@ -22,6 +22,7 @@ export type Doc = {
   isSop: boolean;
   updatedAt: string;
   driveConnectionId: string | null;
+  openNotes?: number;
 };
 export type CollectionOpt = { id: string; label: string; icon: string };
 type LogEntry = { id: string; pageId: string; pageTitle: string; pageIcon: string | null; version: number; note: string | null; why: string | null; teamTold: boolean; actorType: string; actorName: string | null; createdAt: string };
@@ -43,6 +44,7 @@ export function LibraryView({ slug, docs, log, types, areas, collections }: { sl
   const [area, setArea] = useState("");
   const [status, setStatus] = useState("");
   const [review, setReview] = useState<ReviewState | "">("");
+  const [needsChange, setNeedsChange] = useState(false);
 
   const rows = useMemo(
     () =>
@@ -55,9 +57,10 @@ export function LibraryView({ slug, docs, log, types, areas, collections }: { sl
             (!type || d.docType === type) &&
             (!area || d.area === area) &&
             (!status || d.docStatus === status) &&
-            (!review || d.review === review),
+            (!review || d.review === review) &&
+            (!needsChange || (d.openNotes ?? 0) > 0),
         ),
-    [docs, q, coll, type, area, status, review],
+    [docs, q, coll, type, area, status, review, needsChange],
   );
   const dueCount = docs.filter((d) => ["first", "overdue", "due_soon"].includes(reviewState(d.reviewCycle, d.lastReviewedOn))).length;
 
@@ -125,6 +128,9 @@ export function LibraryView({ slug, docs, log, types, areas, collections }: { sl
                 </option>
               ))}
             </select>
+            <button onClick={() => setNeedsChange((v) => !v)} className={`tap rounded-lg border px-3 py-1.5 text-sm ${needsChange ? "border-warn bg-warn-soft text-warn" : "border-line text-ink-soft hover:bg-hover"}`}>
+              Needs changes{docs.some((d) => d.openNotes) ? ` (${docs.filter((d) => d.openNotes).length})` : ""}
+            </button>
           </div>
           <ul className="mt-4 space-y-2 md:hidden">
             {rows.length === 0 && <li className="rounded-xl border border-dashed border-line px-4 py-8 text-center text-sm text-ink-faint">No documents match.</li>}
@@ -135,6 +141,7 @@ export function LibraryView({ slug, docs, log, types, areas, collections }: { sl
                     <span>{d.icon ?? "📄"}</span>
                     <span className="line-clamp-2 min-w-0 flex-1">{d.title || "Untitled"}</span>
                     {d.docStatus && <span className={`shrink-0 rounded px-1.5 py-0.5 text-[11px] font-medium ${STATUS_LABELS[d.docStatus].cls}`}>{STATUS_LABELS[d.docStatus].label}</span>}
+                    {(d.openNotes ?? 0) > 0 && <span className="shrink-0 rounded bg-warn-soft px-1.5 py-0.5 text-[11px] font-medium text-warn">{d.openNotes} to change</span>}
                   </div>
                   <div className="mt-1 flex flex-wrap gap-x-2 text-xs text-ink-faint">
                     {(d.docType ?? (d.isSop ? "SOP" : "")) && <span>{d.docType ?? "SOP"}</span>}
@@ -160,12 +167,13 @@ export function LibraryView({ slug, docs, log, types, areas, collections }: { sl
                   <th className="px-3 py-2">Owner</th>
                   <th className="px-3 py-2">Review</th>
                   <th className="px-3 py-2">Next review</th>
+                  <th className="px-3 py-2">To change</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-line">
                 {rows.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="px-3 py-8 text-center text-ink-faint">
+                    <td colSpan={8} className="px-3 py-8 text-center text-ink-faint">
                       No documents match. Pages show up here once they have a type or status set in their Document info.
                     </td>
                   </tr>
@@ -185,6 +193,7 @@ export function LibraryView({ slug, docs, log, types, areas, collections }: { sl
                     <td className="px-3 py-2 text-ink-soft">{d.ownerName ?? <span className="text-ink-faint">—</span>}</td>
                     <td className={`px-3 py-2 text-xs font-medium ${TONE[REVIEW_LABELS[d.review].tone]}`}>{REVIEW_LABELS[d.review].label}</td>
                     <td className="px-3 py-2 text-ink-soft">{d.next ? fmtDate(d.next) : ""}</td>
+                    <td className="px-3 py-2">{(d.openNotes ?? 0) > 0 ? <span className="rounded bg-warn-soft px-2 py-0.5 text-xs font-medium text-warn">{d.openNotes} open</span> : <span className="text-ink-faint">—</span>}</td>
                   </tr>
                 ))}
               </tbody>
