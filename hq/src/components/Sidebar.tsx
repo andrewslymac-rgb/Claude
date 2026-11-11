@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
-import { ChevronDown, ChevronRight, Home, LogOut, MoreHorizontal, Plus, Search, Settings, Trash2, CheckSquare, BookOpen, Library, Flag, Bot, FolderOpen, AlertTriangle, MessageSquareHeart, Users } from "lucide-react";
+import { ChevronDown, ChevronRight, Home, LogOut, MoreHorizontal, Plus, Search, Settings, Trash2, CheckSquare, BookOpen, Library, Flag, Bot, FolderOpen, AlertTriangle, MessageSquareHeart, Users, UserRound, Briefcase } from "lucide-react";
 import { NamePrompt } from "@/components/NamePrompt";
 import { createPortal } from "react-dom";
 import { NewTaskButton } from "@/components/tasks/NewTaskButton";
@@ -12,6 +12,7 @@ import { archivePageAction, createPageAction, movePageAction, signOutAction } fr
 import { SearchPalette } from "./SearchPalette";
 import { NewWorkspaceDialog } from "./NewWorkspaceForm";
 import { OrbitLogo } from "./OrbitLogo";
+import { ThemeToggle } from "./ThemeToggle";
 
 type Ws = { slug: string; name: string; icon: string; color: string };
 type Node = { id: string; parentId: string | null; title: string; icon: string | null; position: number; isSop: boolean; source: string };
@@ -44,6 +45,13 @@ export function Sidebar(props: { workspace: Ws; workspaces: Ws[]; tree: Node[]; 
   const pathname = usePathname();
   const [searchOpen, setSearchOpen] = useState(false);
   const [nameOpen, setNameOpen] = useState(false);
+  const [userOpen, setUserOpen] = useState(false);
+  const userRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const close = (e: MouseEvent) => userRef.current && !userRef.current.contains(e.target as Element) && setUserOpen(false);
+    document.addEventListener("mousedown", close);
+    return () => document.removeEventListener("mousedown", close);
+  }, []);
   const [pending, start] = useTransition();
   const base = `/w/${workspace.slug}`;
 
@@ -77,11 +85,14 @@ export function Sidebar(props: { workspace: Ws; workspaces: Ws[]; tree: Node[]; 
         </div>
       )}
 
+      <div className="eyebrow flex items-center gap-1 px-4 pb-1 pt-2">
+        <Briefcase size={11} /> Work
+      </div>
       <nav className="space-y-0.5 px-2 pb-2">
         <NavItem href={base} icon={<Home size={16} />} label="Home" active={pathname === base} />
         <button onClick={() => setSearchOpen(true)} className="nav-item w-full">
           <span className="text-ink-faint"><Search size={16} /></span> Search
-          <kbd className="ml-auto hidden rounded border border-line bg-card px-1 text-[10px] text-ink-faint md:inline">⌘K</kbd>
+          <kbd className="kbd ml-auto hidden md:inline">⌘K</kbd>
         </button>
         <NavItem href={`${base}/tasks`} icon={<CheckSquare size={16} />} label="Tracker" active={pathname.startsWith(`${base}/tasks`)} badge={props.attention || undefined} />
         <NavItem href={props.canManageTasks ? `${base}/team` : `${base}/team/${props.me}`} icon={<Users size={16} />} label={props.canManageTasks ? "Team" : "My progress"} active={pathname.startsWith(`${base}/team`)} />
@@ -89,40 +100,43 @@ export function Sidebar(props: { workspace: Ws; workspaces: Ws[]; tree: Node[]; 
           <span className={props.overdue.length ? "text-danger" : "text-ink-faint"}><AlertTriangle size={16} /></span> <span className="flex-1 text-left">Past due</span>
           {props.overdue.length > 0 && <span className="num rounded-full bg-danger px-1.5 text-[11px] font-semibold text-paper">{props.overdue.length}</span>}
         </button>
-        <NavItem href={`${base}/library`} icon={<Library size={16} />} label="Document Library" active={pathname.startsWith(`${base}/library`)} />
         <NavItem href={`${base}/flags`} icon={<Flag size={16} />} label="Flags" active={pathname.startsWith(`${base}/flags`)} badge={props.openFlags || undefined} />
       </nav>
 
+      <div className="eyebrow flex items-center gap-1 px-4 pb-1 pt-3">
+        <FolderOpen size={11} /> Documents
+      </div>
+      <nav className="space-y-0.5 px-2 pb-1">
+        <NavItem href={`${base}/library`} icon={<Library size={16} />} label="Document Library" active={pathname.startsWith(`${base}/library`)} />
+      </nav>
       {collections.length > 0 && (
-        <>
-          <div className="eyebrow flex items-center justify-between px-4 pb-1 pt-4">
-            <span className="flex items-center gap-1">
-              <FolderOpen size={11} /> Documents
-            </span>
-          </div>
-          <nav className="space-y-0.5 px-2">
-            {collections.map((c) => (
-              <Link key={c.id} href={`${base}/docs/${c.id}`} data-active={pathname.startsWith(`${base}/docs/${c.id}`) ? "true" : "false"} className="nav-item">
-                <span className="w-5 shrink-0 text-center">{c.icon}</span>
-                <span className="flex-1 truncate">{c.label}</span>
-                <span className="num text-[11px] text-ink-faint">{c.count}</span>
-              </Link>
-            ))}
-          </nav>
-        </>
+        <nav className="space-y-0.5 px-2">
+          {collections.map((c) => (
+            <Link key={c.id} href={`${base}/docs/${c.id}`} data-active={pathname.startsWith(`${base}/docs/${c.id}`) ? "true" : "false"} className="nav-item">
+              <span className="w-5 shrink-0 text-center">{c.icon}</span>
+              <span className="flex-1 truncate">{c.label}</span>
+              <span className="num text-[11px] text-ink-faint">{c.count}</span>
+            </Link>
+          ))}
+        </nav>
       )}
 
       <div className="eyebrow flex items-center justify-between px-4 pb-1 pt-4">
         <span className="flex items-center gap-1">
           <BookOpen size={11} /> Pages
         </span>
-        {canEdit && (
-          <button onClick={() => newPage(null)} disabled={pending} className="rounded p-0.5 hover:bg-hover hover:text-ink" title="New page">
-            <Plus size={14} />
-          </button>
-        )}
+        <span className="flex items-center gap-1">
+          <Link href={`${base}/trash`} className={`rounded p-0.5 hover:bg-hover hover:text-ink ${pathname === `${base}/trash` ? "text-ink" : ""}`} title="Trash">
+            <Trash2 size={13} />
+          </Link>
+          {canEdit && (
+            <button onClick={() => newPage(null)} disabled={pending} className="rounded p-0.5 hover:bg-hover hover:text-ink" title="New page">
+              <Plus size={14} />
+            </button>
+          )}
+        </span>
       </div>
-      <div className="flex-1 overflow-y-auto px-2 pb-4 scrollbar-thin">
+      <div className="min-h-24 flex-1 overflow-y-auto px-2 pb-4 scrollbar-thin">
         <PageTree slug={workspace.slug} nodes={tree} canEdit={canEdit} onNew={newPage} />
         {canEdit && (
           <button onClick={() => newPage(null)} disabled={pending} className="mt-1 flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-ink-faint hover:bg-hover hover:text-ink">
@@ -133,19 +147,36 @@ export function Sidebar(props: { workspace: Ws; workspaces: Ws[]; tree: Node[]; 
 
       <div className="space-y-0.5 border-t border-line px-2 py-2 pb-20 md:pb-2">
         <NavItem href={`${base}/ai`} icon={<Bot size={16} />} label="AI" active={pathname === `${base}/ai`} badge={props.pendingAi || undefined} />
-        <NavItem href={`${base}/trash`} icon={<Trash2 size={16} />} label="Trash" active={pathname === `${base}/trash`} />
         <NavItem href={`${base}/settings`} icon={<Settings size={16} />} label="Settings" active={pathname.startsWith(`${base}/settings`)} />
         <NavItem href={`${base}/feedback${pathname.startsWith(`${base}/feedback`) ? "" : `?from=${encodeURIComponent(pathname)}`}`} icon={<MessageSquareHeart size={16} />} label="Feedback & bugs" active={pathname.startsWith(`${base}/feedback`)} badge={props.newFeedback || undefined} />
-        <div className="mt-1 flex items-center gap-1 border-t border-line pt-2">
-          <button onClick={() => setNameOpen(true)} className="nav-item min-w-0 flex-1" title={`${props.user.email} · Edit your name`}>
+        <div className="relative mt-1 border-t border-line pt-2" ref={userRef}>
+          <button onClick={() => setUserOpen((o) => !o)} className="nav-item w-full" aria-haspopup="menu" aria-expanded={userOpen}>
             <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent-soft text-[11px] font-semibold text-accent">{(props.user.name || "?")[0].toUpperCase()}</span>
             <span className="min-w-0 flex-1 truncate text-left">{props.user.name}</span>
+            <ChevronDown size={14} className="text-ink-faint" />
           </button>
-          <form action={signOutAction}>
-            <button className="nav-item px-2" title="Sign out" aria-label="Sign out">
-              <LogOut size={14} className="text-ink-faint" />
-            </button>
-          </form>
+          {userOpen && (
+            <div className="popover anim-rise absolute bottom-full left-0 right-0 z-30 mb-1 text-sm" role="menu">
+              <div className="px-2.5 py-2">
+                <div className="truncate font-medium">{props.user.name}</div>
+                <div className="truncate text-xs text-ink-faint">{props.user.email}</div>
+              </div>
+              <div className="flex items-center justify-between px-2.5 py-1.5 text-xs text-ink-soft">
+                Appearance <ThemeToggle compact />
+              </div>
+              <button onClick={() => (setUserOpen(false), setNameOpen(true))} className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left hover:bg-hover" role="menuitem">
+                <UserRound size={14} className="text-ink-faint" /> Edit my name
+              </button>
+              <Link href={`${base}/team/${props.me}`} onClick={() => setUserOpen(false)} className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left hover:bg-hover" role="menuitem">
+                <CheckSquare size={14} className="text-ink-faint" /> My progress
+              </Link>
+              <form action={signOutAction}>
+                <button className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-danger hover:bg-danger-soft" role="menuitem">
+                  <LogOut size={14} /> Sign out
+                </button>
+              </form>
+            </div>
+          )}
         </div>
       </div>
 

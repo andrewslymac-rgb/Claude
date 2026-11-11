@@ -19,7 +19,7 @@ export default async function Login({ searchParams }: { searchParams: Promise<{ 
 
   return (
     <main className="orbit-bg flex min-h-screen items-center justify-center px-6">
-      <div className="card w-full max-w-sm p-8">
+      <div className="card anim-rise w-full max-w-sm p-8">
         <OrbitWordmark size={30} />
         <div className="eyebrow mt-5">Company headquarters</div>
         <h1 className="mt-1 text-xl font-semibold">Sign in to Orbit</h1>
@@ -50,7 +50,7 @@ export default async function Login({ searchParams }: { searchParams: Promise<{ 
             <label className="block text-sm font-medium" htmlFor="magic-email">
               Email me a sign-in link
             </label>
-            <input id="magic-email" name="email" type="email" required placeholder="you@company.com" className="field outline-none focus:border-ink-faint" />
+            <input id="magic-email" name="email" type="email" required autoComplete="email" placeholder="you@company.com" className="field" />
             <button className={`w-full btn ${google ? "btn-secondary" : "btn-primary"}`}>Send sign-in link</button>
             <p className="text-xs text-ink-faint">No password needed. Only people who&apos;ve been added to Orbit can sign in.</p>
           </form>

@@ -27,6 +27,10 @@ export const users = pgTable("users", {
   avatarUrl: text("avatar_url"),
   /** App admins can create workspaces and see every workspace. */
   isAppAdmin: boolean("is_app_admin").notNull().default(false),
+  /** Email when a task is added to my to-do list. */
+  notifyTaskEmail: boolean("notify_task_email").notNull().default(true),
+  /** A short "today" email each morning with what's due and overdue. */
+  notifyDigest: boolean("notify_digest").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   lastSeenAt: timestamp("last_seen_at", { withTimezone: true }),
 });
@@ -221,6 +225,13 @@ export const widgetTypeEnum = pgEnum("widget_type", [
   "collections", // document areas (SOPs, Legal, Licensing…) with counts
   "flags", // open flags
   "tracker", // daily / weekly / monthly / quarterly / annual tracker by person
+  "calendar", // the signed-in person's own calendar (Google or an iCal feed)
+  "team", // who's on track: one row per person
+  "changelog", // latest SOP change-log entries
+  "followups", // task follow-ups due
+  "notes", // a private scratchpad for the signed-in person
+  "feedback", // new bug reports and ideas (admins)
+  "ai", // AI proposals awaiting approval
 ]);
 
 /** appUrl: a phone "deep link" such as slack://open; used on mobile, with url as the fallback. */
@@ -229,7 +240,10 @@ export type WidgetConfig = {
   text?: string; // welcome
   links?: LinkItem[]; // links
   pageIds?: string[]; // pages
-  limit?: number; // recent / sops
+  limit?: number; // list widgets: how many rows to show
+  days?: number; // calendar: how many days ahead
+  /** notes: per-person text lives here keyed by user id, so a company-level widget still gives everyone their own pad. */
+  notesBy?: Record<string, string>;
 };
 
 export const dashboardWidgets = pgTable(
@@ -239,6 +253,8 @@ export const dashboardWidgets = pgTable(
     workspaceId: uuid("workspace_id")
       .notNull()
       .references(() => workspaces.id, { onDelete: "cascade" }),
+    /** Null = the company's default layout (what new people see). Set = one person's own layout. */
+    userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }),
     type: widgetTypeEnum("type").notNull(),
     title: text("title").notNull(),
     config: jsonb("config").$type<WidgetConfig>().notNull().default({}),
@@ -247,8 +263,40 @@ export const dashboardWidgets = pgTable(
     position: doublePrecision("position").notNull().default(0),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [index("widgets_ws_idx").on(t.workspaceId)],
+  (t) => [index("widgets_ws_idx").on(t.workspaceId), index("widgets_ws_user_idx").on(t.workspaceId, t.userId)],
 );
+
+/**
+ * One person's calendar connections. Tokens and feed URLs are encrypted at rest
+ * (see lib/crypto). Each person only ever sees their own.
+ */
+export const CALENDAR_PROVIDERS = ["google", "ical"] as const;
+export type CalendarProvider = (typeof CALENDAR_PROVIDERS)[number];
+
+export const calendarConnections = pgTable(
+  "calendar_connections",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    provider: text("provider").$type<CalendarProvider>().notNull(),
+    /** Shown in the widget: the Google account email, or a name for an iCal feed. */
+    label: text("label").notNull().default(""),
+    accessToken: text("access_token"),
+    refreshToken: text("refresh_token"),
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
+    icalUrl: text("ical_url"),
+    /** Google: which calendars to show (empty = primary only). */
+    calendarIds: jsonb("calendar_ids").$type<string[]>().notNull().default([]),
+    color: text("color"),
+    lastError: text("last_error"),
+    lastSyncAt: timestamp("last_sync_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("calendar_connections_user_idx").on(t.userId)],
+);
+export type CalendarConnection = typeof calendarConnections.$inferSelect;
 
 export type Role = (typeof roleEnum.enumValues)[number];
 export type User = typeof users.$inferSelect;

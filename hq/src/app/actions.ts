@@ -5,8 +5,8 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireAbility } from "@/lib/access";
 import { getCurrentUser, destroySession } from "@/lib/auth/session";
-import { ForbiddenError } from "@/lib/permissions";
-import type { Role, WidgetConfig, WidgetType } from "@/db/schema";
+import { can, ForbiddenError } from "@/lib/permissions";
+import { widgetTypeEnum, type Role, type WidgetConfig, type WidgetType } from "@/db/schema";
 import * as pages from "@/lib/services/pages";
 import * as dash from "@/lib/services/dashboard";
 import * as members from "@/lib/services/members";
@@ -20,7 +20,7 @@ import * as proposals from "@/lib/services/ai-proposals";
 import * as driveSync from "@/lib/drive/sync";
 import { COLLECTION_KINDS, FEEDBACK_KINDS, FEEDBACK_STATUSES, FIELD_TOOLS, ROLE_PERMISSIONS, type FieldTool } from "@/db/schema";
 import { db, schema } from "@/db";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import * as feedbackSvc from "@/lib/services/feedback";
 import * as rolesSvc from "@/lib/services/roles";
 
@@ -108,12 +108,36 @@ export async function searchAction(slug: string, q: string) {
   return pages.searchPages(workspace.id, z.string().max(200).parse(q));
 }
 
-// ---------------------------------------------------------------- dashboard
+type Result = { ok: true; message?: string } | { ok: false; error: string };
+const wrap = async (fn: () => Promise<string | void>): Promise<Result> => {
+  try {
+    const message = await fn();
+    return { ok: true, message: message ?? undefined };
+  } catch (e) {
+    return { ok: false, error: e instanceof z.ZodError ? "Please check the form and try again." : (e as Error).message };
+  }
+};
 
-export async function addWidgetAction(slug: string, type: WidgetType) {
-  const { workspace } = await requireAbility(slug, "manage_dashboard");
-  await dash.addWidget(workspace.id, z.enum(["welcome", "links", "pages", "sops", "recent", "tasks", "reviews"]).parse(type));
-  revalidatePath(`/w/${slug}`);
+// ---------------------------------------------------------------- dashboard
+// Everyone arranges their own dashboard. The first edit copies the company default
+// into a personal layout; admins can publish theirs back as the company default.
+
+const WIDGET_TYPES = widgetTypeEnum.enumValues;
+
+async function personalScope(slug: string) {
+  const { user, workspace, abilities } = await requireAbility(slug, "read");
+  await dash.ensurePersonalLayout(workspace.id, user.id);
+  return { user, workspace, abilities };
+}
+
+export async function addWidgetAction(slug: string, type: WidgetType): Promise<Result> {
+  return wrap(async () => {
+    const { user, workspace, abilities } = await personalScope(slug);
+    const t = z.enum(WIDGET_TYPES).parse(type);
+    if (dash.WIDGET_CATALOG[t].adminOnly && !can(abilities, "manage_members")) throw new ForbiddenError("That widget is for admins.");
+    await dash.addWidget(workspace.id, user.id, t);
+    revalidatePath(`/w/${slug}`);
+  });
 }
 
 const linkSchema = z.object({
@@ -126,45 +150,105 @@ const linkSchema = z.object({
 const widgetPatch = z.object({
   title: z.string().min(1).max(80).optional(),
   width: z.number().int().min(1).max(3).optional(),
-  config: z.object({ text: z.string().max(2000).optional(), links: z.array(linkSchema).max(40).optional(), pageIds: z.array(uuid).max(40).optional(), limit: z.number().int().min(1).max(30).optional() }).optional(),
+  config: z
+    .object({
+      text: z.string().max(2000).optional(),
+      links: z.array(linkSchema).max(40).optional(),
+      pageIds: z.array(uuid).max(40).optional(),
+      limit: z.number().int().min(1).max(30).optional(),
+      days: z.number().int().min(1).max(31).optional(),
+    })
+    .optional(),
 });
 
-export async function updateWidgetAction(slug: string, id: string, patch: { title?: string; width?: number; config?: WidgetConfig }) {
-  const { workspace } = await requireAbility(slug, "manage_dashboard");
-  await dash.updateWidget(workspace.id, uuid.parse(id), widgetPatch.parse(patch));
-  revalidatePath(`/w/${slug}`);
+export async function updateWidgetAction(slug: string, id: string, patch: { title?: string; width?: number; config?: WidgetConfig }): Promise<Result> {
+  return wrap(async () => {
+    const { user, workspace } = await personalScope(slug);
+    const p = widgetPatch.parse(patch);
+    // Config patches merge so a width change never wipes a widget's links or note.
+    const [cur] = await db.select({ config: schema.dashboardWidgets.config }).from(schema.dashboardWidgets).where(and(eq(schema.dashboardWidgets.id, uuid.parse(id)), eq(schema.dashboardWidgets.userId, user.id)));
+    await dash.updateWidget(workspace.id, user.id, uuid.parse(id), { ...p, config: p.config ? { ...(cur?.config ?? {}), ...p.config } : undefined });
+    revalidatePath(`/w/${slug}`);
+  });
+}
+
+export async function saveNoteAction(slug: string, id: string, text: string): Promise<Result> {
+  return wrap(async () => {
+    const { user, workspace } = await requireAbility(slug, "read");
+    await dash.saveNote(workspace.id, uuid.parse(id), user.id, z.string().max(5000).parse(text));
+  });
 }
 
 /** Swap the dashboard for the command-center layout. */
-export async function setupCommandCenterAction(slug: string) {
-  const { workspace } = await requireAbility(slug, "manage_dashboard");
-  await dash.setupCommandCenter(workspace.id);
-  revalidatePath(`/w/${slug}`);
+export async function setupCommandCenterAction(slug: string): Promise<Result> {
+  return wrap(async () => {
+    const { user, workspace } = await personalScope(slug);
+    await dash.setupCommandCenter(workspace.id, user.id);
+    revalidatePath(`/w/${slug}`);
+  });
 }
 
-export async function removeWidgetAction(slug: string, id: string) {
-  const { workspace } = await requireAbility(slug, "manage_dashboard");
-  await dash.removeWidget(workspace.id, uuid.parse(id));
-  revalidatePath(`/w/${slug}`);
+export async function removeWidgetAction(slug: string, id: string): Promise<Result> {
+  return wrap(async () => {
+    const { user, workspace } = await personalScope(slug);
+    await dash.removeWidget(workspace.id, user.id, uuid.parse(id));
+    revalidatePath(`/w/${slug}`);
+  });
 }
 
-export async function reorderWidgetsAction(slug: string, ids: string[]) {
-  const { workspace } = await requireAbility(slug, "manage_dashboard");
-  await dash.reorderWidgets(workspace.id, z.array(uuid).parse(ids));
-  revalidatePath(`/w/${slug}`);
+export async function reorderWidgetsAction(slug: string, ids: string[]): Promise<Result> {
+  return wrap(async () => {
+    const { user, workspace } = await personalScope(slug);
+    await dash.reorderWidgets(workspace.id, user.id, z.array(uuid).parse(ids));
+    revalidatePath(`/w/${slug}`);
+  });
+}
+
+/** Back to what the company set up. */
+export async function resetDashboardAction(slug: string): Promise<Result> {
+  return wrap(async () => {
+    const { user, workspace } = await requireAbility(slug, "read");
+    await dash.resetPersonalLayout(workspace.id, user.id);
+    revalidatePath(`/w/${slug}`);
+    return "Your dashboard now matches the company default.";
+  });
+}
+
+/** Admins: make my layout the default everyone starts from. */
+export async function publishDashboardAction(slug: string): Promise<Result> {
+  return wrap(async () => {
+    const { user, workspace } = await requireAbility(slug, "manage_dashboard");
+    await dash.publishAsCompanyLayout(workspace.id, user.id);
+    revalidatePath(`/w/${slug}`);
+    return "Published. Teammates who haven't customised their own dashboard now see this layout.";
+  });
+}
+
+// ---------------------------------------------------------------- calendar (per person)
+
+export async function addIcalFeedAction(url: string, label: string): Promise<Result> {
+  return wrap(async () => {
+    const { getCurrentUser } = await import("@/lib/auth/session");
+    const me = await getCurrentUser();
+    if (!me) throw new Error("Please sign in again.");
+    const { addIcalConnection } = await import("@/lib/calendar");
+    await addIcalConnection(me.id, z.string().max(2000).parse(url), z.string().max(60).parse(label));
+    return "Feed added.";
+  });
+}
+
+export async function removeCalendarAction(id: string): Promise<Result> {
+  return wrap(async () => {
+    const { getCurrentUser } = await import("@/lib/auth/session");
+    const me = await getCurrentUser();
+    if (!me) throw new Error("Please sign in again.");
+    const { removeConnection } = await import("@/lib/calendar");
+    await removeConnection(me.id, uuid.parse(id));
+  });
 }
 
 // ---------------------------------------------------------------- members & workspace
 
-type Result = { ok: true; message?: string } | { ok: false; error: string };
-const wrap = async (fn: () => Promise<string | void>): Promise<Result> => {
-  try {
-    const message = await fn();
-    return { ok: true, message: message ?? undefined };
-  } catch (e) {
-    return { ok: false, error: e instanceof z.ZodError ? "Please check the form and try again." : (e as Error).message };
-  }
-};
 
 /** Email someone a 3-day sign-in link to this company. Returns whether it went out. */
 async function sendWelcome(email: string, workspaceName: string, inviterName: string, role: Role) {

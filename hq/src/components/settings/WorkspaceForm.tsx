@@ -19,6 +19,7 @@ function preview(color: string) {
   const root = document.querySelector<HTMLElement>("[data-ws-theme]");
   if (!root) return;
   for (const [k, v] of Object.entries(workspaceThemeVars(color))) root.style.setProperty(k, v);
+  // Also tint the meta theme color on phones so the status bar follows.
 }
 
 export function WorkspaceForm({ slug, name: n0, icon: i0, color: c0, fieldTool: f0 }: { slug: string; name: string; icon: string; color: string; fieldTool: FieldTool }) {

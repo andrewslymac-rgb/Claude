@@ -1,6 +1,11 @@
 @import "tailwindcss";
 
-/* Orbit theme: deep navy with a periwinkle accent. */
+/* ==========================================================================
+   Orbit design system
+   Tokens → components → motion. Two themes (dark is the default), and every
+   company's brand color soaks through via --ws-accent.
+   ========================================================================== */
+
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --color-ink: #f3f5fb; /* primary text */
@@ -19,6 +24,54 @@
   --color-ok-soft: #3dd68c22;
   --color-warn: #f7c66b;
   --color-warn-soft: #f7c66b22;
+  --radius-lg: 0.625rem;
+  --radius-xl: 0.875rem;
+  --radius-2xl: 1.125rem;
+  --shadow-card: 0 1px 0 color-mix(in srgb, white 4%, transparent) inset, 0 10px 30px -22px rgb(0 0 0 / 0.8);
+  --shadow-pop: 0 1px 0 color-mix(in srgb, white 6%, transparent) inset, 0 24px 60px -24px rgb(0 0 0 / 0.9);
+}
+
+/* --- Brand color → full palette. The workspace layout sets --ws-accent; the rest follows. */
+[data-ws-theme] {
+  --color-accent: color-mix(in oklab, var(--ws-accent, #6366f1) 72%, white);
+  --color-accent-soft: color-mix(in srgb, var(--ws-accent, #6366f1) 22%, transparent);
+  --color-paper: color-mix(in oklab, #0b1020 90%, var(--ws-accent, #6366f1) 10%);
+  --color-side: color-mix(in oklab, #10172a 82%, var(--ws-accent, #6366f1) 18%);
+  --color-card: color-mix(in oklab, #19233d 80%, var(--ws-accent, #6366f1) 20%);
+  --color-hover: color-mix(in oklab, #222e4d 74%, var(--ws-accent, #6366f1) 26%);
+  --color-line: color-mix(in oklab, #2a3656 70%, var(--ws-accent, #6366f1) 30%);
+}
+
+/* --- Light theme. Same tokens, different values; nothing else changes. */
+html[data-theme="light"] {
+  --color-ink: #151a2d;
+  --color-ink-soft: #4a5370;
+  --color-ink-faint: #7d86a4;
+  --color-paper: #f5f6fb;
+  --color-side: #eceef6;
+  --color-card: #ffffff;
+  --color-line: #dde1ec;
+  --color-hover: #e9ecf5;
+  --color-accent: #4f5fd8;
+  --color-accent-soft: #4f5fd81f;
+  --color-danger: #d13f4a;
+  --color-danger-soft: #d13f4a18;
+  --color-ok: #1f9a5c;
+  --color-ok-soft: #1f9a5c18;
+  --color-warn: #a86f12;
+  --color-warn-soft: #e0a73322;
+  --shadow-card: 0 1px 2px rgb(20 26 45 / 0.05), 0 10px 30px -22px rgb(20 26 45 / 0.25);
+  --shadow-pop: 0 1px 2px rgb(20 26 45 / 0.06), 0 24px 60px -24px rgb(20 26 45 / 0.35);
+  color-scheme: light;
+}
+html[data-theme="light"] [data-ws-theme] {
+  --color-accent: color-mix(in oklab, var(--ws-accent, #6366f1) 88%, black);
+  --color-accent-soft: color-mix(in srgb, var(--ws-accent, #6366f1) 14%, transparent);
+  --color-paper: color-mix(in oklab, #f5f6fb 94%, var(--ws-accent, #6366f1) 6%);
+  --color-side: color-mix(in oklab, #eceef6 92%, var(--ws-accent, #6366f1) 8%);
+  --color-card: #ffffff;
+  --color-hover: color-mix(in oklab, #e9ecf5 88%, var(--ws-accent, #6366f1) 12%);
+  --color-line: color-mix(in oklab, #dde1ec 85%, var(--ws-accent, #6366f1) 15%);
 }
 
 /* iPhone notch / home indicator. The app draws edge to edge (viewport-fit=cover), so bars pad themselves. */
@@ -32,14 +85,20 @@ body {
   color: var(--color-ink);
   color-scheme: dark;
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
   font-feature-settings: "cv11", "ss01", "tnum";
 }
+html[data-theme="light"], html[data-theme="light"] body { color-scheme: light; }
 ::selection { background: color-mix(in srgb, var(--color-accent) 35%, transparent); }
 :focus-visible { outline: 2px solid color-mix(in srgb, var(--color-accent) 70%, transparent); outline-offset: 2px; border-radius: 6px; }
-button, a, input, select, textarea { transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease, box-shadow 120ms ease, transform 120ms ease, opacity 120ms ease; }
+button, a, input, select, textarea, [role="button"] { transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease, box-shadow 140ms ease, transform 140ms ease, opacity 140ms ease, filter 140ms ease; }
+h1, h2, h3 { text-wrap: balance; }
+p { text-wrap: pretty; }
+input[type="date"], input[type="time"] { color-scheme: inherit; }
+hr { border-color: var(--color-line); }
+kbd { font-family: inherit; }
 
-/* ------------------------------------------------------------------ design system
-   Small set of reusable pieces so every screen feels like the same product. */
+/* ------------------------------------------------------------------ components */
 @layer components {
   /* Buttons */
   .btn { @apply inline-flex items-center justify-center gap-1.5 rounded-lg px-3.5 py-2 text-sm font-medium whitespace-nowrap select-none disabled:cursor-not-allowed disabled:opacity-50; }
@@ -49,6 +108,7 @@ button, a, input, select, textarea { transition: background-color 120ms ease, bo
     background: linear-gradient(180deg, color-mix(in oklab, var(--color-accent) 92%, white) 0%, var(--color-accent) 100%);
     box-shadow: 0 1px 0 color-mix(in srgb, white 25%, transparent) inset, 0 6px 18px -8px color-mix(in srgb, var(--color-accent) 70%, transparent);
   }
+  html[data-theme="light"] .btn-primary { color: #fff; }
   .btn-primary:hover:not(:disabled) { filter: brightness(1.06); transform: translateY(-1px); }
   .btn-primary:active:not(:disabled) { transform: translateY(0); filter: brightness(0.98); }
   .btn-secondary { @apply border border-line bg-card/60 text-ink hover:bg-hover hover:border-ink-faint/60; }
@@ -58,16 +118,20 @@ button, a, input, select, textarea { transition: background-color 120ms ease, bo
   /* Form fields */
   .field { @apply w-full rounded-lg border border-line bg-paper/70 px-3 py-2 text-sm text-ink placeholder:text-ink-faint outline-none; }
   .field:focus { border-color: color-mix(in srgb, var(--color-accent) 70%, transparent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 18%, transparent); }
+  .field:disabled { opacity: 0.6; cursor: not-allowed; }
+  .field[aria-invalid="true"] { border-color: var(--color-danger); }
 
   /* Surfaces */
   .card {
     @apply rounded-2xl border border-line;
     background: linear-gradient(180deg, color-mix(in oklab, var(--color-card) 100%, white 2%) 0%, var(--color-card) 100%);
-    box-shadow: 0 1px 0 color-mix(in srgb, white 4%, transparent) inset, 0 10px 30px -22px rgb(0 0 0 / 0.8);
+    box-shadow: var(--shadow-card);
   }
+  html[data-theme="light"] .card { background: var(--color-card); }
   .card-hover { @apply transition; }
-  .card-hover:hover { border-color: color-mix(in srgb, var(--color-accent) 45%, var(--color-line)); transform: translateY(-1px); box-shadow: 0 1px 0 color-mix(in srgb, white 5%, transparent) inset, 0 16px 36px -22px rgb(0 0 0 / 0.9); }
+  .card-hover:hover { border-color: color-mix(in srgb, var(--color-accent) 45%, var(--color-line)); transform: translateY(-1px); box-shadow: var(--shadow-pop); }
   .surface { @apply rounded-xl border border-line bg-side/60; }
+  .popover { @apply rounded-xl border border-line bg-card p-1; box-shadow: var(--shadow-pop); }
 
   /* Page framing */
   .page { @apply mx-auto max-w-6xl px-4 py-6 md:px-8 md:py-8; }
@@ -80,6 +144,7 @@ button, a, input, select, textarea { transition: background-color 120ms ease, bo
   /* Badges */
   .badge { @apply inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-medium leading-4; }
   .pill { @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium; }
+  .kbd { @apply rounded border border-line bg-card px-1 text-[10px] text-ink-faint; }
 
   /* Dashboard stat tiles: a colored top edge says the state before you read the number. */
   .stat-tile { @apply rounded-xl border border-line border-t-2 bg-side/70 px-3.5 py-3 text-left transition hover:bg-hover; }
@@ -91,29 +156,40 @@ button, a, input, select, textarea { transition: background-color 120ms ease, bo
   .nav-item { @apply relative flex min-h-10 items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-ink-soft hover:bg-hover hover:text-ink md:min-h-0; }
   .nav-item[data-active="true"] { @apply bg-hover font-medium text-ink; }
   .nav-item[data-active="true"]::before { content: ""; position: absolute; left: -8px; top: 22%; height: 56%; width: 3px; border-radius: 3px; background: var(--color-accent); }
+
+  /* Skeletons */
+  .skeleton { @apply animate-pulse rounded-lg bg-card; }
+
+  /* Tables */
+  .table { @apply w-full text-sm; }
+  .table th { @apply px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-faint; }
+  .table td { @apply border-t border-line px-3 py-2; }
 }
 
-/* Blend BlockNote (dark theme) into the page. */
+/* Blend BlockNote into the page in both themes. */
 .hq-editor .bn-container {
   --bn-colors-editor-background: transparent;
   --bn-colors-editor-text: var(--color-ink);
   --bn-colors-menu-background: var(--color-card);
   --bn-colors-menu-text: var(--color-ink);
   --bn-colors-hovered-background: var(--color-hover);
+  --bn-colors-hovered-text: var(--color-ink);
   --bn-colors-selected-background: var(--color-accent);
+  --bn-colors-selected-text: var(--color-paper);
   --bn-colors-side-menu: var(--color-ink-faint);
   --bn-colors-border: var(--color-line);
   --bn-colors-tooltip-background: var(--color-card);
+  --bn-colors-tooltip-text: var(--color-ink);
+  --bn-colors-disabled-text: var(--color-ink-faint);
+  --bn-colors-disabled-background: var(--color-side);
+  --bn-colors-shadow: rgb(0 0 0 / 0.3);
 }
-.hq-editor .bn-editor {
-  background: transparent;
-  font-family: var(--font-sans);
-}
+.hq-editor .bn-editor { background: transparent; font-family: var(--font-sans); }
 
-.scrollbar-thin {
-  scrollbar-width: thin;
-  scrollbar-color: var(--color-line) transparent;
-}
+.scrollbar-thin { scrollbar-width: thin; scrollbar-color: var(--color-line) transparent; }
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-thumb { background: var(--color-line); border-radius: 999px; border: 3px solid transparent; background-clip: content-box; }
+*::-webkit-scrollbar-track { background: transparent; }
 
 /* Subtle glow behind hero cards. */
 .orbit-hero {
@@ -128,14 +204,22 @@ button, a, input, select, textarea { transition: background-color 120ms ease, bo
 
 /* Phones: shrink the editor's drag-handle gutter so text lines up with the title. */
 @media (max-width: 767px) {
-  .hq-editor {
-    margin-left: -12px;
-    margin-right: -8px;
-  }
-  .hq-editor .bn-editor {
-    padding-inline: 28px 8px;
-  }
+  .hq-editor { margin-left: -12px; margin-right: -8px; }
+  .hq-editor .bn-editor { padding-inline: 28px 8px; }
   .hq-editor .bn-editor h1 { font-size: 1.6rem; }
   .hq-editor .bn-editor h2 { font-size: 1.35rem; }
   .hq-editor .bn-editor h3 { font-size: 1.15rem; }
+}
+
+/* ------------------------------------------------------------------ motion
+   Short, calm entrances. Everything respects reduced-motion. */
+@keyframes orbit-rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@keyframes orbit-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes orbit-slide-in { from { transform: translateX(24px); opacity: 0; } to { transform: none; opacity: 1; } }
+.anim-rise { animation: orbit-rise 260ms cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+.anim-fade { animation: orbit-fade 160ms ease-out both; }
+.anim-slide-in { animation: orbit-slide-in 220ms cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+@media (prefers-reduced-motion: reduce) {
+  .anim-rise, .anim-fade, .anim-slide-in { animation: none; }
+  *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
 }

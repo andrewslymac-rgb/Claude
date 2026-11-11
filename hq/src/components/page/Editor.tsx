@@ -6,6 +6,7 @@ import { useCreateBlockNote } from "@blocknote/react";
 import { BlockNoteView } from "@blocknote/mantine";
 import type { PartialBlock } from "@blocknote/core";
 import { useEffect, useRef } from "react";
+import { useResolvedTheme } from "@/components/ThemeToggle";
 
 export type EditorChange = { content: unknown[]; contentText: string };
 
@@ -16,6 +17,7 @@ export default function Editor({ initial, editable, onChange, focusRef }: { init
   });
   const cb = useRef(onChange);
   cb.current = onChange;
+  const theme = useResolvedTheme();
 
   useEffect(() => {
     if (focusRef) focusRef.current = () => editor.focus();
@@ -26,7 +28,7 @@ export default function Editor({ initial, editable, onChange, focusRef }: { init
       <BlockNoteView
         editor={editor}
         editable={editable}
-        theme="dark"
+        theme={theme}
         onChange={() => {
           const doc = editor.document;
           cb.current?.({ content: doc, contentText: editor.blocksToMarkdownLossy(doc) });
