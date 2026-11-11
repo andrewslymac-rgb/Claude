@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState, useTransition } from "react";
 import { Check, Undo2, X, Trash2, History, CalendarClock, SkipForward, MessageSquare, Bell, BellOff } from "lucide-react";
 import { addTaskNoteAction, archiveTaskAction, completeTaskAction, createTaskAction, deleteTaskNoteAction, listCompletionsAction, listTaskNotesAction, moveDueAction, setFollowUpAction, updateTaskAction } from "@/app/actions";
-import { todayISO } from "@/lib/recurrence";
+import { doneThisPeriod, todayISO } from "@/lib/recurrence";
 import type { TaskRow } from "@/lib/services/tasks";
 import type { Frequency } from "@/db/schema";
 import { DUE_LABELS, FREQUENCY_LABELS, fmtDate } from "@/lib/recurrence";
@@ -36,6 +36,8 @@ export function TaskDrawer({ slug, task, members, roles = [], pages, categories,
   }, [slug, task.id]);
   const refreshNotes = () => listTaskNotesAction(slug, task.id).then(setNotes);
   const today = todayISO();
+  // Same rule as the tracker's tick: done for this period, and not overdue.
+  const isDoneNow = task.state === "done" || (doneThisPeriod(task.frequency, task.lastDoneOn === "today" ? today : task.lastDoneOn, today) && task.state !== "overdue");
   if (editing) return <TaskForm slug={slug} task={task} members={members} roles={roles} pages={pages} categories={categories} onClose={() => setEditing(false)} />;
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-black/60" onMouseDown={onClose}>
@@ -103,9 +105,9 @@ export function TaskDrawer({ slug, task, members, roles = [], pages, categories,
         )}
 
         <div className="mt-6 flex gap-2">
-          {task.state === "done" && task.canUndo ? (
-            <button onClick={() => onUndo(task)} className="flex items-center gap-1 btn btn-secondary">
-              <Undo2 size={14} /> Undo
+          {isDoneNow ? (
+            <button onClick={() => onUndo(task)} disabled={!task.canUndo} title={task.canUndo ? "Uncheck it; the completion is removed" : "Done more than 7 days ago. Use Last done → change to correct it."} className="flex items-center gap-1 btn btn-secondary">
+              <Undo2 size={14} /> Mark undone
             </button>
           ) : (
             <button onClick={() => onDone(task)} className="flex items-center gap-1 btn btn-primary">
