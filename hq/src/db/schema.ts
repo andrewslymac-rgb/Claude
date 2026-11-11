@@ -113,7 +113,7 @@ export const invites = pgTable(
 
 export const pageSourceEnum = pgEnum("page_source", ["local", "gdrive"]);
 export const docStatusEnum = pgEnum("doc_status", ["active", "needs_review", "draft", "outdated", "archived"]);
-export const reviewCycleEnum = pgEnum("review_cycle", ["quarterly", "semiannual", "annual"]);
+export const reviewCycleEnum = pgEnum("review_cycle", ["weekly", "monthly", "quarterly", "semiannual", "annual"]);
 
 export const pages = pgTable(
   "pages",
