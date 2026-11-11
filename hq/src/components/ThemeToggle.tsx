@@ -17,7 +17,6 @@ export function applyTheme(choice: ThemeChoice) {
   // Browser chrome and the iPhone status bar follow right away, without a reload.
   const color = resolved === "light" ? "#f5f6fb" : "#0f1526";
   document.querySelectorAll('meta[name="theme-color"]').forEach((m) => m.setAttribute("content", color));
-  document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]')?.setAttribute("content", resolved === "light" ? "default" : "black-translucent");
   document.cookie = `${THEME_COOKIE}=${choice}; path=/; max-age=31536000; samesite=lax`;
   try {
     localStorage.setItem(THEME_COOKIE, choice);

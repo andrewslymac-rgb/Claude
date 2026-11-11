@@ -12,7 +12,7 @@ export async function generateMetadata(): Promise<Metadata> {
     title: { default: "Orbit", template: "%s · Orbit" },
     description: "Company headquarters: pages, SOPs, dashboard and tasks.",
     applicationName: "Orbit",
-    appleWebApp: { capable: true, title: "Orbit", statusBarStyle: c === "light" ? "default" : "black-translucent" },
+    appleWebApp: { capable: true, title: "Orbit", statusBarStyle: "default" }, // opaque bar: the app never draws under the clock
   };
 }
 

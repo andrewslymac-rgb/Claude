@@ -73,10 +73,10 @@ export function LibraryView({ slug, docs, log, types, areas, collections }: { sl
           </p>
         </div>
         <div className="flex rounded-lg border border-line p-0.5 text-sm">
-          <button onClick={() => setTab("docs")} className={`rounded-md px-3 py-1 ${tab === "docs" ? "bg-hover" : "text-ink-soft"}`}>
+          <button onClick={() => setTab("docs")} className={`tap rounded-md px-3 py-1 ${tab === "docs" ? "bg-hover" : "text-ink-soft"}`}>
             Documents
           </button>
-          <button onClick={() => setTab("log")} className={`rounded-md px-3 py-1 ${tab === "log" ? "bg-hover" : "text-ink-soft"}`}>
+          <button onClick={() => setTab("log")} className={`tap rounded-md px-3 py-1 ${tab === "log" ? "bg-hover" : "text-ink-soft"}`}>
             Change log
           </button>
         </div>

@@ -227,3 +227,14 @@ kbd { font-family: inherit; }
 .mb-safe { margin-bottom: env(safe-area-inset-bottom, 0px); }
 /* Phones: the status-bar strip and everything under it share the page colour, so no dark band at the top. */
 html, body { background: var(--color-paper); }
+
+/* ------------------------------------------------------------------ phones: tap targets
+   Anything you tap is at least ~40px tall on a phone; desktop keeps the compact sizes. */
+@media (max-width: 767px) {
+  .btn, .btn-sm { min-height: 2.5rem; }
+  .btn-sm { padding-inline: 0.875rem; }
+  .tap { min-height: 2.5rem; }
+  .tap-icon { min-height: 2.5rem; min-width: 2.5rem; display: inline-flex; align-items: center; justify-content: center; }
+  main .field, main select.field, main input[type="date"] { min-height: 2.75rem; font-size: 16px; } /* 16px stops iOS zooming into fields */
+  .popover button { min-height: 2.5rem; }
+}

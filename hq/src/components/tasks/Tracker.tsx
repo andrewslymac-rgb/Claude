@@ -101,22 +101,22 @@ export function Tracker({ slug, tasks, members, roles = [], pages, categories, m
 
       {/* Tabs */}
       <div className={`flex flex-wrap items-center gap-x-2 gap-y-1 ${mode === "full" ? "mt-5 border-b border-line pb-2" : ""}`}>
-        <div className="flex min-w-0 flex-1 basis-64 items-center gap-1 overflow-x-auto scrollbar-thin">
+        <div className="flex min-w-0 flex-1 basis-64 flex-wrap items-center gap-1 md:flex-nowrap md:overflow-x-auto md:scrollbar-thin">
           {TABS.map((x) => (
-            <button key={x.key} onClick={() => setTab(x.key)} className={`flex shrink-0 items-center gap-1.5 rounded-md px-3 py-2 text-sm md:py-1.5 ${tab === x.key ? "bg-hover font-medium text-ink" : "text-ink-soft hover:bg-hover"}`}>
+            <button key={x.key} onClick={() => setTab(x.key)} className={`tap flex shrink-0 items-center gap-1.5 rounded-md px-3 py-2 text-sm md:py-1.5 ${tab === x.key ? "bg-hover font-medium text-ink" : "text-ink-soft hover:bg-hover"}`}>
               {x.label}
               {tabCounts[x.key] > 0 && <span className="rounded-full bg-danger-soft px-1.5 text-[10px] font-semibold text-danger">{tabCounts[x.key]}</span>}
             </button>
           ))}
         </div>
         <div className="flex shrink-0 items-center gap-1 text-xs">
-          <button onClick={() => setGroupBy(groupBy === "person" ? "list" : "person")} className="flex items-center gap-1 rounded-md px-2 py-1.5 text-ink-soft hover:bg-hover" title="Group by person or show one list">
+          <button onClick={() => setGroupBy(groupBy === "person" ? "list" : "person")} className="tap flex items-center gap-1 rounded-md px-2 py-1.5 text-ink-soft hover:bg-hover" title="Group by person or show one list">
             <Users size={13} /> {groupBy === "person" ? "By person" : "One list"}
           </button>
-          <button onClick={() => setOnlyMine((v) => !v)} className={`rounded-md px-2 py-1.5 ${onlyMine ? "bg-accent-soft text-accent" : "text-ink-soft hover:bg-hover"}`}>
+          <button onClick={() => setOnlyMine((v) => !v)} className={`tap rounded-md px-2 py-1.5 ${onlyMine ? "bg-accent-soft text-accent" : "text-ink-soft hover:bg-hover"}`}>
             Mine
           </button>
-          <button onClick={() => setHideDone((v) => !v)} className={`rounded-md px-2 py-1.5 ${hideDone ? "bg-accent-soft text-accent" : "text-ink-soft hover:bg-hover"}`}>
+          <button onClick={() => setHideDone((v) => !v)} className={`tap rounded-md px-2 py-1.5 ${hideDone ? "bg-accent-soft text-accent" : "text-ink-soft hover:bg-hover"}`}>
             Hide done
           </button>
         </div>
@@ -173,7 +173,7 @@ export function Tracker({ slug, tasks, members, roles = [], pages, categories, m
                         onClick={() => toggle(t)}
                         disabled={done && !t.canUndo}
                         title={done ? "Undo" : "Mark done"}
-                        className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border transition ${done ? "border-ok bg-ok-soft text-ok" : "border-ink-faint text-transparent hover:border-accent hover:text-accent"}`}
+                        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border transition md:h-7 md:w-7 ${done ? "border-ok bg-ok-soft text-ok" : "border-ink-faint text-transparent hover:border-accent hover:text-accent"}`}
                       >
                         <Check size={14} />
                       </button>
@@ -197,7 +197,7 @@ export function Tracker({ slug, tasks, members, roles = [], pages, categories, m
                       )}
                       {!done && (t.state === "overdue" || t.state === "today") && <span className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium ${TONE[DUE_LABELS[t.state].tone]}`}>{DUE_LABELS[t.state].label}</span>}
                       {canEdit ? (
-                        <button onClick={() => setMenu(menu === t.id ? null : t.id)} className="shrink-0 rounded p-1 text-ink-faint hover:bg-line hover:text-ink md:opacity-0 md:group-hover:opacity-100" aria-label="More">
+                        <button onClick={() => setMenu(menu === t.id ? null : t.id)} className="tap-icon shrink-0 rounded p-1 text-ink-faint hover:bg-line hover:text-ink md:opacity-0 md:group-hover:opacity-100" aria-label="More">
                           <MoreHorizontal size={15} />
                         </button>
                       ) : (
@@ -319,7 +319,7 @@ function QuickAdd({ slug, frequency, memberId, roleId, ownerName, onMore }: { sl
             Add
           </button>
         ) : (
-          <button type="button" onClick={onMore} className="shrink-0 rounded px-1.5 py-1 text-[11px] text-ink-faint hover:bg-hover hover:text-ink" title="Due date, instructions, how-to page…">
+          <button type="button" onClick={onMore} className="tap shrink-0 rounded px-1.5 py-1 text-[11px] text-ink-faint hover:bg-hover hover:text-ink" title="Due date, instructions, how-to page…">
             more options
           </button>
         )}

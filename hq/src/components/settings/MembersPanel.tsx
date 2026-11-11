@@ -85,7 +85,7 @@ export function MembersPanel({ slug, myRole, myId, canManage, members, pending, 
                     {m.name ?? m.email} {m.userId === myId && <span className="text-ink-faint">(you)</span>}
                     {!m.lastName && <span className="rounded bg-warn-soft px-1.5 text-[10px] font-semibold text-warn">needs last name</span>}
                     {canManage && (
-                      <button onClick={() => setRenaming(m.userId)} className="rounded p-1 text-ink-faint hover:bg-hover hover:text-ink" title="Edit name" aria-label={`Edit name for ${m.name ?? m.email}`}>
+                      <button onClick={() => setRenaming(m.userId)} className="tap-icon rounded p-1 text-ink-faint hover:bg-hover hover:text-ink" title="Edit name" aria-label={`Edit name for ${m.name ?? m.email}`}>
                         <Pencil size={12} />
                       </button>
                     )}
@@ -99,7 +99,7 @@ export function MembersPanel({ slug, myRole, myId, canManage, members, pending, 
                     </span>
                   ))}
                   {canManage && jobRoles.length > 0 && (
-                    <button onClick={() => setPicking(picking === m.userId ? null : m.userId)} className="rounded-full border border-dashed border-line px-2 py-0.5 text-[11px] text-ink-faint hover:bg-hover hover:text-ink">
+                    <button onClick={() => setPicking(picking === m.userId ? null : m.userId)} className="tap rounded-full border border-dashed border-line px-2 py-0.5 text-[11px] text-ink-faint hover:bg-hover hover:text-ink">
                       {m.jobRoles.length ? "change roles" : "+ job role"}
                     </button>
                   )}
@@ -164,7 +164,7 @@ export function MembersPanel({ slug, myRole, myId, canManage, members, pending, 
                   {p.firstName || p.lastName ? <span className="font-medium">{[p.firstName, p.lastName].filter(Boolean).join(" ")}</span> : <span className="rounded bg-warn-soft px-1.5 text-[10px] font-semibold text-warn">no name yet</span>}
                   <span className="truncate text-xs text-ink-faint">{p.email}</span>
                   {canManage && (
-                    <button onClick={() => setRenaming(p.id)} className="rounded p-1 text-ink-faint hover:bg-hover hover:text-ink" title="Edit name" aria-label={`Edit name for ${p.email}`}>
+                    <button onClick={() => setRenaming(p.id)} className="tap-icon rounded p-1 text-ink-faint hover:bg-hover hover:text-ink" title="Edit name" aria-label={`Edit name for ${p.email}`}>
                       <Pencil size={12} />
                     </button>
                   )}

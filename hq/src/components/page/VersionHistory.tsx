@@ -62,7 +62,7 @@ export function VersionHistory({
         <aside className="flex max-h-[45%] w-full flex-col border-b border-line bg-side md:max-h-none md:w-80 md:border-b-0 md:border-l">
           <div className="flex items-center justify-between px-4 py-3">
             <h2 className="font-semibold">Version history</h2>
-            <button onClick={onClose} className="rounded p-1 hover:bg-hover" aria-label="Close">
+            <button onClick={onClose} className="tap-icon rounded p-1 hover:bg-hover" aria-label="Close">
               <X size={16} />
             </button>
           </div>

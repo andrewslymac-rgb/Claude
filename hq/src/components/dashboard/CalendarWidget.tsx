@@ -255,7 +255,7 @@ function RemoveButton({ id, label, onDone }: { id: string; label: string; onDone
           onDone();
         });
       }}
-      className="rounded-lg p-1.5 text-ink-faint hover:bg-danger-soft hover:text-danger"
+      className="tap-icon rounded-lg p-1.5 text-ink-faint hover:bg-danger-soft hover:text-danger"
       aria-label={`Disconnect ${label}`}
     >
       <Trash2 size={14} />

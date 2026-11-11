@@ -40,9 +40,9 @@ export function TaskDrawer({ slug, task, members, roles = [], pages, categories,
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-black/60" onMouseDown={onClose}>
       <div className="pt-safe pb-safe flex h-full w-full max-w-lg flex-col overflow-y-auto border-l border-line bg-card p-4 shadow-2xl md:p-6" onMouseDown={(e) => e.stopPropagation()}>
-        <div className="flex items-start justify-between gap-3">
+        <div className="sticky -top-4 z-10 -mx-4 -mt-4 flex items-start justify-between gap-3 bg-card px-4 pb-2 pt-4 md:static md:m-0 md:p-0">
           <h2 className="text-xl font-semibold">{task.title}</h2>
-          <button onClick={onClose} className="rounded p-1 hover:bg-hover" aria-label="Close">
+          <button onClick={onClose} className="tap-icon rounded p-1 hover:bg-hover" aria-label="Close">
             <X size={18} />
           </button>
         </div>
@@ -272,7 +272,7 @@ export function TaskDrawer({ slug, task, members, roles = [], pages, categories,
                   </div>
                   {task.followUpNote && <div className="text-ink-soft">{task.followUpNote}</div>}
                 </div>
-                <button disabled={busy} onClick={() => start(async () => void (await setFollowUpAction(slug, task.id, null)))} className="rounded p-1 text-ink-faint hover:bg-hover hover:text-ink" title="Done following up">
+                <button disabled={busy} onClick={() => start(async () => void (await setFollowUpAction(slug, task.id, null)))} className="tap-icon rounded p-1 text-ink-faint hover:bg-hover hover:text-ink" title="Done following up">
                   <Check size={14} />
                 </button>
               </div>
@@ -458,7 +458,7 @@ export function TaskForm({ slug, task, members, roles = [], pages, categories, p
               {members.map((m) => {
                 const on = assignees.includes(m.id);
                 return (
-                  <button key={m.id} type="button" onClick={() => setAssignees(on ? assignees.filter((x) => x !== m.id) : [...assignees, m.id])} className={`rounded-full border px-3 py-1 ${on ? "border-accent bg-accent-soft text-accent" : "border-line text-ink-soft hover:bg-hover"}`}>
+                  <button key={m.id} type="button" onClick={() => setAssignees(on ? assignees.filter((x) => x !== m.id) : [...assignees, m.id])} className={`tap rounded-full border px-3 py-1 ${on ? "border-accent bg-accent-soft text-accent" : "border-line text-ink-soft hover:bg-hover"}`}>
                     {on && "✓ "}{m.name}
                   </button>
                 );
@@ -471,7 +471,7 @@ export function TaskForm({ slug, task, members, roles = [], pages, categories, p
                   {roles.map((r) => {
                     const on = roleId === r.id;
                     return (
-                      <button key={r.id} type="button" onClick={() => setRoleId(on ? null : r.id)} className={`rounded-full border px-3 py-1 ${on ? "border-accent bg-accent-soft font-medium text-ink" : "border-line text-ink-soft hover:bg-hover"}`} style={on ? { borderColor: r.color, background: `${r.color}44` } : undefined}>
+                      <button key={r.id} type="button" onClick={() => setRoleId(on ? null : r.id)} className={`tap rounded-full border px-3 py-1 ${on ? "border-accent bg-accent-soft font-medium text-ink" : "border-line text-ink-soft hover:bg-hover"}`} style={on ? { borderColor: r.color, background: `${r.color}44` } : undefined}>
                         {on ? "✓" : r.emoji} {r.name}
                       </button>
                     );

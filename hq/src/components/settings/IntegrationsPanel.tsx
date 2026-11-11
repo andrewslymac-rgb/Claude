@@ -84,7 +84,7 @@ export function IntegrationsPanel({ slug, fieldTool, jobber, redirectUri, isAppA
               Set the <strong>Callback / redirect URL</strong> to:
               <div className="mt-1 flex items-center gap-2">
                 <code className="truncate rounded bg-paper px-2 py-1 text-xs">{redirectUri}</code>
-                <button type="button" onClick={() => navigator.clipboard.writeText(redirectUri).then(() => (setCopied(true), setTimeout(() => setCopied(false), 1500)))} className="rounded p-1 text-ink-faint hover:bg-hover hover:text-ink" title="Copy">
+                <button type="button" onClick={() => navigator.clipboard.writeText(redirectUri).then(() => (setCopied(true), setTimeout(() => setCopied(false), 1500)))} className="tap-icon rounded p-1 text-ink-faint hover:bg-hover hover:text-ink" title="Copy">
                   {copied ? <Check size={14} /> : <Copy size={14} />}
                 </button>
               </div>
