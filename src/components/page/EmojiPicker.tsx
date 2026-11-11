@@ -4,10 +4,10 @@ const EMOJIS = "📄 📚 ✅ 📋 📌 🧹 🐜 🥤 🍋 💡 🏢 👋 📞 
 
 export function EmojiPicker({ onPick, onClose }: { onPick: (emoji: string | null) => void; onClose: () => void }) {
   return (
-    <div className="absolute left-0 top-full z-40 mt-2 w-72 card p-2 shadow-xl" onMouseLeave={onClose}>
+    <div className="p-1">
       <div className="grid grid-cols-8 gap-1">
         {EMOJIS.map((e) => (
-          <button key={e} onClick={() => onPick(e)} className="rounded p-1 text-xl hover:bg-hover">
+          <button key={e} onClick={() => onPick(e)} className="rounded p-1 text-xl hover:bg-hover md:min-h-0">
             {e}
           </button>
         ))}

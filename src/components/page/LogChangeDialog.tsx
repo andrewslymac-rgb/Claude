@@ -15,8 +15,8 @@ export function LogChangeDialog({ slug, pageId, currentVersionLabel, isDrive = f
   const [busy, start] = useTransition();
   const field = "field";
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onMouseDown={onClose}>
-      <div className="w-full max-w-md card p-6 shadow-2xl" onMouseDown={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-0 sm:items-center sm:p-4" onMouseDown={onClose}>
+      <div className="pb-safe max-h-[92dvh] w-full max-w-md overflow-y-auto rounded-t-2xl border border-line bg-card p-5 shadow-2xl sm:rounded-2xl sm:p-6" onMouseDown={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold">Log a change</h2>
           <button onClick={onClose} className="rounded p-1 hover:bg-hover" aria-label="Close">

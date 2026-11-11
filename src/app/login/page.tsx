@@ -18,7 +18,7 @@ export default async function Login({ searchParams }: { searchParams: Promise<{ 
   const dev = devLoginEnabled();
 
   return (
-    <main className="orbit-bg flex min-h-screen items-center justify-center px-6">
+    <main className="orbit-bg flex pt-safe pb-safe min-h-dvh items-center justify-center px-6">
       <div className="card anim-rise w-full max-w-sm p-8">
         <OrbitWordmark size={30} />
         <div className="eyebrow mt-5">Company headquarters</div>

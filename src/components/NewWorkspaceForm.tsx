@@ -47,8 +47,8 @@ export function NewWorkspaceForm({ onDone }: { onDone?: () => void }) {
 
 export function NewWorkspaceDialog({ onClose }: { onClose: () => void }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onMouseDown={onClose}>
-      <div className="w-full max-w-sm card p-6 shadow-2xl" onMouseDown={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-0 sm:items-center sm:p-4" onMouseDown={onClose}>
+      <div className="pb-safe max-h-[92dvh] w-full max-w-sm overflow-y-auto rounded-t-2xl border border-line bg-card p-6 shadow-2xl sm:rounded-2xl" onMouseDown={(e) => e.stopPropagation()}>
         <h2 className="mb-4 text-lg font-semibold">New workspace</h2>
         <NewWorkspaceForm onDone={onClose} />
       </div>

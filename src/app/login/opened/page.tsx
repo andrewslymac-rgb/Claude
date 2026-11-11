@@ -3,7 +3,7 @@ import { OrbitWordmark } from "@/components/OrbitLogo";
 /** Shown when a sign-in link is opened in a different browser or Chrome profile than the one that asked for it. */
 export default function Opened() {
   return (
-    <main className="flex min-h-screen items-center justify-center bg-side px-6">
+    <main className="flex pt-safe pb-safe min-h-dvh items-center justify-center bg-side px-6">
       <div className="w-full max-w-sm rounded-2xl border border-line bg-card p-8 shadow-sm">
         <OrbitWordmark size={30} />
         <h1 className="mt-3 text-xl font-semibold">You&apos;re signed in</h1>

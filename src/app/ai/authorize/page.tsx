@@ -36,7 +36,7 @@ export default async function Authorize({ searchParams }: { searchParams: Promis
   const workspaces = (await listWorkspacesForUser(user)).filter((w) => can(w.role, "manage_members"));
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-side px-6 py-10">
+    <main className="flex pt-safe pb-safe min-h-dvh items-center justify-center bg-side px-6 py-10">
       <div className="w-full max-w-md rounded-2xl border border-line bg-card p-8 shadow-sm">
         <OrbitWordmark size={26} />
         {error ? (

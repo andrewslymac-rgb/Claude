@@ -17,6 +17,7 @@ import { NotesWidget } from "./NotesWidget";
 import { Tracker } from "@/components/tasks/Tracker";
 import type { TaskRow } from "@/lib/services/tasks";
 import { Modal } from "@/components/ui/Modal";
+import { PopMenu, MenuItem } from "@/components/ui/Menu";
 import { useToast } from "@/components/ui/Toast";
 
 type Item = { id: string; title: string; icon: string | null; subtitle?: string; updatedAt?: string; updatedBy?: string | null; source?: string; state?: string; nextDueOn?: string | null; review?: string; count?: number; kind?: string; pageId?: string };
@@ -75,23 +76,21 @@ export function Dashboard({ slug, widgets: initial, stats, personal, canPublish,
               <button onClick={() => setLayoutMenu((m) => !m)} className="btn btn-secondary btn-sm">
                 <LayoutDashboard size={14} /> Layouts <ChevronDown size={12} />
               </button>
-              {layoutMenu && (
-                <div className="anim-rise absolute right-0 top-9 z-30 w-64 rounded-xl border border-line bg-card p-1 shadow-2xl" onMouseLeave={() => setLayoutMenu(false)}>
-                  <MenuBtn icon={<LayoutDashboard size={14} />} onClick={() => (setLayoutMenu(false), confirm("Replace your dashboard with the command-center layout? Your tool buttons are kept.") && run(() => setupCommandCenterAction(slug), "Command center set up."))}>
-                    Command-center layout
-                  </MenuBtn>
-                  {personal && (
-                    <MenuBtn icon={<RotateCcw size={14} />} onClick={() => (setLayoutMenu(false), confirm("Go back to the company's default dashboard? Your own arrangement is dropped.") && run(() => resetDashboardAction(slug)))}>
-                      Reset to company default
-                    </MenuBtn>
-                  )}
-                  {canPublish && (
-                    <MenuBtn icon={<Upload size={14} />} onClick={() => (setLayoutMenu(false), confirm("Make your layout the company default? Everyone who hasn't customised their own dashboard will see it.") && run(() => publishDashboardAction(slug)))}>
-                      Publish as company default
-                    </MenuBtn>
-                  )}
-                </div>
-              )}
+              <PopMenu open={layoutMenu} onClose={() => setLayoutMenu(false)} title="Layouts" width="w-64">
+                <MenuItem icon={<LayoutDashboard size={14} />} onClick={() => (setLayoutMenu(false), confirm("Replace your dashboard with the command-center layout? Your tool buttons are kept.") && run(() => setupCommandCenterAction(slug), "Command center set up."))}>
+                  Command-center layout
+                </MenuItem>
+                {personal && (
+                  <MenuItem icon={<RotateCcw size={14} />} onClick={() => (setLayoutMenu(false), confirm("Go back to the company's default dashboard? Your own arrangement is dropped.") && run(() => resetDashboardAction(slug)))}>
+                    Reset to company default
+                  </MenuItem>
+                )}
+                {canPublish && (
+                  <MenuItem icon={<Upload size={14} />} onClick={() => (setLayoutMenu(false), confirm("Make your layout the company default? Everyone who hasn't customised their own dashboard will see it.") && run(() => publishDashboardAction(slug)))}>
+                    Publish as company default
+                  </MenuItem>
+                )}
+              </PopMenu>
             </div>
           </>
         )}
@@ -178,13 +177,6 @@ export function Dashboard({ slug, widgets: initial, stats, personal, canPublish,
   );
 }
 
-function MenuBtn({ icon, onClick, children }: { icon: React.ReactNode; onClick: () => void; children: React.ReactNode }) {
-  return (
-    <button onClick={onClick} className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm hover:bg-hover">
-      <span className="text-ink-faint">{icon}</span> {children}
-    </button>
-  );
-}
 
 const SPAN: Record<number, string> = { 1: "", 2: "md:col-span-2", 3: "md:col-span-2 lg:col-span-3" };
 
@@ -212,7 +204,7 @@ function Tile({ w, index, slug, stats, isAdmin, googleCalendar, catalog, editing
         {editing && (
           <div className="flex items-center gap-1 text-ink-faint">
             {catalog.listy && (
-              <span className="mr-1 hidden items-center gap-0.5 rounded-lg border border-line px-1 sm:flex" title="Rows shown">
+              <span className="mr-1 flex items-center gap-0.5 rounded-lg border border-line px-1" title="Rows shown">
                 <button onClick={() => onLimit(Math.max(3, limit - 3))} className="rounded p-0.5 hover:bg-hover hover:text-ink" aria-label="Fewer rows">
                   <Minus size={12} />
                 </button>

@@ -223,3 +223,7 @@ kbd { font-family: inherit; }
   .anim-rise, .anim-fade, .anim-slide-in { animation: none; }
   *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
 }
+.mt-safe { margin-top: env(safe-area-inset-top, 0px); }
+.mb-safe { margin-bottom: env(safe-area-inset-bottom, 0px); }
+/* Phones: the status-bar strip and everything under it share the page colour, so no dark band at the top. */
+html, body { background: var(--color-paper); }

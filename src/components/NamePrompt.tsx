@@ -15,9 +15,9 @@ export function NamePrompt({ first = "", last = "", required = false, onClose }:
   const [error, setError] = useState("");
   const [busy, start] = useTransition();
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-4" onMouseDown={required ? undefined : onClose}>
+    <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/70 p-0 sm:items-center sm:p-4" onMouseDown={required ? undefined : onClose}>
       <form
-        className="card w-full max-w-sm p-6 shadow-2xl"
+        className="pb-safe max-h-[92dvh] w-full max-w-sm overflow-y-auto rounded-t-2xl border border-line bg-card p-6 shadow-2xl sm:rounded-2xl"
         onMouseDown={(e) => e.stopPropagation()}
         onSubmit={(e) => {
           e.preventDefault();

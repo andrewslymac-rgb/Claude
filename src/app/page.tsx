@@ -35,7 +35,7 @@ export default async function Hub() {
   const first = user.firstName || (user.name ?? "").split(" ")[0] || "there";
 
   return (
-    <main className="orbit-bg mx-auto max-w-3xl px-4 py-6 md:px-6 md:py-10">
+    <main className="orbit-bg pt-safe pb-safe mx-auto min-h-dvh max-w-3xl px-4 py-6 md:px-6 md:py-10">
       <header className="flex items-center justify-between">
         <OrbitWordmark size={30} />
         <div className="flex items-center gap-2">
