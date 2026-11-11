@@ -121,6 +121,23 @@ export async function ensurePersonalLayout(workspaceId: string, userId: string) 
   return true;
 }
 
+/**
+ * The screen may still show company-widget ids right after a personal copy was made.
+ * Map such an id to the matching personal row (same type and position) so the edit lands.
+ */
+export async function personalId(workspaceId: string, userId: string, id: string) {
+  const [mine] = await db.select({ id: dashboardWidgets.id }).from(dashboardWidgets).where(and(scope(workspaceId, userId), eq(dashboardWidgets.id, id)));
+  if (mine) return mine.id;
+  const [src] = await db.select().from(dashboardWidgets).where(and(scope(workspaceId, null), eq(dashboardWidgets.id, id)));
+  if (!src) return id;
+  const [copy] = await db
+    .select({ id: dashboardWidgets.id })
+    .from(dashboardWidgets)
+    .where(and(scope(workspaceId, userId), eq(dashboardWidgets.type, src.type), eq(dashboardWidgets.position, src.position)))
+    .limit(1);
+  return copy?.id ?? id;
+}
+
 /** Drop the personal layout and go back to the company default. */
 export async function resetPersonalLayout(workspaceId: string, userId: string) {
   await db.delete(dashboardWidgets).where(scope(workspaceId, userId));

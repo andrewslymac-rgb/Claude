@@ -180,9 +180,11 @@ export async function updateWidgetAction(slug: string, id: string, patch: { titl
   return wrap(async () => {
     const { user, workspace } = await personalScope(slug);
     const p = widgetPatch.parse(patch);
+    const wid = await dash.personalId(workspace.id, user.id, uuid.parse(id));
     // Config patches merge so a width change never wipes a widget's links or note.
-    const [cur] = await db.select({ config: schema.dashboardWidgets.config }).from(schema.dashboardWidgets).where(and(eq(schema.dashboardWidgets.id, uuid.parse(id)), eq(schema.dashboardWidgets.userId, user.id)));
-    await dash.updateWidget(workspace.id, user.id, uuid.parse(id), { ...p, config: p.config ? { ...(cur?.config ?? {}), ...p.config } : undefined });
+    const [cur] = await db.select({ config: schema.dashboardWidgets.config }).from(schema.dashboardWidgets).where(and(eq(schema.dashboardWidgets.id, wid), eq(schema.dashboardWidgets.userId, user.id)));
+    if (!cur) throw new Error("That tile isn't on your dashboard any more. Refresh the page.");
+    await dash.updateWidget(workspace.id, user.id, wid, { ...p, config: p.config ? { ...cur.config, ...p.config } : undefined });
     revalidatePath(`/w/${slug}`);
   });
 }
@@ -206,7 +208,7 @@ export async function setupCommandCenterAction(slug: string): Promise<Result> {
 export async function removeWidgetAction(slug: string, id: string): Promise<Result> {
   return wrap(async () => {
     const { user, workspace } = await personalScope(slug);
-    await dash.removeWidget(workspace.id, user.id, uuid.parse(id));
+    await dash.removeWidget(workspace.id, user.id, await dash.personalId(workspace.id, user.id, uuid.parse(id)));
     revalidatePath(`/w/${slug}`);
   });
 }
@@ -214,7 +216,8 @@ export async function removeWidgetAction(slug: string, id: string): Promise<Resu
 export async function reorderWidgetsAction(slug: string, ids: string[]): Promise<Result> {
   return wrap(async () => {
     const { user, workspace } = await personalScope(slug);
-    await dash.reorderWidgets(workspace.id, user.id, z.array(uuid).parse(ids));
+    const mapped = await Promise.all(z.array(uuid).parse(ids).map((i) => dash.personalId(workspace.id, user.id, i)));
+    await dash.reorderWidgets(workspace.id, user.id, mapped);
     revalidatePath(`/w/${slug}`);
   });
 }
