@@ -1,7 +1,8 @@
 "use client";
 
+import { useAct } from "@/components/ui/Toast";
 import Link from "next/link";
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { Check, X, SkipForward, AlertTriangle, Users, CalendarDays } from "lucide-react";
 import { completeTaskAction, moveDueAction } from "@/app/actions";
@@ -20,7 +21,7 @@ const ORDER: Frequency[] = ["daily", "weekly", "monthly", "quarterly", "annual",
 export function OverduePanel({ slug, items, me, canEdit, onClose }: { slug: string; items: OverdueItem[]; me: string; canEdit: boolean; onClose: () => void }) {
   const [groupBy, setGroupBy] = useState<"person" | "cadence">("person");
   const [done, setDone] = useState<Record<string, "done" | "skipped">>({});
-  const [, start] = useTransition();
+  const [, act] = useAct();
   const today = todayISO();
   void me;
 
@@ -39,11 +40,11 @@ export function OverduePanel({ slug, items, me, canEdit, onClose }: { slug: stri
 
   const complete = (t: OverdueItem) => {
     setDone((d) => ({ ...d, [t.id]: "done" }));
-    start(() => completeTaskAction(slug, t.id));
+    act(() => completeTaskAction(slug, t.id), () => setDone((d) => Object.fromEntries(Object.entries(d).filter(([k]) => k !== t.id))));
   };
   const skip = (t: OverdueItem) => {
     setDone((d) => ({ ...d, [t.id]: "skipped" }));
-    start(async () => void (await moveDueAction(slug, t.id)));
+    act(() => moveDueAction(slug, t.id), () => setDone((d) => Object.fromEntries(Object.entries(d).filter(([k]) => k !== t.id))));
   };
   const late = (iso: string) => daysBetween(iso, today);
   const worst = live.reduce((m, t) => Math.max(m, late(t.nextDueOn)), 0);

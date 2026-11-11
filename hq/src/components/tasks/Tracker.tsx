@@ -1,5 +1,6 @@
 "use client";
 
+import { useAct } from "@/components/ui/Toast";
 import Link from "next/link";
 import { useMemo, useState, useTransition } from "react";
 import { Check, Plus, MoreHorizontal, Users, ChevronRight, SkipForward, Trash2, Pencil, UserPlus, Bell, MessageSquare } from "lucide-react";
@@ -36,7 +37,7 @@ export function Tracker({ slug, tasks, members, roles = [], pages, categories, m
   const [menu, setMenu] = useState<string | null>(null);
   const [reassign, setReassign] = useState<TaskRow | null>(null);
   const [local, setLocal] = useState<Record<string, Partial<TaskRow>>>({});
-  const [, start] = useTransition();
+  const [, act] = useAct();
   const today = todayISO();
 
   const rows = useMemo(() => tasks.map((t) => ({ ...t, ...local[t.id] })), [tasks, local]);
@@ -66,13 +67,14 @@ export function Tracker({ slug, tasks, members, roles = [], pages, categories, m
   const visible = (ts: TaskRow[]) => (hideDone ? ts.filter((t) => !isDone(t)) : ts).sort((a, b) => Number(isDone(a)) - Number(isDone(b)) || rank(a) - rank(b) || a.title.localeCompare(b.title));
 
   const toggle = (t: TaskRow) => {
+    const revert = () => setLocal((l) => ({ ...l, [t.id]: {} }));
     if (isDone(t)) {
       if (!t.canUndo) return;
       setLocal((l) => ({ ...l, [t.id]: { lastDoneOn: null, state: "today", canUndo: false } }));
-      start(() => undoTaskAction(slug, t.id));
+      act(() => undoTaskAction(slug, t.id), revert);
     } else {
       setLocal((l) => ({ ...l, [t.id]: { lastDoneOn: today, state: t.frequency === "once" ? "done" : "later", canUndo: true } }));
-      start(() => completeTaskAction(slug, t.id));
+      act(() => completeTaskAction(slug, t.id), revert);
     }
   };
 
@@ -209,11 +211,11 @@ export function Tracker({ slug, tasks, members, roles = [], pages, categories, m
                             Reassign
                           </MenuItem>
                           {!done && (
-                            <MenuItem icon={<SkipForward size={13} />} onClick={() => (setMenu(null), start(async () => void (await moveDueAction(slug, t.id))))}>
+                            <MenuItem icon={<SkipForward size={13} />} onClick={() => (setMenu(null), act(() => moveDueAction(slug, t.id)))}>
                               Skip this time
                             </MenuItem>
                           )}
-                          <MenuItem icon={<Trash2 size={13} />} danger onClick={() => (setMenu(null), confirm(`Remove "${t.title}"? Its history is kept.`) && start(() => archiveTaskAction(slug, t.id)))}>
+                          <MenuItem icon={<Trash2 size={13} />} danger onClick={() => (setMenu(null), confirm(`Remove "${t.title}"? Its history is kept.`) && act(() => archiveTaskAction(slug, t.id)))}>
                             Remove
                           </MenuItem>
                         </div>
@@ -241,7 +243,7 @@ export function Tracker({ slug, tasks, members, roles = [], pages, categories, m
             const r = roles.find((x) => x.id === roleId) ?? null;
             setLocal((l) => ({ ...l, [reassign.id]: { assignees: members.filter((m) => ids.includes(m.id)), roleId, role: r ? { id: r.id, name: r.name, emoji: r.emoji, color: r.color } : null, ownerRole: r?.name ?? null } }));
             setReassign(null);
-            start(() => updateTaskAction(slug, reassign.id, { assigneeIds: ids, roleId }));
+            act(() => updateTaskAction(slug, reassign.id, { assigneeIds: ids, roleId }));
           }}
         />
       )}

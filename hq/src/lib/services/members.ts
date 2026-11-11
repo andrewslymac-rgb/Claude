@@ -8,7 +8,7 @@ const { users, memberships, invites, memberRoles, workspaceRoles } = schema;
 
 export async function listMembers(workspaceId: string) {
   const members = await db
-    .select({ userId: users.id, email: users.email, name: users.name, firstName: users.firstName, lastName: users.lastName, avatarUrl: users.avatarUrl, role: memberships.role, lastSeenAt: users.lastSeenAt })
+    .select({ userId: users.id, email: users.email, name: users.name, firstName: users.firstName, lastName: users.lastName, notifyTaskEmail: users.notifyTaskEmail, notifyDigest: users.notifyDigest, avatarUrl: users.avatarUrl, role: memberships.role, lastSeenAt: users.lastSeenAt })
     .from(memberships)
     .innerJoin(users, eq(users.id, memberships.userId))
     .where(eq(memberships.workspaceId, workspaceId))

@@ -108,6 +108,21 @@ export async function searchAction(slug: string, q: string) {
   return pages.searchPages(workspace.id, z.string().max(200).parse(q));
 }
 
+/** ⌘K search: pages, tasks and people in one go. */
+export async function searchAllAction(slug: string, q: string) {
+  const { workspace, abilities } = await requireAbility(slug, "read");
+  const term = z.string().max(200).parse(q).trim().toLowerCase();
+  if (!term) return { pages: [], tasks: [], people: [] };
+  const [pageHits, allTasks, { members: people }] = await Promise.all([pages.searchPages(workspace.id, term, 8), taskSvc.listTasks(workspace.id), members.listMembers(workspace.id)]);
+  const tasks = allTasks
+    .filter((t) => t.title.toLowerCase().includes(term) || t.instructions.toLowerCase().includes(term))
+    .slice(0, 6)
+    .map((t) => ({ id: t.id, title: t.title, frequency: t.frequency, state: t.state, who: t.assignees.map((a) => a.name.split(" ")[0]).join(", ") || t.ownerRole || "anyone" }));
+  const canSeeTeam = can(abilities, "manage_tasks");
+  const matched = people.filter((m) => (m.name ?? "").toLowerCase().includes(term) || m.email.toLowerCase().includes(term)).slice(0, 5).map((m) => ({ id: m.userId, name: m.name ?? m.email, email: m.email, roles: m.jobRoles.map((r) => `${r.emoji} ${r.name}`).join(", "), canOpen: canSeeTeam }));
+  return { pages: pageHits, tasks, people: matched };
+}
+
 type Result = { ok: true; message?: string } | { ok: false; error: string };
 const wrap = async (fn: () => Promise<string | void>): Promise<Result> => {
   try {
@@ -291,6 +306,17 @@ export async function renameInviteAction(slug: string, inviteId: string, first: 
     const n = nameSchema.parse({ first, last });
     await members.renameInvite(workspace.id, uuid.parse(inviteId), n.first, n.last);
     revalidatePath(`/w/${slug}/settings`);
+  });
+}
+
+/** My own email preferences (apply across companies). */
+export async function setMyNotificationsAction(prefs: { taskEmail: boolean; digest: boolean }): Promise<Result> {
+  return wrap(async () => {
+    const { getCurrentUser } = await import("@/lib/auth/session");
+    const me = await getCurrentUser();
+    if (!me) throw new Error("Please sign in again.");
+    const p = z.object({ taskEmail: z.boolean(), digest: z.boolean() }).parse(prefs);
+    await db.update(schema.users).set({ notifyTaskEmail: p.taskEmail, notifyDigest: p.digest }).where(eq(schema.users.id, me.id));
   });
 }
 

@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useAct } from "@/components/ui/Toast";
+import { useEffect, useState } from "react";
 import { ClipboardList, History, Plus, User, Bot, X, FileText } from "lucide-react";
 import { listVersionsAction, setTeamToldAction } from "@/app/actions";
 
@@ -35,7 +36,7 @@ export function ChangeLogPanel({
   onCount?: (n: number) => void;
 }) {
   const [entries, setEntries] = useState<V[] | null>(null);
-  const [, start] = useTransition();
+  const [, act] = useAct();
 
   useEffect(() => {
     listVersionsAction(slug, pageId).then((v) => {
@@ -47,7 +48,7 @@ export function ChangeLogPanel({
 
   const toggleTold = (v: V) => {
     setEntries((es) => es?.map((x) => (x.id === v.id ? { ...x, teamTold: !x.teamTold } : x)) ?? null);
-    start(() => setTeamToldAction(slug, pageId, v.id, !v.teamTold));
+    act(() => setTeamToldAction(slug, pageId, v.id, !v.teamTold), () => setEntries((es) => es?.map((x) => (x.id === v.id ? { ...x, teamTold: v.teamTold } : x)) ?? null));
   };
 
   return (

@@ -6,6 +6,10 @@ export async function register() {
   setTimeout(() => void syncAll(), 20_000); // first pass shortly after boot
   setInterval(() => void syncAll(), minutes * 60_000);
   // Two-way areas: send Orbit edits to Google Docs about a minute after people stop typing.
+  // Morning digest emails: checked every 10 minutes, sent once a day after 7 AM Pacific.
+  const { sendDailyDigests } = await import("@/lib/services/digest");
+  setTimeout(() => void sendDailyDigests().catch((e) => console.error("Digest failed", e)), 45_000); // catch up after a restart
+  setInterval(() => void sendDailyDigests().catch((e) => console.error("Digest failed", e)), 10 * 60_000);
   const { pushAllPending } = await import("@/lib/drive/twoway");
   setInterval(() => void pushAllPending().catch((e) => console.error("Two-way push failed", e)), 30_000);
 }

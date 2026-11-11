@@ -15,6 +15,10 @@ The full architecture, build order and Drive/AI design are in **[docs/PLAN.md](d
 - **SOPs**: mark any page as an SOP (••• menu). SOPs show up in the dashboard's SOP tile.
 - **Dashboard**: click **Customize** to add, remove, resize or drag tiles: quick links to your tools, SOP list, pinned pages, recently updated, and an announcement.
 - **People**: Settings → add people by email as Owner, Admin, Editor or Viewer, separately for each company.
+- **Your own dashboard**: everyone arranges their own home screen (Customize → Add widget). Admins can publish theirs as the company default. Widgets include the tracker, at-a-glance numbers, tools, your calendar, team progress, SOP changes, follow-ups, a private scratchpad and more.
+- **Calendar**: the "My calendar" widget connects your own Google Calendar or any iCal feed (Outlook, Apple). Only you see yours.
+- **Appearance**: dark, light or automatic, from the menu under your name.
+- **Email**: a morning digest and task-assignment emails, each person's choice under Settings → People → My notifications.
 
 ---
 

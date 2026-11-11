@@ -1,5 +1,6 @@
 "use client";
 
+import { useAct } from "@/components/ui/Toast";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
@@ -55,16 +56,33 @@ export function Sidebar(props: { workspace: Ws; workspaces: Ws[]; tree: Node[]; 
   const [pending, start] = useTransition();
   const base = `/w/${workspace.slug}`;
 
+  // ⌘K search, plus Gmail-style "g then h/t/m/l/f" to jump around when not typing.
   useEffect(() => {
+    let lastG = 0;
+    const typing = () => {
+      const el = document.activeElement as HTMLElement | null;
+      return Boolean(el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.tagName === "SELECT" || el.isContentEditable));
+    };
+    const go: Record<string, string> = { h: base, t: `${base}/tasks`, m: props.canManageTasks ? `${base}/team` : `${base}/team/${props.me}`, l: `${base}/library`, f: `${base}/flags` };
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        return setSearchOpen(true);
+      }
+      if (e.metaKey || e.ctrlKey || e.altKey || typing()) return;
+      const k = e.key.toLowerCase();
+      if (k === "g") return void (lastG = Date.now());
+      if (Date.now() - lastG < 900 && go[k]) {
+        lastG = 0;
+        router.push(go[k]);
+      } else if (k === "/") {
         e.preventDefault();
         setSearchOpen(true);
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  }, [base, props.canManageTasks, props.me, router]);
 
   const newPage = (parentId: string | null) =>
     start(async () => {
@@ -164,6 +182,9 @@ export function Sidebar(props: { workspace: Ws; workspaces: Ws[]; tree: Node[]; 
               <div className="flex items-center justify-between px-2.5 py-1.5 text-xs text-ink-soft">
                 Appearance <ThemeToggle compact />
               </div>
+              <div className="hidden px-2.5 pb-1.5 text-[11px] text-ink-faint md:block">
+                Shortcuts: <kbd className="kbd">⌘K</kbd> search · <kbd className="kbd">g</kbd> then <kbd className="kbd">h</kbd> home, <kbd className="kbd">t</kbd> tracker, <kbd className="kbd">m</kbd> team, <kbd className="kbd">l</kbd> library
+              </div>
               <button onClick={() => (setUserOpen(false), setNameOpen(true))} className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left hover:bg-hover" role="menuitem">
                 <UserRound size={14} className="text-ink-faint" /> Edit my name
               </button>
@@ -257,7 +278,7 @@ const EXPANDED_KEY = "hq.expanded";
 
 function PageTree({ slug, nodes, canEdit, onNew }: { slug: string; nodes: Node[]; canEdit: boolean; onNew: (parentId: string | null) => void }) {
   const pathname = usePathname();
-  const [, start] = useTransition();
+  const [, act] = useAct();
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [drag, setDrag] = useState<string | null>(null);
   const [drop, setDrop] = useState<DropZone>(null);
@@ -325,7 +346,7 @@ function PageTree({ slug, nodes, canEdit, onNew }: { slug: string; nodes: Node[]
       position = neighbor ? (target.position + neighbor.position) / 2 : target.position + (drop.zone === "before" ? -1 : 1);
     }
     const id = drag;
-    start(() => movePageAction(slug, id, parentId, position));
+    act(() => movePageAction(slug, id, parentId, position));
     reset();
   };
   const reset = () => {
@@ -396,7 +417,7 @@ function PageTree({ slug, nodes, canEdit, onNew }: { slug: string; nodes: Node[]
                       className="w-full rounded px-2 py-1.5 text-left text-danger hover:bg-danger-soft"
                       onClick={() => {
                         setMenu(null);
-                        start(() => archivePageAction(slug, n.id));
+                        act(() => archivePageAction(slug, n.id));
                       }}
                     >
                       Move to Trash

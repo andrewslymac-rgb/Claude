@@ -36,7 +36,7 @@ export async function notifyAssigned(workspaceId: string, taskId: string, userId
         .select({ id: users.id, email: users.email, firstName: users.firstName, name: users.name })
         .from(users)
         .innerJoin(memberships, and(eq(memberships.userId, users.id), eq(memberships.workspaceId, workspaceId)))
-        .where(inArray(users.id, to)),
+        .where(and(inArray(users.id, to), eq(users.notifyTaskEmail, true))),
     ]);
     if (!task || !ws) return;
     const by = actor[0]?.name || actor[0]?.email?.split("@")[0] || "Someone";

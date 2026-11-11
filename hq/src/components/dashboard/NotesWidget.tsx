@@ -9,13 +9,23 @@ export function NotesWidget({ slug, widgetId, initial }: { slug: string; widgetI
   const [text, setText] = useState(initial);
   const [state, setState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  useEffect(() => () => void (timer.current && clearTimeout(timer.current)), []);
+  const latest = useRef({ text: initial, dirty: false });
+  // Leaving the page before the debounce fires still saves what was typed.
+  useEffect(
+    () => () => {
+      if (timer.current) clearTimeout(timer.current);
+      if (latest.current.dirty) void saveNoteAction(slug, widgetId, latest.current.text);
+    },
+    [slug, widgetId],
+  );
   const queue = (v: string) => {
     setText(v);
+    latest.current = { text: v, dirty: true };
     setState("saving");
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(async () => {
       const r = await saveNoteAction(slug, widgetId, v);
+      if (r.ok) latest.current.dirty = false;
       setState(r.ok ? "saved" : "error");
     }, 700);
   };
