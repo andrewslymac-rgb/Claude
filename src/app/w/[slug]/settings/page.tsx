@@ -6,6 +6,7 @@ import { listRoles } from "@/lib/services/roles";
 import { RolesPanel } from "@/components/settings/RolesPanel";
 import type { Role } from "@/db/schema";
 import { listMembers } from "@/lib/services/members";
+import { NotificationsPanel } from "@/components/settings/NotificationsPanel";
 import { MembersPanel } from "@/components/settings/MembersPanel";
 import { WorkspaceForm } from "@/components/settings/WorkspaceForm";
 import { AiAccessPanel } from "@/components/settings/AiAccessPanel";
@@ -101,8 +102,18 @@ export default async function Settings({ params, searchParams }: { params: Promi
 
 async function PeopleTab({ slug, workspaceId, role, canManage, userId }: { slug: string; workspaceId: string; role: Role; canManage: boolean; userId: string }) {
   const [{ members, pending }, jobRoles] = await Promise.all([listMembers(workspaceId), listRoles(workspaceId)]);
+  const me = members.find((m) => m.userId === userId);
   return (
     <div className="space-y-8">
+      {me && (
+        <section>
+          <h2 className="text-lg font-semibold">My notifications</h2>
+          <p className="mt-1 text-sm text-ink-soft">Just for you. Everyone chooses their own.</p>
+          <div className="mt-3">
+            <NotificationsPanel email={me.email} taskEmail={me.notifyTaskEmail} digest={me.notifyDigest} />
+          </div>
+        </section>
+      )}
       <section>
         <h2 className="text-lg font-semibold">People</h2>
         <p className="mt-1 text-sm text-ink-soft">Who can open this company in Orbit. The access level says what they can change; job roles say what work is theirs.</p>

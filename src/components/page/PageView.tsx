@@ -1,5 +1,6 @@
 "use client";
 
+import { useAct } from "@/components/ui/Toast";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -43,6 +44,7 @@ export function PageView({ slug, page, crumbs, subpages, canEdit, canLog = canEd
   const [editorKey, setEditorKey] = useState(0);
   const [content, setContent] = useState(page.content);
   const [, start] = useTransition();
+  const [, act] = useAct();
   const focusEditor = useRef<(() => void) | null>(null);
 
   // --- autosave -----------------------------------------------------------
@@ -139,7 +141,7 @@ export function PageView({ slug, page, crumbs, subpages, canEdit, canLog = canEd
                   onClick={() => {
                     setMenu(false);
                     setIsSop(!isSop);
-                    start(() => setSopAction(slug, page.id, !isSop));
+                    act(() => setSopAction(slug, page.id, !isSop), () => setIsSop(isSop));
                   }}
                 >
                   <BookMarked size={15} /> {isSop ? "Unmark as SOP" : "Mark as SOP / policy"}

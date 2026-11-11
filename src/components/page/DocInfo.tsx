@@ -1,5 +1,6 @@
 "use client";
 
+import { useAct } from "@/components/ui/Toast";
 import { useState, useTransition } from "react";
 import { ClipboardCheck, ChevronDown, ChevronUp, ExternalLink } from "lucide-react";
 import { markReviewedAction, updateDocInfoAction } from "@/app/actions";
@@ -34,6 +35,7 @@ export function DocInfo({ slug, pageId, initial, members, options, canEdit, forc
   const [v, setV] = useState(initial);
   const [open, setOpen] = useState(Boolean(forceOpen));
   const [, start] = useTransition();
+  const [, act] = useAct();
   const isDoc = Boolean(v.docType || v.docStatus || v.reviewCycle);
   const state = reviewState(v.reviewCycle, v.lastReviewedOn);
   const next = nextReviewOn(v.reviewCycle, v.lastReviewedOn);
@@ -42,7 +44,7 @@ export function DocInfo({ slug, pageId, initial, members, options, canEdit, forc
     setV((x) => ({ ...x, ...patch }));
     const { lastReviewedBy, ...rest } = patch; // not a server field
     void lastReviewedBy;
-    start(() => updateDocInfoAction(slug, pageId, rest));
+    act(() => updateDocInfoAction(slug, pageId, rest));
   };
   const review = () =>
     start(async () => {

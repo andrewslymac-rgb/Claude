@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useState, useTransition } from "react";
 import { CheckCircle2, AlertCircle, X } from "lucide-react";
 
 type Toast = { id: number; text: string; ok: boolean };
@@ -37,3 +37,26 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
 }
 
 export const useToast = () => useContext(Ctx);
+
+/**
+ * Runs a server action in a transition and reports failure as a toast instead of a
+ * silent swallow. Pass `revert` to undo an optimistic UI change when it fails.
+ */
+export function useAct() {
+  const toast = useToast();
+  const [pending, start] = useTransition();
+  const act = useCallback(
+    (fn: () => Promise<unknown>, revert?: () => void) =>
+      start(async () => {
+        try {
+          const r = (await fn()) as { ok?: boolean; error?: string } | undefined;
+          if (r && r.ok === false) throw new Error(r.error ?? "Something went wrong.");
+        } catch (e) {
+          revert?.();
+          toast((e as Error).message || "Something went wrong. Please try again.", false);
+        }
+      }),
+    [toast],
+  );
+  return [pending, act] as const;
+}
