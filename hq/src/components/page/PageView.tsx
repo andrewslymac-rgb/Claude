@@ -99,7 +99,7 @@ export function PageView({ slug, page, crumbs, subpages, canEdit, canLog = canEd
     <div className="relative flex min-h-full">
     <div className="relative min-w-0 flex-1">
       {/* Top bar */}
-      <div className="sticky top-0 z-20 flex h-11 items-center gap-1 bg-paper/90 px-2 text-sm backdrop-blur md:gap-2 md:px-4">
+      <div className="sticky top-0 z-20 flex h-12 items-center gap-0.5 bg-paper/90 px-1.5 text-sm backdrop-blur md:h-11 md:gap-2 md:px-4">
         <nav className="flex min-w-0 flex-1 items-center gap-1 text-ink-soft">
           <button onClick={() => (window.history.length > 1 ? router.back() : router.push(`/w/${slug}`))} className="hidden h-7 w-7 shrink-0 items-center justify-center rounded text-ink-faint hover:bg-hover hover:text-ink md:flex" title="Back" aria-label="Back">
             <ChevronLeft size={16} />
@@ -118,22 +118,23 @@ export function PageView({ slug, page, crumbs, subpages, canEdit, canLog = canEd
         </nav>
         <SaveIndicator state={save} />
         {isSop && <span className="rounded bg-warn-soft px-2 py-0.5 text-xs font-semibold text-warn">SOP</span>}
-        <button onClick={() => setFlagging(true)} className="flex min-h-10 items-center gap-1 rounded-md px-2 py-1 text-ink-soft hover:bg-hover hover:text-warn md:min-h-0" title="Something off? Flag it for the owners.">
-          <Flag size={15} /> <span className="hidden sm:inline">Flag</span>
+        <button onClick={() => setFlagging(true)} className="flex h-11 min-w-11 items-center justify-center gap-1 rounded-lg px-2 text-ink-soft hover:bg-hover hover:text-warn md:h-auto md:min-w-0 md:py-1" title="Something off? Flag it for the owners.">
+          <Flag size={20} className="md:hidden" /><Flag size={15} className="hidden md:block" /> <span className="hidden sm:inline">Flag</span>
         </button>
         {showLog && (
-          <button onClick={() => setLogOpen(true)} aria-label="Document panel" title="Document panel" className="flex min-h-10 items-center gap-1 rounded-md bg-accent-soft px-2 py-1 font-medium text-accent hover:opacity-90 md:min-h-0 xl:hidden">
-            <FileText size={15} /> <span className="hidden sm:inline">Document</span>
+          <button onClick={() => setLogOpen(true)} aria-label="Document panel" title="Document panel" className="flex h-11 min-w-11 items-center justify-center gap-1 rounded-lg bg-accent-soft px-2 font-medium text-accent hover:opacity-90 md:h-auto md:min-w-0 md:py-1 xl:hidden">
+            <FileText size={20} className="md:hidden" />
+            <FileText size={15} className="hidden md:block" /> <span className="hidden sm:inline">Document</span>
             {logCount ? <span className="text-xs opacity-80">{logCount}</span> : null}
           </button>
         )}
-        <button onClick={() => setHistory(true)} className="flex min-h-10 items-center gap-1 rounded-md px-2 py-1 text-ink-soft hover:bg-hover md:min-h-0">
-          <History size={15} /> <span className="hidden sm:inline">History</span>
+        <button onClick={() => setHistory(true)} className="flex h-11 min-w-11 items-center justify-center gap-1 rounded-lg px-2 text-ink-soft hover:bg-hover md:h-auto md:min-w-0 md:py-1">
+          <History size={20} className="md:hidden" /><History size={15} className="hidden md:block" /> <span className="hidden sm:inline">History</span>
         </button>
         {canEdit && (
           <div className="relative">
-            <button onClick={() => setMenu((m) => !m)} className="flex h-10 w-10 items-center justify-center rounded-md text-ink-soft hover:bg-hover md:h-auto md:w-auto md:p-1" aria-label="More">
-              <MoreHorizontal size={18} />
+            <button onClick={() => setMenu((m) => !m)} className="flex h-11 w-11 items-center justify-center rounded-lg text-ink-soft hover:bg-hover md:h-auto md:w-auto md:p-1" aria-label="More">
+              <MoreHorizontal size={22} className="md:hidden" /><MoreHorizontal size={18} className="hidden md:block" />
             </button>
             <PopMenu open={menu} onClose={() => setMenu(false)} title={title || "Untitled"} width="w-60">
               <MenuItem
