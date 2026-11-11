@@ -29,6 +29,7 @@ export function TaskDrawer({ slug, task, members, roles = [], pages, categories,
   const [doneOn, setDoneOn] = useState<{ date: string; note: string } | null>(null);
   const [followUp, setFollowUp] = useState<{ date: string; note: string } | null>(null);
   const [moveTo, setMoveTo] = useState<string | null>(null);
+  const [lastTo, setLastTo] = useState<string | null>(null);
   const [busy, start] = useTransition();
   useEffect(() => {
     listTaskNotesAction(slug, task.id).then(setNotes);
@@ -74,7 +75,14 @@ export function TaskDrawer({ slug, task, members, roles = [], pages, categories,
             )}
           </dd>
           <dt className="text-ink-faint">Last done</dt>
-          <dd>{task.lastDoneOn === "today" ? "Today" : task.lastDoneOn ? fmtDate(task.lastDoneOn) : <span className="text-ink-faint">Never</span>}</dd>
+          <dd className="flex items-center gap-2">
+            {task.lastDoneOn === "today" ? "Today" : task.lastDoneOn ? fmtDate(task.lastDoneOn) : <span className="text-ink-faint">Never</span>}
+            {canEdit && lastTo === null && (
+              <button type="button" onClick={() => setLastTo(task.lastDoneOn && task.lastDoneOn !== "today" ? task.lastDoneOn : today)} className="flex items-center gap-1 text-xs text-accent hover:underline">
+                <CalendarClock size={12} /> change
+              </button>
+            )}
+          </dd>
           {task.sopPageId && (
             <>
               <dt className="text-ink-faint">How-to</dt>
@@ -155,6 +163,42 @@ export function TaskDrawer({ slug, task, members, roles = [], pages, categories,
               </button>
               <button disabled={busy} className="btn btn-primary btn-sm">
                 {busy ? "Saving…" : "Move due date"}
+              </button>
+            </div>
+          </form>
+        )}
+
+        {lastTo !== null && (
+          <form
+            className="mt-4 space-y-2 rounded-lg border border-line bg-side/40 p-3"
+            onSubmit={(e) => {
+              e.preventDefault();
+              const to = lastTo;
+              start(async () => {
+                await updateTaskAction(slug, task.id, { lastDoneOn: to || null });
+                setLastTo(null);
+                setHistory(await listCompletionsAction(slug, task.id));
+              });
+            }}
+          >
+            <div className="flex flex-wrap items-center gap-2">
+              <label className="text-xs text-ink-faint">
+                Last done on
+                <input type="date" required value={lastTo} max={today} onChange={(e) => setLastTo(e.target.value)} className="ml-2 field w-auto py-1.5" />
+              </label>
+            </div>
+            <p className="text-[11px] text-ink-faint">Moves the most recent completion to this date; the next due date follows the schedule from there.</p>
+            <div className="flex flex-wrap justify-end gap-2">
+              {task.lastDoneOn && (
+                <button type="button" disabled={busy} onClick={() => start(async () => (await updateTaskAction(slug, task.id, { lastDoneOn: null }), setLastTo(null), setHistory(await listCompletionsAction(slug, task.id))))} className="btn btn-ghost btn-sm text-danger">
+                  Never done
+                </button>
+              )}
+              <button type="button" onClick={() => setLastTo(null)} className="btn btn-ghost btn-sm">
+                Cancel
+              </button>
+              <button disabled={busy} className="btn btn-primary btn-sm">
+                {busy ? "Saving…" : "Save"}
               </button>
             </div>
           </form>
