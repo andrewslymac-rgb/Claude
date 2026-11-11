@@ -1,25 +1,37 @@
 import "server-only";
-import { and, asc, eq, max } from "drizzle-orm";
+import { and, asc, eq, isNull, max } from "drizzle-orm";
 import { db, schema } from "@/db";
 import type { FieldTool, LinkItem, WidgetConfig, WidgetType } from "@/db/schema";
 import { FIELD_TOOL_INFO } from "@/lib/field-tools";
 
 const { dashboardWidgets, workspaces } = schema;
 
-export const WIDGET_CATALOG: Record<WidgetType, { title: string; description: string; emoji: string; available: boolean; width: number }> = {
-  tracker: { title: "Tracker", description: "Daily, weekly, monthly, quarterly and annual work by person. Tick it off here.", emoji: "☑️", available: true, width: 3 },
-  stats: { title: "At a glance", description: "Live numbers: overdue tasks, flags, reviews due, today's jobs", emoji: "📊", available: true, width: 3 },
-  tools: { title: "Tools", description: "Big buttons to Jobber, QuickBooks, Slack and everything else you use", emoji: "🧰", available: true, width: 3 },
-  jobber: { title: "Today in the field", description: "Today's schedule, new requests, quotes waiting, overdue invoices from Jobber or GorillaDesk", emoji: "🧰", available: true, width: 2 },
-  collections: { title: "Documents", description: "SOPs, Legal, Licensing and other document areas", emoji: "🗂️", available: true, width: 1 },
-  tasks: { title: "Tasks", description: "Overdue, due today and coming up this week", emoji: "✅", available: true, width: 1 },
-  flags: { title: "Open flags", description: "Things the team flagged that need a decision", emoji: "🚩", available: true, width: 1 },
-  reviews: { title: "Reviews due", description: "Documents that need a review", emoji: "📋", available: true, width: 1 },
-  recent: { title: "Recently updated", description: "What changed lately", emoji: "🕒", available: true, width: 1 },
-  welcome: { title: "Announcement", description: "A greeting or note for the team", emoji: "📣", available: true, width: 3 },
-  links: { title: "Quick links", description: "A small row of links", emoji: "🔗", available: true, width: 1 },
-  sops: { title: "SOPs & Policies", description: "Every page marked as an SOP", emoji: "📚", available: true, width: 1 },
-  pages: { title: "Pinned pages", description: "Pages you pick", emoji: "📌", available: true, width: 1 },
+export type WidgetCategory = "work" | "people" | "documents" | "company" | "personal";
+export { CATEGORY_LABELS } from "./dashboard-meta";
+
+export type CatalogEntry = { title: string; description: string; emoji: string; width: number; category: WidgetCategory; configurable?: boolean; listy?: boolean; personal?: boolean; adminOnly?: boolean; needsTasks?: boolean };
+
+export const WIDGET_CATALOG: Record<WidgetType, CatalogEntry> = {
+  stats: { title: "At a glance", description: "Live numbers: overdue tasks, due today, flags, reviews due, AI approvals.", emoji: "📊", width: 3, category: "work" },
+  tracker: { title: "Tracker", description: "Daily, weekly, monthly, quarterly and annual work by person. Tick it off here.", emoji: "☑️", width: 3, category: "work" },
+  tasks: { title: "My tasks", description: "Your overdue, due-today and this-week tasks.", emoji: "✅", width: 1, category: "work", listy: true },
+  followups: { title: "Follow-ups", description: "Tasks with a follow-up date that has arrived.", emoji: "🔔", width: 1, category: "work", listy: true },
+  jobber: { title: "Today in the field", description: "Today's schedule, new requests, quotes waiting, overdue invoices from Jobber or GorillaDesk.", emoji: "🗓️", width: 2, category: "work" },
+  calendar: { title: "My calendar", description: "Your own Google Calendar or any calendar feed. Only you see it.", emoji: "📆", width: 2, category: "personal", personal: true, configurable: true },
+  notes: { title: "Scratchpad", description: "A private note just for you: reminders, numbers, a parking lot.", emoji: "📝", width: 1, category: "personal", personal: true, configurable: true },
+  team: { title: "Team progress", description: "Who's on track, who's behind, at a glance.", emoji: "👥", width: 1, category: "people", listy: true, needsTasks: true },
+  tools: { title: "Tools", description: "Big buttons to Jobber, QuickBooks, Slack and everything else you use.", emoji: "🧰", width: 3, category: "company", configurable: true },
+  links: { title: "Quick links", description: "A small row of links.", emoji: "🔗", width: 1, category: "company", configurable: true },
+  welcome: { title: "Announcement", description: "A greeting or note for the whole team.", emoji: "📣", width: 3, category: "company", configurable: true },
+  flags: { title: "Open flags", description: "Things the team flagged that need a decision.", emoji: "🚩", width: 1, category: "company", listy: true },
+  feedback: { title: "Feedback & bugs", description: "New bug reports and ideas about Orbit itself.", emoji: "💬", width: 1, category: "company", listy: true, adminOnly: true },
+  ai: { title: "AI approvals", description: "Edits Claude proposed that are waiting for a person to approve.", emoji: "🤖", width: 1, category: "company", listy: true },
+  collections: { title: "Documents", description: "SOPs, Legal, Licensing and other document areas.", emoji: "🗂️", width: 1, category: "documents" },
+  reviews: { title: "Reviews due", description: "Documents that need a review.", emoji: "📋", width: 1, category: "documents", listy: true },
+  changelog: { title: "SOP changes", description: "The latest logged changes to SOPs and policies.", emoji: "📜", width: 1, category: "documents", listy: true },
+  recent: { title: "Recently updated", description: "What changed lately.", emoji: "🕒", width: 1, category: "documents", listy: true },
+  sops: { title: "SOPs & Policies", description: "Every page marked as an SOP.", emoji: "📚", width: 1, category: "documents", listy: true },
+  pages: { title: "Pinned pages", description: "Pages you pick.", emoji: "📌", width: 1, category: "documents", configurable: true },
 };
 
 /** Starter launcher for a service business. People edit it from the dashboard. */
@@ -56,24 +68,39 @@ function toolsFor(fieldTool: FieldTool): LinkItem[] {
   return [...first, ...DEFAULT_TOOLS];
 }
 
+const scope = (workspaceId: string, userId: string | null) => and(eq(dashboardWidgets.workspaceId, workspaceId), userId ? eq(dashboardWidgets.userId, userId) : isNull(dashboardWidgets.userId));
+
+/** The company's default layout (userId null). */
+export async function listCompanyWidgets(workspaceId: string) {
+  return db.select().from(dashboardWidgets).where(scope(workspaceId, null)).orderBy(asc(dashboardWidgets.position));
+}
+
+/**
+ * What one person sees: their own layout if they've personalised it, otherwise the
+ * company default. `personal` says which one came back.
+ */
+export async function listWidgetsFor(workspaceId: string, userId: string) {
+  const mine = await db.select().from(dashboardWidgets).where(scope(workspaceId, userId)).orderBy(asc(dashboardWidgets.position));
+  if (mine.length) return { widgets: mine, personal: true };
+  return { widgets: await listCompanyWidgets(workspaceId), personal: false };
+}
+
 /** Dashboards set up before the tracker existed get it slotted in after Tools, once. */
 export async function ensureTrackerWidget(workspaceId: string) {
-  const ws = await listWidgets(workspaceId);
-  if (ws.some((w) => w.type === "tracker")) return;
+  const ws = await listCompanyWidgets(workspaceId);
+  if (!ws.length || ws.some((w) => w.type === "tracker")) return;
   const tools = ws.find((w) => w.type === "tools");
   if (!tools) return;
   await db.insert(dashboardWidgets).values({ workspaceId, type: "tracker", title: WIDGET_CATALOG.tracker.title, config: {}, width: 3, position: tools.position + 0.5 });
 }
 
-export async function listWidgets(workspaceId: string) {
-  return db.select().from(dashboardWidgets).where(eq(dashboardWidgets.workspaceId, workspaceId)).orderBy(asc(dashboardWidgets.position));
-}
-
-function defaultsFor(type: WidgetType, fieldTool: FieldTool = "none"): WidgetConfig {
+export function defaultsFor(type: WidgetType, fieldTool: FieldTool = "none"): WidgetConfig {
   if (type === "links") return { links: [] };
   if (type === "tools") return { links: toolsFor(fieldTool) };
   if (type === "pages") return { pageIds: [] };
   if (type === "welcome") return { text: "Write something for the team…" };
+  if (type === "calendar") return { days: 7 };
+  if (type === "notes") return { notesBy: {} };
   return { limit: 6 };
 }
 
@@ -82,46 +109,83 @@ async function fieldToolOf(workspaceId: string): Promise<FieldTool> {
   return w?.fieldTool ?? "none";
 }
 
-export async function addWidget(workspaceId: string, type: WidgetType) {
-  const [{ top }] = await db.select({ top: max(dashboardWidgets.position) }).from(dashboardWidgets).where(eq(dashboardWidgets.workspaceId, workspaceId));
+/**
+ * The first time someone customises, their layout is copied from the company default
+ * so edits never change what teammates see. Returns true if a copy was made.
+ */
+export async function ensurePersonalLayout(workspaceId: string, userId: string) {
+  const mine = await db.select({ id: dashboardWidgets.id }).from(dashboardWidgets).where(scope(workspaceId, userId)).limit(1);
+  if (mine.length) return false;
+  const base = await listCompanyWidgets(workspaceId);
+  if (base.length) await db.insert(dashboardWidgets).values(base.map((w) => ({ workspaceId, userId, type: w.type, title: w.title, config: w.config, width: w.width, position: w.position })));
+  return true;
+}
+
+/** Drop the personal layout and go back to the company default. */
+export async function resetPersonalLayout(workspaceId: string, userId: string) {
+  await db.delete(dashboardWidgets).where(scope(workspaceId, userId));
+}
+
+/** An admin makes their own layout the company default (personal widgets such as the scratchpad keep per-person content). */
+export async function publishAsCompanyLayout(workspaceId: string, userId: string) {
+  const mine = await db.select().from(dashboardWidgets).where(scope(workspaceId, userId)).orderBy(asc(dashboardWidgets.position));
+  if (!mine.length) throw new Error("Customise your dashboard first, then publish it.");
+  await db.transaction(async (tx) => {
+    await tx.delete(dashboardWidgets).where(scope(workspaceId, null));
+    await tx.insert(dashboardWidgets).values(mine.map((w) => ({ workspaceId, userId: null, type: w.type, title: w.title, config: w.type === "notes" ? {} : w.config, width: w.width, position: w.position })));
+  });
+}
+
+export async function addWidget(workspaceId: string, userId: string | null, type: WidgetType) {
+  const [{ top }] = await db.select({ top: max(dashboardWidgets.position) }).from(dashboardWidgets).where(scope(workspaceId, userId));
   const [w] = await db
     .insert(dashboardWidgets)
-    .values({ workspaceId, type, title: WIDGET_CATALOG[type].title, config: defaultsFor(type, await fieldToolOf(workspaceId)), width: WIDGET_CATALOG[type].width, position: (top ?? 0) + 1 })
+    .values({ workspaceId, userId, type, title: WIDGET_CATALOG[type].title, config: defaultsFor(type, await fieldToolOf(workspaceId)), width: WIDGET_CATALOG[type].width, position: (top ?? 0) + 1 })
     .returning();
   return w;
 }
 
 /**
- * Replace the dashboard with the command-center layout: numbers strip, tools,
- * Jobber, documents, tasks, flags, reviews, recent. Existing tools/links are kept.
+ * Replace a layout with the command-center set: numbers strip, tools, tracker,
+ * field tile, calendar, documents, flags, reviews, recent. Existing tool buttons are kept.
  */
-export async function setupCommandCenter(workspaceId: string) {
-  const existing = await listWidgets(workspaceId);
+export async function setupCommandCenter(workspaceId: string, userId: string | null) {
+  const existing = await db.select().from(dashboardWidgets).where(scope(workspaceId, userId));
   const keepTools = existing.find((w) => w.type === "tools")?.config.links ?? existing.find((w) => w.type === "links")?.config.links;
   const fieldTool = await fieldToolOf(workspaceId);
-  await db.delete(dashboardWidgets).where(eq(dashboardWidgets.workspaceId, workspaceId));
-  const order: WidgetType[] = ["stats", "tools", "tracker", ...(fieldTool === "none" ? [] : (["jobber"] as WidgetType[])), "collections", "flags", "reviews", "recent"];
-  for (const [i, type] of order.entries()) {
-    const config = type === "tools" && keepTools?.length ? { links: keepTools } : defaultsFor(type, fieldTool);
-    await db.insert(dashboardWidgets).values({ workspaceId, type, title: WIDGET_CATALOG[type].title, config, width: WIDGET_CATALOG[type].width, position: i + 1 });
-  }
+  const order: WidgetType[] = ["stats", "tools", "tracker", ...(fieldTool === "none" ? [] : (["jobber"] as WidgetType[])), "calendar", "collections", "flags", "reviews", "recent"];
+  await db.transaction(async (tx) => {
+    await tx.delete(dashboardWidgets).where(scope(workspaceId, userId));
+    for (const [i, type] of order.entries()) {
+      const config = type === "tools" && keepTools?.length ? { links: keepTools } : defaultsFor(type, fieldTool);
+      await tx.insert(dashboardWidgets).values({ workspaceId, userId, type, title: WIDGET_CATALOG[type].title, config, width: WIDGET_CATALOG[type].width, position: i + 1 });
+    }
+  });
 }
 
-export async function updateWidget(workspaceId: string, id: string, patch: { title?: string; config?: WidgetConfig; width?: number }) {
+export async function updateWidget(workspaceId: string, userId: string | null, id: string, patch: { title?: string; config?: WidgetConfig; width?: number }) {
   await db
     .update(dashboardWidgets)
     .set({ ...patch, width: patch.width === undefined ? undefined : Math.min(3, Math.max(1, patch.width)) })
-    .where(and(eq(dashboardWidgets.workspaceId, workspaceId), eq(dashboardWidgets.id, id)));
+    .where(and(scope(workspaceId, userId), eq(dashboardWidgets.id, id)));
 }
 
-export async function removeWidget(workspaceId: string, id: string) {
-  await db.delete(dashboardWidgets).where(and(eq(dashboardWidgets.workspaceId, workspaceId), eq(dashboardWidgets.id, id)));
+/** The scratchpad is per person even on the shared layout: text is keyed by user id inside config. */
+export async function saveNote(workspaceId: string, id: string, userId: string, text: string) {
+  const [w] = await db.select().from(dashboardWidgets).where(and(eq(dashboardWidgets.workspaceId, workspaceId), eq(dashboardWidgets.id, id)));
+  if (!w || w.type !== "notes") throw new Error("That scratchpad no longer exists.");
+  if (w.userId && w.userId !== userId) throw new Error("That scratchpad belongs to someone else.");
+  await db.update(dashboardWidgets).set({ config: { ...w.config, notesBy: { ...(w.config.notesBy ?? {}), [userId]: text } } }).where(eq(dashboardWidgets.id, id));
 }
 
-export async function reorderWidgets(workspaceId: string, orderedIds: string[]) {
+export async function removeWidget(workspaceId: string, userId: string | null, id: string) {
+  await db.delete(dashboardWidgets).where(and(scope(workspaceId, userId), eq(dashboardWidgets.id, id)));
+}
+
+export async function reorderWidgets(workspaceId: string, userId: string | null, orderedIds: string[]) {
   await db.transaction(async (tx) => {
     for (const [i, id] of orderedIds.entries()) {
-      await tx.update(dashboardWidgets).set({ position: i + 1 }).where(and(eq(dashboardWidgets.workspaceId, workspaceId), eq(dashboardWidgets.id, id)));
+      await tx.update(dashboardWidgets).set({ position: i + 1 }).where(and(scope(workspaceId, userId), eq(dashboardWidgets.id, id)));
     }
   });
 }

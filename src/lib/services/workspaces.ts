@@ -2,7 +2,7 @@ import "server-only";
 import { and, eq } from "drizzle-orm";
 import { db, schema } from "@/db";
 import type { FieldTool } from "@/db/schema";
-import { addWidget } from "./dashboard";
+import { setupCommandCenter } from "./dashboard";
 
 const { workspaces, memberships } = schema;
 
@@ -16,7 +16,7 @@ export async function createWorkspace(input: { name: string; icon?: string; colo
   for (let i = 2; (await db.select({ id: workspaces.id }).from(workspaces).where(eq(workspaces.slug, slug))).length; i++) slug = `${base}-${i}`;
   const [ws] = await db.insert(workspaces).values({ name: input.name.trim(), slug, icon: input.icon || "🏢", color: input.color || "#6366f1" }).returning();
   await db.insert(memberships).values({ workspaceId: ws.id, userId: ownerId, role: "owner" });
-  for (const t of ["welcome", "links", "sops", "recent"] as const) await addWidget(ws.id, t);
+  await setupCommandCenter(ws.id, null); // new companies start with the full command center
   return ws;
 }
 

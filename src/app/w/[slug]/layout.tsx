@@ -4,6 +4,7 @@ import { can } from "@/lib/permissions";
 import { Sidebar } from "@/components/Sidebar";
 import { NewTaskButton } from "@/components/tasks/NewTaskButton";
 import { NamePrompt } from "@/components/NamePrompt";
+import { ToastProvider } from "@/components/ui/Toast";
 import { MobileShell } from "@/components/MobileShell";
 import { listTasks } from "@/lib/services/tasks";
 import { listFlags } from "@/lib/services/flags";
@@ -23,6 +24,7 @@ export default async function WorkspaceLayout({ children, params }: { children: 
     // The company's color becomes the accent for everything inside it: buttons, active
     // links, badges, the icon tile. Lightened a touch so it reads well on the dark theme.
     <div data-ws-theme className="bg-paper text-ink" style={workspaceThemeVars(workspace.color) as React.CSSProperties}>
+      <ToastProvider>
       <MobileShell title={workspace.name} icon={workspace.icon} slug={workspace.slug} overdue={tasks.filter((t) => t.state === "overdue").length} attention={attention} sidebar={
       <Sidebar
         workspace={{ slug: workspace.slug, name: workspace.name, icon: workspace.icon, color: workspace.color }}
@@ -45,6 +47,7 @@ export default async function WorkspaceLayout({ children, params }: { children: 
         {(!user.firstName || !user.lastName) && <NamePrompt required first={user.firstName ?? ""} last={user.lastName ?? ""} />}
         {can(abilities, "manage_tasks") && <NewTaskButton slug={workspace.slug} variant="fab" />}
       </MobileShell>
+      </ToastProvider>
     </div>
   );
 }

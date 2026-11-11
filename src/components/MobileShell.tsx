@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
-import { Menu, X, Home, CheckSquare, AlertTriangle, Library, ChevronLeft } from "lucide-react";
+import { Menu, X, Home, CheckSquare, AlertTriangle, Library, ChevronLeft, Users } from "lucide-react";
 import { OrbitLogo } from "./OrbitLogo";
 
 /**
@@ -57,7 +57,7 @@ export function MobileShell({ sidebar, children, title, icon, slug, overdue = 0,
 
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Mobile top bar */}
-        <header className="pt-safe flex shrink-0 items-center gap-2 border-b border-line bg-side px-3 md:hidden">
+        <header className="pt-safe flex shrink-0 items-center gap-2 border-b border-line bg-side/90 px-3 backdrop-blur md:hidden">
           {!isHome && depth > 0 ? (
             <button onClick={goBack} className="my-1 -ml-1 flex h-10 min-w-10 items-center justify-center gap-0.5 rounded-lg pr-2 text-accent active:bg-hover" aria-label="Back">
               <ChevronLeft size={24} /> <span className="text-sm">Back</span>

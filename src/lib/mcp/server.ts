@@ -7,7 +7,7 @@ import { createProposal, needsApproval } from "@/lib/services/ai-proposals";
 import * as pagesSvc from "@/lib/services/pages";
 import * as tasksSvc from "@/lib/services/tasks";
 import * as flagsSvc from "@/lib/services/flags";
-import { listWidgets } from "@/lib/services/dashboard";
+import { listCompanyWidgets } from "@/lib/services/dashboard";
 import { listMembers } from "@/lib/services/members";
 import { listRoles } from "@/lib/services/roles";
 import { blocksToMarkdown, markdownToBlocks } from "@/lib/markdown";
@@ -183,7 +183,7 @@ export function buildServer(p: AiPrincipal) {
   });
 
   server.registerTool("get_dashboard", { title: "Dashboard summary", description: "What the workspace home shows: tasks needing attention, documents due for review, open flags, quick links.", inputSchema: {} }, async () => {
-    const [tasks, docs, flags, widgets] = await Promise.all([tasksSvc.listTasks(ws), pagesSvc.listLibrary(ws), flagsSvc.listFlags(ws), listWidgets(ws)]);
+    const [tasks, docs, flags, widgets] = await Promise.all([tasksSvc.listTasks(ws), pagesSvc.listLibrary(ws), flagsSvc.listFlags(ws), listCompanyWidgets(ws)]);
     const attention = tasks.filter((t) => t.state === "overdue" || t.state === "today");
     const links = widgets.filter((w) => w.type === "links").flatMap((w) => w.config.links ?? []);
     return text(
