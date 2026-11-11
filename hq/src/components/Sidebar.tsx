@@ -14,6 +14,7 @@ import { SearchPalette } from "./SearchPalette";
 import { NewWorkspaceDialog } from "./NewWorkspaceForm";
 import { OrbitLogo } from "./OrbitLogo";
 import { ThemeToggle } from "./ThemeToggle";
+import { PopMenu, MenuItem } from "@/components/ui/Menu";
 
 type Ws = { slug: string; name: string; icon: string; color: string };
 type Node = { id: string; parentId: string | null; title: string; icon: string | null; position: number; isSop: boolean; source: string };
@@ -408,22 +409,14 @@ function PageTree({ slug, nodes, canEdit, onNew }: { slug: string; nodes: Node[]
                 >
                   <Plus size={14} />
                 </button>
-                {menu === n.id && (
-                  <div className="absolute right-0 top-6 z-30 w-44 rounded-lg border border-line bg-card p-1 text-ink shadow-lg" onMouseLeave={() => setMenu(null)}>
-                    <button className="w-full rounded px-2 py-1.5 text-left hover:bg-hover" onClick={() => (setMenu(null), onNew(n.id))}>
-                      Add page inside
-                    </button>
-                    <button
-                      className="w-full rounded px-2 py-1.5 text-left text-danger hover:bg-danger-soft"
-                      onClick={() => {
-                        setMenu(null);
-                        act(() => archivePageAction(slug, n.id));
-                      }}
-                    >
-                      Move to Trash
-                    </button>
-                  </div>
-                )}
+                <PopMenu open={menu === n.id} onClose={() => setMenu(null)} title={n.title || "Untitled"} width="w-48">
+                  <MenuItem icon={<Plus size={14} />} onClick={() => (setMenu(null), onNew(n.id))}>
+                    Add page inside
+                  </MenuItem>
+                  <MenuItem icon={<Trash2 size={14} />} danger onClick={() => (setMenu(null), act(() => archivePageAction(slug, n.id)))}>
+                    Move to Trash
+                  </MenuItem>
+                </PopMenu>
               </div>
             )}
           </div>

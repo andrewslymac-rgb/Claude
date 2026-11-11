@@ -48,7 +48,7 @@ export function VersionHistory({
 
   return (
     <div className="fixed inset-0 z-50 flex bg-black/60" onMouseDown={onClose}>
-      <div className="m-2 flex flex-1 flex-col-reverse overflow-hidden rounded-xl border border-line bg-card shadow-2xl md:m-4 md:flex-row" onMouseDown={(e) => e.stopPropagation()}>
+      <div className="mb-safe mt-safe flex flex-1 flex-col-reverse overflow-hidden border border-line bg-card shadow-2xl md:m-4 md:rounded-xl md:flex-row" onMouseDown={(e) => e.stopPropagation()}>
         <div className="flex-1 overflow-y-auto px-4 py-6 md:px-10 md:py-8">
           {preview ? (
             <>

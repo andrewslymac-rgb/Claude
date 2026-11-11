@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { History, MoreHorizontal, BookMarked, Trash2, Check, Loader2, AlertCircle, ExternalLink, ArrowLeftRight, FileCheck2, ClipboardList, Flag, ChevronLeft } from "lucide-react";
 import { FlagForm } from "@/components/library/FlagsView";
+import { PopMenu, MenuItem } from "@/components/ui/Menu";
 import { DocInfo, type DocInfoData } from "./DocInfo";
 import { LogChangeDialog } from "./LogChangeDialog";
 import { ChangeLogPanel } from "./ChangeLogPanel";
@@ -134,50 +135,38 @@ export function PageView({ slug, page, crumbs, subpages, canEdit, canLog = canEd
             <button onClick={() => setMenu((m) => !m)} className="flex h-10 w-10 items-center justify-center rounded-md text-ink-soft hover:bg-hover md:h-auto md:w-auto md:p-1" aria-label="More">
               <MoreHorizontal size={18} />
             </button>
-            {menu && (
-              <div className="absolute right-0 top-8 w-56 rounded-lg border border-line bg-card p-1 shadow-lg" onMouseLeave={() => setMenu(false)}>
-                <button
-                  className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left hover:bg-hover"
-                  onClick={() => {
-                    setMenu(false);
-                    setIsSop(!isSop);
-                    act(() => setSopAction(slug, page.id, !isSop), () => setIsSop(isSop));
-                  }}
-                >
-                  <BookMarked size={15} /> {isSop ? "Unmark as SOP" : "Mark as SOP / policy"}
-                </button>
-                <button
-                  className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left hover:bg-hover"
-                  onClick={() => {
-                    setMenu(false);
-                    setDocSetup(true);
-                  }}
-                >
-                  <FileCheck2 size={15} /> {isDoc ? "Edit document info" : "Set up as document"}
-                </button>
-                <button
-                  className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left hover:bg-hover"
-                  onClick={() => {
-                    setMenu(false);
-                    setLogChange(true);
-                  }}
-                >
-                  <ClipboardList size={15} /> Log a change
-                </button>
-                <button
-                  className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-danger hover:bg-danger-soft"
-                  onClick={() =>
-                    start(async () => {
-                      await flush();
-                      await archivePageAction(slug, page.id);
-                      router.push(crumbs.length ? `/w/${slug}/p/${crumbs.at(-1)!.id}` : `/w/${slug}`);
-                    })
-                  }
-                >
-                  <Trash2 size={15} /> Move to Trash
-                </button>
-              </div>
-            )}
+            <PopMenu open={menu} onClose={() => setMenu(false)} title={title || "Untitled"} width="w-60">
+              <MenuItem
+                icon={<BookMarked size={15} />}
+                onClick={() => {
+                  setMenu(false);
+                  setIsSop(!isSop);
+                  act(() => setSopAction(slug, page.id, !isSop), () => setIsSop(isSop));
+                }}
+              >
+                {isSop ? "Unmark as SOP" : "Mark as SOP / policy"}
+              </MenuItem>
+              <MenuItem icon={<FileCheck2 size={15} />} onClick={() => (setMenu(false), setDocSetup(true))}>
+                {isDoc ? "Edit document info" : "Set up as document"}
+              </MenuItem>
+              <MenuItem icon={<ClipboardList size={15} />} onClick={() => (setMenu(false), setLogChange(true))}>
+                Log a change
+              </MenuItem>
+              <MenuItem
+                icon={<Trash2 size={15} />}
+                danger
+                onClick={() => {
+                  setMenu(false);
+                  start(async () => {
+                    await flush();
+                    await archivePageAction(slug, page.id);
+                    router.push(crumbs.length ? `/w/${slug}/p/${crumbs.at(-1)!.id}` : `/w/${slug}`);
+                  });
+                }}
+              >
+                Move to Trash
+              </MenuItem>
+            </PopMenu>
           </div>
         )}
       </div>
@@ -228,7 +217,7 @@ export function PageView({ slug, page, crumbs, subpages, canEdit, canLog = canEd
           >
             {icon ?? (canEdit ? <span className="text-sm text-ink-faint">＋ Add icon</span> : "📄")}
           </button>
-          {picker && (
+          <PopMenu open={picker} onClose={() => setPicker(false)} title="Page icon" align="left" width="w-72">
             <EmojiPicker
               onClose={() => setPicker(false)}
               onPick={(e) => {
@@ -237,7 +226,7 @@ export function PageView({ slug, page, crumbs, subpages, canEdit, canLog = canEd
                 queue({ icon: e }, 0);
               }}
             />
-          )}
+          </PopMenu>
         </div>
         <textarea
           value={title}

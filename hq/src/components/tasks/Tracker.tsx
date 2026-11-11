@@ -10,6 +10,7 @@ import type { Frequency } from "@/db/schema";
 import { DUE_LABELS, FREQUENCY_LABELS, PERIOD_LABELS, doneThisPeriod, fmtDate, todayISO } from "@/lib/recurrence";
 import { TaskDrawer, TaskForm, TONE, type JobRole, type Member, type PageOpt } from "./TaskDialogs";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { PopMenu, MenuItem } from "@/components/ui/Menu";
 
 const TABS: { key: Frequency; label: string }[] = [
   { key: "daily", label: "Daily" },
@@ -202,24 +203,22 @@ export function Tracker({ slug, tasks, members, roles = [], pages, categories, m
                       ) : (
                         <ChevronRight size={14} className="shrink-0 text-ink-faint" />
                       )}
-                      {menu === t.id && (
-                        <div className="absolute right-1 top-9 z-30 w-48 rounded-lg border border-line bg-card p-1 text-sm shadow-lg" onMouseLeave={() => setMenu(null)}>
-                          <MenuItem icon={<Pencil size={13} />} onClick={() => (setMenu(null), setOpen(t))}>
-                            Open / edit
+                      <PopMenu open={menu === t.id} onClose={() => setMenu(null)} title={t.title}>
+                        <MenuItem icon={<Pencil size={14} />} onClick={() => (setMenu(null), setOpen(t))}>
+                          Open / edit
+                        </MenuItem>
+                        <MenuItem icon={<UserPlus size={14} />} onClick={() => (setMenu(null), setReassign(t))}>
+                          Reassign
+                        </MenuItem>
+                        {!done && (
+                          <MenuItem icon={<SkipForward size={14} />} onClick={() => (setMenu(null), act(() => moveDueAction(slug, t.id)))}>
+                            Skip this time
                           </MenuItem>
-                          <MenuItem icon={<UserPlus size={13} />} onClick={() => (setMenu(null), setReassign(t))}>
-                            Reassign
-                          </MenuItem>
-                          {!done && (
-                            <MenuItem icon={<SkipForward size={13} />} onClick={() => (setMenu(null), act(() => moveDueAction(slug, t.id)))}>
-                              Skip this time
-                            </MenuItem>
-                          )}
-                          <MenuItem icon={<Trash2 size={13} />} danger onClick={() => (setMenu(null), confirm(`Remove "${t.title}"? Its history is kept.`) && act(() => archiveTaskAction(slug, t.id)))}>
-                            Remove
-                          </MenuItem>
-                        </div>
-                      )}
+                        )}
+                        <MenuItem icon={<Trash2 size={14} />} danger onClick={() => (setMenu(null), confirm(`Remove "${t.title}"? Its history is kept.`) && act(() => archiveTaskAction(slug, t.id)))}>
+                          Remove
+                        </MenuItem>
+                      </PopMenu>
                     </li>
                   );
                 })}
@@ -274,13 +273,6 @@ function Avatar({ name }: { name: string }) {
   );
 }
 
-function MenuItem({ icon, danger, onClick, children }: { icon: React.ReactNode; danger?: boolean; onClick: () => void; children: React.ReactNode }) {
-  return (
-    <button onClick={onClick} className={`flex w-full items-center gap-2 rounded px-2 py-1.5 text-left ${danger ? "text-danger hover:bg-danger-soft" : "hover:bg-hover"}`}>
-      {icon} {children}
-    </button>
-  );
-}
 
 function QuickAdd({ slug, frequency, memberId, roleId, ownerName, onMore }: { slug: string; frequency: Frequency; memberId: string | null; roleId: string | null; ownerName: string; onMore: () => void }) {
   const [v, setV] = useState("");
