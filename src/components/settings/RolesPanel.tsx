@@ -59,7 +59,7 @@ export function RolesPanel({ slug, canManage, roles, members, permissionInfo }: 
               ))}
               {r.members.length === 0 && <span className="text-[11px] text-ink-faint">Nobody holds this role yet.</span>}
               {canManage && (
-                <button onClick={() => setAssigning(r)} className="flex items-center gap-1 rounded-full border border-dashed border-line px-2 py-0.5 text-[11px] text-ink-faint hover:bg-hover hover:text-ink">
+                <button onClick={() => setAssigning(r)} className="tap flex items-center gap-1 rounded-full border border-dashed border-line px-2 py-0.5 text-[11px] text-ink-faint hover:bg-hover hover:text-ink">
                   <Users size={10} /> who
                 </button>
               )}

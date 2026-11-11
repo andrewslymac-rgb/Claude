@@ -119,7 +119,7 @@ export function FlagForm({ slug, flag, pages, presetPageId, onClose }: { slug: s
       <div className="pb-safe max-h-[92dvh] w-full max-w-lg overflow-y-auto rounded-t-2xl border border-line bg-card p-6 shadow-2xl sm:rounded-xl" onMouseDown={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold">{flag ? "Edit flag" : "New flag"}</h2>
-          <button onClick={onClose} className="rounded p-1 hover:bg-hover" aria-label="Close">
+          <button onClick={onClose} className="tap-icon rounded p-1 hover:bg-hover" aria-label="Close">
             <X size={16} />
           </button>
         </div>

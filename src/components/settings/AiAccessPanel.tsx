@@ -31,7 +31,7 @@ export function AiAccessPanel({ slug, grants, scopeInfo, mcpUrl, approvalRule }:
             <p className="mt-1 text-ink-soft">In claude.ai: Settings → Connectors → Add custom connector, paste this address, then click Allow when Orbit asks. Each connection shows up below and can be disconnected any time.</p>
             <div className="mt-2 flex items-center gap-2">
               <code className="rounded bg-paper px-2 py-1 text-xs">{mcpUrl}</code>
-              <button onClick={() => copy("url", mcpUrl)} className="rounded p-1 text-ink-faint hover:bg-hover hover:text-ink" title="Copy">
+              <button onClick={() => copy("url", mcpUrl)} className="tap-icon rounded p-1 text-ink-faint hover:bg-hover hover:text-ink" title="Copy">
                 {copied === "url" ? <Check size={14} /> : <Copy size={14} />}
               </button>
             </div>
@@ -61,7 +61,7 @@ export function AiAccessPanel({ slug, grants, scopeInfo, mcpUrl, approvalRule }:
                 {g.scopes.map((s) => scopeInfo.find((x) => x.key === s)?.label ?? s).join(" · ")} · connected by {g.userName ?? "?"} · last used {ago(g.lastUsedAt)}
               </div>
             </div>
-            <button disabled={busy} onClick={() => confirm(`Disconnect "${g.name}"? It will lose access immediately.`) && start(() => revokeGrantAction(slug, g.id))} className="rounded px-2 py-1 text-danger hover:bg-danger-soft">
+            <button disabled={busy} onClick={() => confirm(`Disconnect "${g.name}"? It will lose access immediately.`) && start(() => revokeGrantAction(slug, g.id))} className="tap rounded px-2 py-1 text-danger hover:bg-danger-soft">
               Disconnect
             </button>
           </li>
@@ -73,7 +73,7 @@ export function AiAccessPanel({ slug, grants, scopeInfo, mcpUrl, approvalRule }:
           <div className="font-medium text-ok">Your new API key. Copy it now; it won&apos;t be shown again.</div>
           <div className="mt-2 flex items-center gap-2">
             <code className="break-all rounded bg-paper px-2 py-1 text-xs">{newKey}</code>
-            <button onClick={() => copy("key", newKey)} className="rounded p-1 text-ink-faint hover:bg-hover hover:text-ink" title="Copy">
+            <button onClick={() => copy("key", newKey)} className="tap-icon rounded p-1 text-ink-faint hover:bg-hover hover:text-ink" title="Copy">
               {copied === "key" ? <Check size={14} /> : <Copy size={14} />}
             </button>
           </div>

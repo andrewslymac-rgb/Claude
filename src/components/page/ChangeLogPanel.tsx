@@ -62,7 +62,7 @@ export function ChangeLogPanel({
           <p className="mt-0.5 text-xs text-ink-faint">What changed in this document, and why.</p>
         </div>
         {onClose && (
-          <button onClick={onClose} className="rounded p-1 hover:bg-hover" aria-label="Close">
+          <button onClick={onClose} className="tap-icon rounded p-1 hover:bg-hover" aria-label="Close">
             <X size={16} />
           </button>
         )}

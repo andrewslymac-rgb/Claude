@@ -102,10 +102,10 @@ export function CollectionBrowser({ slug, collection, rows, canEdit = false }: {
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={`Search ${collection.label}…`} className="w-full rounded-lg border border-line bg-card py-2 pl-9 pr-3 text-sm outline-none focus:border-ink-faint" />
         </div>
         <div className="flex rounded-lg border border-line p-0.5">
-          <button onClick={() => setView("grid")} className={`rounded-md p-1.5 ${view === "grid" ? "bg-hover text-ink" : "text-ink-faint"}`} aria-label="Grid">
+          <button onClick={() => setView("grid")} className={`tap-icon rounded-md p-1.5 ${view === "grid" ? "bg-hover text-ink" : "text-ink-faint"}`} aria-label="Grid">
             <LayoutGrid size={15} />
           </button>
-          <button onClick={() => setView("list")} className={`rounded-md p-1.5 ${view === "list" ? "bg-hover text-ink" : "text-ink-faint"}`} aria-label="List">
+          <button onClick={() => setView("list")} className={`tap-icon rounded-md p-1.5 ${view === "list" ? "bg-hover text-ink" : "text-ink-faint"}`} aria-label="List">
             <List size={15} />
           </button>
         </div>
@@ -113,13 +113,13 @@ export function CollectionBrowser({ slug, collection, rows, canEdit = false }: {
 
       {!searching && (
         <nav className="mt-4 flex flex-wrap items-center gap-1 text-sm text-ink-soft">
-          <button onClick={() => setFolder(collection.rootPageId)} className={`rounded px-1.5 py-0.5 hover:bg-hover ${crumbs.length ? "" : "font-medium text-ink"}`}>
+          <button onClick={() => setFolder(collection.rootPageId)} className={`tap rounded px-1.5 py-0.5 hover:bg-hover ${crumbs.length ? "" : "font-medium text-ink"}`}>
             {collection.icon} {collection.label}
           </button>
           {crumbs.map((c, i) => (
             <span key={c.id} className="flex items-center gap-1">
               <ChevronRight size={13} className="text-ink-faint" />
-              <button onClick={() => setFolder(c.id)} className={`rounded px-1.5 py-0.5 hover:bg-hover ${i === crumbs.length - 1 ? "font-medium text-ink" : ""}`}>
+              <button onClick={() => setFolder(c.id)} className={`tap rounded px-1.5 py-0.5 hover:bg-hover ${i === crumbs.length - 1 ? "font-medium text-ink" : ""}`}>
                 {c.title}
               </button>
             </span>
@@ -158,7 +158,7 @@ export function CollectionBrowser({ slug, collection, rows, canEdit = false }: {
                 </div>
               </div>
               {f.sourceLink && (
-                <a href={f.sourceLink} target="_blank" rel="noreferrer" className="rounded p-1.5 text-ink-faint hover:bg-hover hover:text-ink" title="Open in Google Drive">
+                <a href={f.sourceLink} target="_blank" rel="noreferrer" className="tap-icon rounded p-1.5 text-ink-faint hover:bg-hover hover:text-ink" title="Open in Google Drive">
                   <ExternalLink size={14} />
                 </a>
               )}
@@ -179,7 +179,7 @@ export function CollectionBrowser({ slug, collection, rows, canEdit = false }: {
               <span className="hidden text-xs text-ink-faint sm:block">{f.docType ?? ""}</span>
               <span className="hidden text-xs text-ink-faint sm:block">{fmt(f.updatedAt)}</span>
               {f.sourceLink && (
-                <a href={f.sourceLink} target="_blank" rel="noreferrer" className="rounded p-1.5 text-ink-faint hover:text-ink" title="Open in Google Drive">
+                <a href={f.sourceLink} target="_blank" rel="noreferrer" className="tap-icon rounded p-1.5 text-ink-faint hover:text-ink" title="Open in Google Drive">
                   <ExternalLink size={14} />
                 </a>
               )}

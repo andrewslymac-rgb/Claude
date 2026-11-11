@@ -222,11 +222,11 @@ function Tile({ w, index, slug, stats, isAdmin, googleCalendar, catalog, editing
               ))}
             </span>
             {catalog.configurable && (
-              <button onClick={onConfigure} className="rounded-md p-1 hover:bg-hover hover:text-ink" title="Settings">
+              <button onClick={onConfigure} className="tap-icon rounded-md p-1 hover:bg-hover hover:text-ink" title="Settings">
                 <Pencil size={14} />
               </button>
             )}
-            <button onClick={onRemove} className="rounded-md p-1 hover:bg-danger-soft hover:text-danger" title="Remove">
+            <button onClick={onRemove} className="tap-icon rounded-md p-1 hover:bg-danger-soft hover:text-danger" title="Remove">
               <Trash2 size={14} />
             </button>
           </div>
@@ -565,7 +565,7 @@ function WidgetGallery({ catalog, isAdmin, present, onClose, onAdd }: { catalog:
       </div>
       <div className="mb-4 flex flex-wrap gap-1.5">
         {(["all", ...cats] as const).map((c) => (
-          <button key={c} onClick={() => setCat(c)} className={`rounded-full border px-3 py-1 text-xs ${cat === c ? "border-accent bg-accent-soft text-accent" : "border-line text-ink-soft hover:bg-hover"}`}>
+          <button key={c} onClick={() => setCat(c)} className={`tap rounded-full border px-3 py-1 text-xs ${cat === c ? "border-accent bg-accent-soft text-accent" : "border-line text-ink-soft hover:bg-hover"}`}>
             {c === "all" ? "All" : CATEGORY_LABELS[c]}
           </button>
         ))}

@@ -83,7 +83,7 @@ export function DrivePanel({ slug, collections, kinds, serviceEmail, problem, is
             </p>
             <div className="mt-2 flex items-center gap-2">
               <code className="truncate rounded bg-paper px-2 py-1 text-xs">{serviceEmail}</code>
-              <button onClick={() => navigator.clipboard.writeText(serviceEmail).then(() => (setCopied(true), setTimeout(() => setCopied(false), 1500)))} className="rounded p-1 text-ink-faint hover:bg-hover hover:text-ink" title="Copy">
+              <button onClick={() => navigator.clipboard.writeText(serviceEmail).then(() => (setCopied(true), setTimeout(() => setCopied(false), 1500)))} className="tap-icon rounded p-1 text-ink-faint hover:bg-hover hover:text-ink" title="Copy">
                 {copied ? <Check size={14} /> : <Copy size={14} />}
               </button>
             </div>
@@ -129,13 +129,13 @@ export function DrivePanel({ slug, collections, kinds, serviceEmail, problem, is
               >
                 <RefreshCw size={12} className={busy ? "animate-spin" : ""} /> Sync
               </button>
-              <button onClick={() => setEditing(c)} className="rounded-lg border border-line p-1.5 text-ink-soft hover:bg-hover" title="Edit">
+              <button onClick={() => setEditing(c)} className="tap-icon rounded-lg border border-line p-1.5 text-ink-soft hover:bg-hover" title="Edit">
                 <Pencil size={13} />
               </button>
               <button
                 disabled={busy}
                 onClick={() => confirm(`Remove "${c.label}" from Orbit? Its pages go to Trash and stop updating. Nothing changes in Drive.`) && start(() => removeCollectionAction(slug, c.id))}
-                className="rounded-lg border border-line p-1.5 text-ink-soft hover:bg-danger-soft hover:text-danger"
+                className="tap-icon rounded-lg border border-line p-1.5 text-ink-soft hover:bg-danger-soft hover:text-danger"
                 title="Remove"
               >
                 <Trash2 size={13} />

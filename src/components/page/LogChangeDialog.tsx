@@ -19,7 +19,7 @@ export function LogChangeDialog({ slug, pageId, currentVersionLabel, isDrive = f
       <div className="pb-safe max-h-[92dvh] w-full max-w-md overflow-y-auto rounded-t-2xl border border-line bg-card p-5 shadow-2xl sm:rounded-2xl sm:p-6" onMouseDown={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold">Log a change</h2>
-          <button onClick={onClose} className="rounded p-1 hover:bg-hover" aria-label="Close">
+          <button onClick={onClose} className="tap-icon rounded p-1 hover:bg-hover" aria-label="Close">
             <X size={16} />
           </button>
         </div>

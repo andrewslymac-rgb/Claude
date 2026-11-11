@@ -192,7 +192,7 @@ export function PersonView({ slug, person, tasks, summary, byDay, recent, today,
           </h2>
           <div className="flex rounded-lg border border-line p-0.5 text-xs">
             {[30, 90].map((r) => (
-              <button key={r} onClick={() => setRange(r as 30 | 90)} className={`rounded px-2 py-1 ${range === r ? "bg-hover font-medium" : "text-ink-soft"}`}>
+              <button key={r} onClick={() => setRange(r as 30 | 90)} className={`tap rounded px-2 py-1 ${range === r ? "bg-hover font-medium" : "text-ink-soft"}`}>
                 {r} days
               </button>
             ))}
@@ -218,14 +218,14 @@ export function PersonView({ slug, person, tasks, summary, byDay, recent, today,
       <section className="mt-6">
         <div className="flex flex-wrap gap-1.5">
           {(["all", "daily", "weekly", "monthly", "quarterly", "annual", "once"] as const).map((f) => (
-            <button key={f} onClick={() => setCad(f)} className={`rounded-lg px-3 py-1.5 text-sm ${cad === f ? "bg-hover font-medium text-ink" : "text-ink-soft hover:bg-hover"}`}>
+            <button key={f} onClick={() => setCad(f)} className={`tap rounded-lg px-3 py-1.5 text-sm ${cad === f ? "bg-hover font-medium text-ink" : "text-ink-soft hover:bg-hover"}`}>
               {f === "all" ? "All" : CAD_LABEL[f]} <span className="num text-xs text-ink-faint">{counts[f] ?? 0}</span>
             </button>
           ))}
         </div>
         <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
           {STATUSES.map((s) => (
-            <button key={s.key} onClick={() => setStatus(s.key)} className={`rounded-full border px-3 py-1 text-xs ${status === s.key ? "border-accent bg-accent-soft text-accent" : "border-line text-ink-soft hover:bg-hover"}`}>
+            <button key={s.key} onClick={() => setStatus(s.key)} className={`tap rounded-full border px-3 py-1 text-xs ${status === s.key ? "border-accent bg-accent-soft text-accent" : "border-line text-ink-soft hover:bg-hover"}`}>
               {s.label}
             </button>
           ))}
@@ -252,7 +252,7 @@ export function PersonView({ slug, person, tasks, summary, byDay, recent, today,
                 <button
                   disabled={doneNow}
                   onClick={() => complete(t)}
-                  className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 ${doneNow ? "border-ok bg-ok text-paper" : "border-line hover:border-ok"}`}
+                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 md:h-6 md:w-6 ${doneNow ? "border-ok bg-ok text-paper" : "border-line hover:border-ok"}`}
                   title={doneNow ? `Done ${CYCLE_WORD[t.frequency]}` : "Mark done today"}
                   aria-label={`Mark "${t.title}" done`}
                 >

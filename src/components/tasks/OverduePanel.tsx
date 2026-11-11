@@ -68,14 +68,14 @@ export function OverduePanel({ slug, items, me, canEdit, onClose }: { slug: stri
             <p className="text-sm text-ink-soft">{live.length ? `${live.length} item${live.length === 1 ? "" : "s"} · oldest is ${worst} day${worst === 1 ? "" : "s"} late` : "Nothing past due. 🎉"}</p>
           </div>
           <div className="flex rounded-lg border border-line p-0.5 text-xs">
-            <button onClick={() => setGroupBy("person")} className={`flex items-center gap-1 rounded-md px-2 py-1 ${groupBy === "person" ? "bg-hover text-ink" : "text-ink-soft"}`}>
+            <button onClick={() => setGroupBy("person")} className={`tap flex items-center gap-1 rounded-md px-2 py-1 ${groupBy === "person" ? "bg-hover text-ink" : "text-ink-soft"}`}>
               <Users size={12} /> Person
             </button>
-            <button onClick={() => setGroupBy("cadence")} className={`flex items-center gap-1 rounded-md px-2 py-1 ${groupBy === "cadence" ? "bg-hover text-ink" : "text-ink-soft"}`}>
+            <button onClick={() => setGroupBy("cadence")} className={`tap flex items-center gap-1 rounded-md px-2 py-1 ${groupBy === "cadence" ? "bg-hover text-ink" : "text-ink-soft"}`}>
               <CalendarDays size={12} /> Cadence
             </button>
           </div>
-          <button onClick={onClose} className="rounded p-1 hover:bg-hover" aria-label="Close">
+          <button onClick={onClose} className="tap-icon rounded p-1 hover:bg-hover" aria-label="Close">
             <X size={18} />
           </button>
         </div>

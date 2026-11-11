@@ -34,7 +34,7 @@ export function NewWorkspaceForm({ onDone }: { onDone?: () => void }) {
       </div>
       <div className="flex gap-2">
         {COLORS.map((c) => (
-          <button type="button" key={c} onClick={() => setColor(c)} className={`h-7 w-7 rounded-full ${color === c ? "ring-2 ring-offset-2 ring-offset-card" : ""}`} style={{ background: c, ["--tw-ring-color" as string]: c }} aria-label={`Color ${c}`} />
+          <button type="button" key={c} onClick={() => setColor(c)} className={`h-9 w-9 rounded-full md:h-7 md:w-7 ${color === c ? "ring-2 ring-offset-2 ring-offset-card" : ""}`} style={{ background: c, ["--tw-ring-color" as string]: c }} aria-label={`Color ${c}`} />
         ))}
       </div>
       {error && <p className="text-sm text-danger">{error}</p>}
