@@ -28,6 +28,7 @@ export function TaskDrawer({ slug, task, members, roles = [], pages, categories,
   const [noteText, setNoteText] = useState("");
   const [doneOn, setDoneOn] = useState<{ date: string; note: string } | null>(null);
   const [followUp, setFollowUp] = useState<{ date: string; note: string } | null>(null);
+  const [moveTo, setMoveTo] = useState<string | null>(null);
   const [busy, start] = useTransition();
   useEffect(() => {
     listTaskNotesAction(slug, task.id).then(setNotes);
@@ -66,11 +67,10 @@ export function TaskDrawer({ slug, task, members, roles = [], pages, categories,
           <dd className="flex items-center gap-2">
             {task.nextDueOn ? fmtDate(task.nextDueOn) : "—"}
             {task.dueOverride && <span className="text-xs text-ink-faint">(moved)</span>}
-            {canEdit && (
-              <label className="flex cursor-pointer items-center gap-1 text-xs text-accent hover:underline">
+            {canEdit && !moveTo && (
+              <button type="button" onClick={() => setMoveTo(task.nextDueOn ?? today)} className="flex items-center gap-1 text-xs text-accent hover:underline">
                 <CalendarClock size={12} /> change
-                <input type="date" className="sr-only" onChange={(e) => e.target.value && start(async () => (await moveDueAction(slug, task.id, e.target.value), onClose()))} />
-              </label>
+              </button>
             )}
           </dd>
           <dt className="text-ink-faint">Last done</dt>
@@ -129,6 +129,36 @@ export function TaskDrawer({ slug, task, members, roles = [], pages, categories,
             <Bell size={12} /> {task.followUpOn ? "Change follow-up" : "Set a follow-up"}
           </button>
         </div>
+
+        {moveTo && (
+          <form
+            className="mt-4 space-y-2 rounded-lg border border-line bg-side/40 p-3"
+            onSubmit={(e) => {
+              e.preventDefault();
+              const to = moveTo;
+              start(async () => {
+                await moveDueAction(slug, task.id, to);
+                setMoveTo(null);
+              });
+            }}
+          >
+            <div className="flex flex-wrap items-center gap-2">
+              <label className="text-xs text-ink-faint">
+                Move next due to
+                <input type="date" required value={moveTo} min={today} onChange={(e) => setMoveTo(e.target.value)} className="ml-2 field w-auto py-1.5" />
+              </label>
+            </div>
+            <p className="text-[11px] text-ink-faint">Nothing is marked done. The task is just due on the new date; the schedule picks up again from there.</p>
+            <div className="flex justify-end gap-2">
+              <button type="button" onClick={() => setMoveTo(null)} className="btn btn-ghost btn-sm">
+                Cancel
+              </button>
+              <button disabled={busy} className="btn btn-primary btn-sm">
+                {busy ? "Saving…" : "Move due date"}
+              </button>
+            </div>
+          </form>
+        )}
 
         {doneOn && (
           <form
