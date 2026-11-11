@@ -127,6 +127,13 @@
       "when": 1794378454087,
       "tag": "0017_charming_karen_page",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1794382413836,
+      "tag": "0018_mighty_gargoyle",
+      "breakpoints": true
     }
   ]
 }

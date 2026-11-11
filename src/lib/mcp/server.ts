@@ -45,7 +45,7 @@ export function buildServer(p: AiPrincipal) {
   const can = (s: string) => (p.scopes as string[]).includes(s);
   const link = (id: string) => `${process.env.APP_URL ?? ""}/w/${wsSlug}/p/${id}`;
 
-  const WRITE_TOOLS = new Set(["update_feedback", "create_page", "update_page", "append_to_page", "create_task", "update_task", "complete_task", "undo_complete_task", "skip_task", "remove_task", "add_task_note", "set_follow_up", "create_flag", "update_flag", "sync_document_area"]);
+  const WRITE_TOOLS = new Set(["update_feedback", "add_document_note", "create_page", "update_page", "append_to_page", "create_task", "update_task", "complete_task", "undo_complete_task", "skip_task", "remove_task", "add_task_note", "set_follow_up", "create_flag", "update_flag", "sync_document_area"]);
   const SELF_ROUTED = new Set(["update_field_service_snapshot", "list_companies"]);
   const workspaceArg = z.string().max(120).optional().describe("Company slug or name (see list_companies). Omit for the company this connection was made from.");
   const register = server.registerTool.bind(server);
@@ -164,8 +164,10 @@ export function buildServer(p: AiPrincipal) {
     const page = await pagesSvc.getPage(ws, page_id);
     if (!page || page.archivedAt) return fail("Page not found.");
     const md = page.contentText || (await blocksToMarkdown(page.content));
+    const open = (await pagesSvc.listDocNotes(page.id)).filter((n) => !n.resolvedAt);
+    const needs = open.length ? `\n\n**Needs changing (${open.length}):**\n${open.map((n) => `- ${n.body} (${n.by ?? "someone"}, ${fmtDate(n.createdAt.toISOString().slice(0, 10))})`).join("\n")}` : "";
     const meta = [page.docType && `Type: ${page.docType}`, page.docStatus && `Status: ${page.docStatus.replace("_", " ")}`, page.lastReviewedOn && `Last reviewed: ${fmtDate(page.lastReviewedOn)}`, page.source === "gdrive" && (page.driveMimeType === "application/vnd.google-apps.document" && page.drivePushPending !== undefined ? "Source: Google Drive" : "Source: Google Drive (read-only here)"), `Link: ${link(page.id)}`].filter(Boolean).join(" · ");
-    return text(`# ${page.icon ?? ""} ${page.title || "Untitled"}\n_${meta}_\n\n${md}`);
+    return text(`# ${page.icon ?? ""} ${page.title || "Untitled"}\n_${meta}_${needs}\n\n${md}`);
   });
 
   server.registerTool("list_tasks", { title: "List tasks", description: "The tracker: recurring and one-off tasks with due state, owner and cadence. Filter by 'attention' (overdue or due today) or a cadence, and/or by person (name).", inputSchema: { filter: z.enum(["all", "attention", "daily", "weekly", "monthly", "quarterly", "annual", "once"]).optional(), person: z.string().max(100).optional() } }, async ({ filter, person }) => {
@@ -253,6 +255,20 @@ export function buildServer(p: AiPrincipal) {
         await pagesSvc.updatePage(ws, page_id, { content, contentText }, actor, reason);
         await logActivity({ workspaceId: ws, grantId: p.grantId, tool: "append_to_page", summary: `Appended to "${before.title}" — ${reason}`, pageId: page_id, undoVersionId: prev?.id ?? null });
         return text(`Appended to "${before.title}". ${link(page_id)}`);
+      },
+    );
+  }
+
+  if (can("write:pages")) {
+    server.registerTool(
+      "add_document_note",
+      { title: "Note what needs changing in a document", description: "Adds a revision note to a page: something that is wrong, missing or out of date and should be fixed in the next update. Shows in the document's side panel and the library until a person marks it done.", inputSchema: { page_id: z.string().uuid(), note: z.string().min(3).max(2000) } },
+      async ({ page_id, note }) => {
+        const page = await pagesSvc.getPage(ws, page_id);
+        if (!page || page.archivedAt) return fail("Page not found.");
+        await pagesSvc.addDocNote(ws, page_id, p.userId, note);
+        await logActivity({ workspaceId: ws, grantId: p.grantId, tool: "add_document_note", summary: `Noted a needed change on "${page.title}"`, pageId: page_id });
+        return text(`Noted on "${page.title}". ${link(page_id)}`);
       },
     );
   }
