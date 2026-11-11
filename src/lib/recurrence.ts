@@ -119,12 +119,13 @@ export const FREQUENCY_LABELS: Record<Frequency, string> = {
 
 // --- Document reviews -------------------------------------------------------
 
-export const REVIEW_CYCLE_MONTHS: Record<ReviewCycle, number> = { quarterly: 3, semiannual: 6, annual: 12 };
-export const REVIEW_CYCLE_LABELS: Record<ReviewCycle, string> = { quarterly: "Every 3 months", semiannual: "Every 6 months", annual: "Every year" };
+/** Review cadences line up with the task tracker's: weekly, monthly, quarterly, annual (plus every 6 months). */
+export const REVIEW_CYCLE_LABELS: Record<ReviewCycle, string> = { weekly: "Weekly", monthly: "Monthly", quarterly: "Quarterly", semiannual: "Every 6 months", annual: "Annual" };
 
 export function nextReviewOn(cycle: ReviewCycle | null, lastReviewedOn: string | null): string | null {
   if (!cycle || !lastReviewedOn) return null;
-  return addMonths(lastReviewedOn, REVIEW_CYCLE_MONTHS[cycle]);
+  if (cycle === "weekly") return addDays(lastReviewedOn, 7);
+  return addMonths(lastReviewedOn, { monthly: 1, quarterly: 3, semiannual: 6, annual: 12 }[cycle]);
 }
 
 export type ReviewState = "first" | "overdue" | "due_soon" | "current" | "none";
@@ -135,14 +136,15 @@ export function reviewState(cycle: ReviewCycle | null, lastReviewedOn: string | 
   const next = nextReviewOn(cycle, lastReviewedOn)!;
   const d = daysBetween(today, next);
   if (d < 0) return "overdue";
-  if (d <= 30) return "due_soon";
+  const soon = cycle === "weekly" ? 2 : cycle === "monthly" ? 7 : 30;
+  if (d <= soon) return "due_soon";
   return "current";
 }
 
 export const REVIEW_LABELS: Record<ReviewState, { label: string; tone: "danger" | "warn" | "accent" | "muted" | "ok" }> = {
   first: { label: "Needs first review", tone: "warn" },
   overdue: { label: "Review overdue", tone: "danger" },
-  due_soon: { label: "Review due within 30 days", tone: "accent" },
+  due_soon: { label: "Review due soon", tone: "accent" },
   current: { label: "Current", tone: "ok" },
   none: { label: "No review cycle", tone: "muted" },
 };

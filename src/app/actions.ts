@@ -507,7 +507,7 @@ const docInfo = z.object({
   audience: z.array(z.string().max(40)).max(10).optional(),
   docStatus: z.enum(["active", "needs_review", "draft", "outdated", "archived"]).nullable().optional(),
   ownerId: uuid.nullable().optional(),
-  reviewCycle: z.enum(["quarterly", "semiannual", "annual"]).nullable().optional(),
+  reviewCycle: z.enum(["weekly", "monthly", "quarterly", "semiannual", "annual"]).nullable().optional(),
   lastReviewedOn: isoDate.nullable().optional(),
   sourceLink: z.string().url().max(2000).nullable().optional().or(z.literal("").transform(() => null)),
   sensitive: z.boolean().optional(),
