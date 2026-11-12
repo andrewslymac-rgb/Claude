@@ -1,0 +1,1 @@
+ALTER TABLE "memberships" ADD COLUMN "notify_email" text;

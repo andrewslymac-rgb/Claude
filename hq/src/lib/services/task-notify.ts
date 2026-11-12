@@ -33,7 +33,7 @@ export async function notifyAssigned(workspaceId: string, taskId: string, userId
       db.select().from(workspaces).where(eq(workspaces.id, workspaceId)),
       actorId ? db.select({ name: users.name, email: users.email }).from(users).where(eq(users.id, actorId)) : Promise.resolve([]),
       db
-        .select({ id: users.id, email: users.email, firstName: users.firstName, name: users.name })
+        .select({ id: users.id, email: users.email, notifyEmail: memberships.notifyEmail, firstName: users.firstName, name: users.name })
         .from(users)
         .innerJoin(memberships, and(eq(memberships.userId, users.id), eq(memberships.workspaceId, workspaceId)))
         .where(and(inArray(users.id, to), eq(users.notifyTaskEmail, true))),
@@ -60,7 +60,7 @@ export async function notifyAssigned(workspaceId: string, taskId: string, userId
   </div>
   <p style="margin:24px 0"><a href="${link}" style="background:#4f5fd8;color:#fff;text-decoration:none;padding:12px 22px;border-radius:8px;font-weight:600;display:inline-block">Open my to-do list</a></p>
 </div>`;
-      await sendEmail({ to: r.email, subject: `New task: ${task.title}`, html, text });
+      await sendEmail({ to: r.notifyEmail || r.email, subject: `New task: ${task.title}`, html, text });
     }
   } catch (e) {
     console.error("Task assignment email failed", e);

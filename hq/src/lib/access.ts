@@ -57,6 +57,13 @@ export const requireWorkspacePage = cache(async (slug: string) => {
 });
 
 /** For server actions: throws if the user lacks the ability. */
+/** Any signed-in person who can open this company. */
+export async function requireAccess(slug: string): Promise<Access> {
+  const access = await resolve(slug);
+  if (!access) throw new ForbiddenError("Please sign in again.");
+  return access;
+}
+
 export async function requireAbility(slug: string, ability: Ability): Promise<Access> {
   const access = await resolve(slug);
   if (!access) throw new ForbiddenError("Please sign in again.");
