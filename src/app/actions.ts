@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { requireAbility } from "@/lib/access";
+import { requireAbility, requireAccess } from "@/lib/access";
 import { getCurrentUser, destroySession } from "@/lib/auth/session";
 import { can, ForbiddenError } from "@/lib/permissions";
 import { widgetTypeEnum, type Role, type WidgetConfig, type WidgetType } from "@/db/schema";
@@ -320,6 +320,22 @@ export async function setMyNotificationsAction(prefs: { taskEmail: boolean; dige
     if (!me) throw new Error("Please sign in again.");
     const p = z.object({ taskEmail: z.boolean(), digest: z.boolean() }).parse(prefs);
     await db.update(schema.users).set({ notifyTaskEmail: p.taskEmail, notifyDigest: p.digest }).where(eq(schema.users.id, me.id));
+  });
+}
+
+/** Where my emails about this one company go. Empty = my sign-in email. */
+export async function setMyWorkspaceEmailAction(slug: string, email: string): Promise<Result> {
+  return wrap(async () => {
+    const { user, workspace } = await requireAccess(slug);
+    const v = email.trim().toLowerCase();
+    if (v && !z.string().email().safeParse(v).success) throw new Error("That doesn't look like an email address.");
+    const done = await db
+      .update(schema.memberships)
+      .set({ notifyEmail: v && v !== user.email.toLowerCase() ? v : null })
+      .where(and(eq(schema.memberships.workspaceId, workspace.id), eq(schema.memberships.userId, user.id)))
+      .returning({ id: schema.memberships.userId });
+    if (!done.length) throw new Error("You're not a member of this company, so it doesn't send you email.");
+    revalidatePath(`/w/${slug}/settings`);
   });
 }
 

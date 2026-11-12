@@ -84,6 +84,8 @@ export const memberships = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     role: roleEnum("role").notNull().default("editor"),
+    /** Where this person's emails about this company go. Null = their sign-in email. */
+    notifyEmail: text("notify_email"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [primaryKey({ columns: [t.workspaceId, t.userId] })],

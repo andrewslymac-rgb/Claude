@@ -62,7 +62,7 @@ export default async function Settings({ params, searchParams }: { params: Promi
           </section>
         )}
 
-        {tab === "people" && <PeopleTab slug={slug} workspaceId={workspace.id} role={role} canManage={can(abilities, "manage_members")} userId={user.id} />}
+        {tab === "people" && <PeopleTab slug={slug} workspaceName={workspace.name} workspaceId={workspace.id} role={role} canManage={can(abilities, "manage_members")} userId={user.id} />}
 
         {tab === "sync" && admin && (
           <div className="space-y-8">
@@ -100,7 +100,7 @@ export default async function Settings({ params, searchParams }: { params: Promi
   );
 }
 
-async function PeopleTab({ slug, workspaceId, role, canManage, userId }: { slug: string; workspaceId: string; role: Role; canManage: boolean; userId: string }) {
+async function PeopleTab({ slug, workspaceName, workspaceId, role, canManage, userId }: { slug: string; workspaceName: string; workspaceId: string; role: Role; canManage: boolean; userId: string }) {
   const [{ members, pending }, jobRoles] = await Promise.all([listMembers(workspaceId), listRoles(workspaceId)]);
   const me = members.find((m) => m.userId === userId);
   return (
@@ -110,7 +110,7 @@ async function PeopleTab({ slug, workspaceId, role, canManage, userId }: { slug:
           <h2 className="text-lg font-semibold">My notifications</h2>
           <p className="mt-1 text-sm text-ink-soft">Just for you. Everyone chooses their own.</p>
           <div className="mt-3">
-            <NotificationsPanel email={me.email} taskEmail={me.notifyTaskEmail} digest={me.notifyDigest} />
+            <NotificationsPanel email={me.email} taskEmail={me.notifyTaskEmail} digest={me.notifyDigest} slug={slug} workspaceName={workspaceName} workspaceEmail={me.notifyEmail} />
           </div>
         </section>
       )}

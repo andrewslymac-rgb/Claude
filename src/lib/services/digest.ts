@@ -28,17 +28,28 @@ export async function sendDailyDigests(force = false) {
   const cache = new Map<string, Awaited<ReturnType<typeof listTasks>>>();
 
   for (const u of people) {
-    const mine = await db.select({ ws: workspaces }).from(memberships).innerJoin(workspaces, eq(workspaces.id, memberships.workspaceId)).where(eq(memberships.userId, u.id));
-    const sections: { name: string; slug: string; overdue: string[]; today: string[] }[] = [];
-    for (const { ws } of mine) {
+    const mine = await db.select({ ws: workspaces, notifyEmail: memberships.notifyEmail }).from(memberships).innerJoin(workspaces, eq(workspaces.id, memberships.workspaceId)).where(eq(memberships.userId, u.id));
+    const sections: { name: string; slug: string; to: string; overdue: string[]; today: string[] }[] = [];
+    for (const { ws, notifyEmail } of mine) {
       const all = cache.get(ws.id) ?? (await listTasks(ws.id));
       cache.set(ws.id, all);
       const list = tasksForUser(all, u.id, await roleIdsFor(ws.id, u.id));
       const overdue = list.filter((t) => t.state === "overdue").map((t) => t.title);
       const due = list.filter((t) => t.state === "today").map((t) => t.title);
-      if (overdue.length || due.length) sections.push({ name: ws.name, slug: ws.slug, overdue, today: due });
+      if (overdue.length || due.length) sections.push({ name: ws.name, slug: ws.slug, to: notifyEmail || u.email, overdue, today: due });
     }
-    if (!sections.length) continue;
+    // One email per destination address, so each company's tasks go where that company's emails go.
+    const byAddress = new Map<string, typeof sections>();
+    for (const s of sections) byAddress.set(s.to, [...(byAddress.get(s.to) ?? []), s]);
+    for (const [to, group] of byAddress) {
+      if (await sendDigest(u, to, group, appUrl)) sent++;
+    }
+  }
+  return { sent };
+}
+
+async function sendDigest(u: typeof users.$inferSelect, to: string, sections: { name: string; slug: string; overdue: string[]; today: string[] }[], appUrl: string) {
+  {
     const hi = u.firstName || u.name?.split(" ")[0] || "there";
     const totalOverdue = sections.reduce((n, s) => n + s.overdue.length, 0);
     const totalToday = sections.reduce((n, s) => n + s.today.length, 0);
@@ -60,8 +71,7 @@ export async function sendDailyDigests(force = false) {
     .join("")}
   <p style="font-size:12px;color:#999;margin-top:24px">Turn this email off under Settings → People → My notifications.</p>
 </div>`;
-    const r = await sendEmail({ to: u.email, subject, html, text });
-    if (r.ok) sent++;
+    const r = await sendEmail({ to, subject, html, text });
+    return r.ok;
   }
-  return { sent };
 }
