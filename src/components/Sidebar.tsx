@@ -4,7 +4,7 @@ import { useAct } from "@/components/ui/Toast";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
-import { ChevronDown, ChevronRight, Home, LogOut, MoreHorizontal, Plus, Search, Settings, Trash2, CheckSquare, BookOpen, Library, Flag, Bot, FolderOpen, AlertTriangle, MessageSquareHeart, Users, UserRound, Briefcase } from "lucide-react";
+import { ChevronDown, ChevronRight, Home, LogOut, MoreHorizontal, Plus, Search, Settings, Trash2, CheckSquare, BookOpen, Library, Flag, Bot, FolderOpen, AlertTriangle, MessageSquareHeart, Users, UserRound, Briefcase, LayoutDashboard, Receipt, Wrench, ExternalLink, Lock } from "lucide-react";
 import { NamePrompt } from "@/components/NamePrompt";
 import { createPortal } from "react-dom";
 import { NewTaskButton } from "@/components/tasks/NewTaskButton";
@@ -18,9 +18,11 @@ import { PopMenu, MenuItem } from "@/components/ui/Menu";
 
 type Ws = { slug: string; name: string; icon: string; color: string };
 type Node = { id: string; parentId: string | null; title: string; icon: string | null; position: number; isSop: boolean; source: string };
+/** The owner-and-admin area. Tool URLs arrive only once it's unlocked on this device. */
+export type DashNav = { screens: { id: string; label: string }[]; tools: { id: string; label: string; url: string }[]; unlocked: boolean };
 export type CollectionNav = { id: string; label: string; icon: string; count: number; rootPageId: string | null };
 
-export function Sidebar(props: { workspace: Ws; workspaces: Ws[]; tree: Node[]; collections: CollectionNav[]; user: { name: string; email: string; isAppAdmin: boolean; firstName?: string | null; lastName?: string | null }; canEdit: boolean; canManage: boolean; attention?: number; overdue: OverdueItem[]; me: string; openFlags?: number; pendingAi?: number; newFeedback?: number; canManageTasks?: boolean }) {
+export function Sidebar(props: { workspace: Ws; workspaces: Ws[]; tree: Node[]; collections: CollectionNav[]; user: { name: string; email: string; isAppAdmin: boolean; firstName?: string | null; lastName?: string | null }; canEdit: boolean; canManage: boolean; attention?: number; overdue: OverdueItem[]; me: string; openFlags?: number; pendingAi?: number; newFeedback?: number; canManageTasks?: boolean; dash?: DashNav | null }) {
   const { workspace, canEdit, collections } = props;
   const [overdueOpen, setOverdueOpen] = useState(false);
   useEffect(() => {
@@ -121,6 +123,31 @@ export function Sidebar(props: { workspace: Ws; workspaces: Ws[]; tree: Node[]; 
         </button>
         <NavItem href={`${base}/flags`} icon={<Flag size={16} />} label="Flags" active={pathname.startsWith(`${base}/flags`)} badge={props.openFlags || undefined} />
       </nav>
+
+      {props.dash && (
+        <>
+          <div className="eyebrow flex items-center gap-1 px-4 pb-1 pt-3">
+            <LayoutDashboard size={11} /> Dashboards {!props.dash.unlocked && <Lock size={10} className="ml-auto" aria-label="Locked" />}
+          </div>
+          <nav className="space-y-0.5 px-2 pb-1">
+            {props.dash.screens.map((s) => (
+              <NavItem key={s.id} href={`${base}/dash/${s.id}`} icon={<Receipt size={16} />} label={s.label} active={pathname.startsWith(`${base}/dash/${s.id}`)} />
+            ))}
+            {!props.dash.screens.length && <NavItem href={`${base}/dash`} icon={<LayoutDashboard size={16} />} label="All dashboards" active={pathname === `${base}/dash`} />}
+          </nav>
+          <div className="eyebrow flex items-center gap-1 px-4 pb-1 pt-3">
+            <Wrench size={11} /> Tools
+          </div>
+          <nav className="space-y-0.5 px-2 pb-1">
+            {props.dash.tools.map((t) => (
+              <a key={t.id} href={t.url} target="_blank" rel="noopener noreferrer" className="nav-item">
+                <span className="text-ink-faint"><ExternalLink size={16} /></span> <span className="min-w-0 flex-1 truncate">{t.label}</span>
+              </a>
+            ))}
+            <NavItem href={`${base}/dash`} icon={<Wrench size={16} />} label={props.dash.unlocked ? "Manage tools" : "Tools (locked)"} active={pathname === `${base}/dash`} />
+          </nav>
+        </>
+      )}
 
       <div className="eyebrow flex items-center gap-1 px-4 pb-1 pt-3">
         <FolderOpen size={11} /> Documents
