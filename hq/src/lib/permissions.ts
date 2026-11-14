@@ -9,7 +9,8 @@ export type Ability =
   | "manage_dashboard"
   | "manage_members"
   | "manage_workspace" // rename, color, delete
-  | "view_sensitive"; // documents marked sensitive
+  | "view_sensitive" // documents marked sensitive
+  | "view_dashboards"; // the locked owner area: money, pay and business dashboards
 
 const NEEDS: Record<Ability, Role> = {
   read: "viewer",
@@ -19,6 +20,8 @@ const NEEDS: Record<Ability, Role> = {
   manage_members: "admin",
   manage_workspace: "owner",
   view_sensitive: "admin",
+  // Owners and admins only. Deliberately not a job-role permission, so no role can grant it.
+  view_dashboards: "admin",
 };
 
 export const ALL_ABILITIES = Object.keys(NEEDS) as Ability[];

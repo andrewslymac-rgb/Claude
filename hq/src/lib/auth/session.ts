@@ -31,6 +31,12 @@ export async function destroySession() {
   jar.delete(SESSION_COOKIE);
 }
 
+/** The hashed ID of this browser's sign-in, or null. */
+export async function currentSessionId() {
+  const token = (await cookies()).get(SESSION_COOKIE)?.value;
+  return token ? hash(token) : null;
+}
+
 /** The signed-in user, or null. Cached per request. */
 export const getCurrentUser = cache(async () => {
   const token = (await cookies()).get(SESSION_COOKIE)?.value;

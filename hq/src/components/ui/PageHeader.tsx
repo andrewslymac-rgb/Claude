@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 
 /** The standard top of every screen: eyebrow, title, one-line purpose, actions on the right. */
-export function PageHeader({ eyebrow, title, subtitle, actions, icon }: { eyebrow?: string; title: ReactNode; subtitle?: ReactNode; actions?: ReactNode; icon?: ReactNode }) {
+export function PageHeader({ eyebrow, title, subtitle, actions, icon }: { eyebrow?: ReactNode; title: ReactNode; subtitle?: ReactNode; actions?: ReactNode; icon?: ReactNode }) {
   return (
     <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
       <div className="min-w-0">
