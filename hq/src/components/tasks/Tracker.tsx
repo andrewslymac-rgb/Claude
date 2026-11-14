@@ -3,7 +3,7 @@
 import { useAct } from "@/components/ui/Toast";
 import Link from "next/link";
 import { useMemo, useState, useTransition } from "react";
-import { Check, Plus, MoreHorizontal, Users, ChevronRight, SkipForward, Trash2, Pencil, UserPlus, Bell, MessageSquare } from "lucide-react";
+import { Check, Plus, MoreHorizontal, Users, ChevronRight, SkipForward, Trash2, Pencil, UserPlus, Bell, MessageSquare, CalendarDays } from "lucide-react";
 import { archiveTaskAction, completeTaskAction, createTaskAction, moveDueAction, undoTaskAction, updateTaskAction } from "@/app/actions";
 import type { TaskRow } from "@/lib/services/tasks";
 import type { Frequency } from "@/db/schema";
@@ -90,11 +90,16 @@ export function Tracker({ slug, tasks, members, roles = [], pages, categories, m
           title="Tracker"
           subtitle="Daily, weekly, monthly, quarterly and annual work, by person. Tick it off as it gets done."
           actions={
-            canEdit && (
-              <button onClick={() => setCreating({ memberId: null, frequency: tab })} className="btn btn-primary">
-                <Plus size={16} /> New task
-              </button>
-            )
+            <>
+              <Link href={`/w/${slug}/tasks/calendar`} className="btn">
+                <CalendarDays size={16} /> Calendar
+              </Link>
+              {canEdit && (
+                <button onClick={() => setCreating({ memberId: null, frequency: tab })} className="btn btn-primary">
+                  <Plus size={16} /> New task
+                </button>
+              )}
+            </>
           }
         />
       )}
@@ -250,7 +255,7 @@ export function Tracker({ slug, tasks, members, roles = [], pages, categories, m
   );
 }
 
-const rank = (t: TaskRow) => ({ overdue: 0, today: 1, soon: 2, later: 3, done: 4 })[t.state];
+const rank = (t: TaskRow) => ({ overdue: 0, today: 1, soon: 2, later: 3, done: 4, paused: 5 })[t.state];
 
 function firstTabNeedingAttention(tasks: TaskRow[]): Frequency {
   for (const x of TABS) if (tasks.some((t) => t.frequency === x.key && (t.state === "overdue" || t.state === "today"))) return x.key;

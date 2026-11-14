@@ -27,24 +27,24 @@ async function ownerOrAdmin(slug: string) {
 
 export async function sendUnlockCodeAction(slug: string): Promise<Result> {
   return wrap(async () => {
-    const { user } = await ownerOrAdmin(slug);
-    const { to } = await sendUnlockCode(user);
+    const { user, workspace } = await ownerOrAdmin(slug);
+    const { to } = await sendUnlockCode(user, workspace);
     return `Code sent to ${to}`;
   });
 }
 
 export async function verifyUnlockCodeAction(slug: string, code: string): Promise<Result> {
   return wrap(async () => {
-    await ownerOrAdmin(slug);
-    await verifyUnlockCode(code);
+    const { workspace } = await ownerOrAdmin(slug);
+    await verifyUnlockCode(code, workspace.id);
     revalidatePath(`/w/${slug}`, "layout");
   });
 }
 
 export async function relockAction(slug: string): Promise<Result> {
   return wrap(async () => {
-    await ownerOrAdmin(slug);
-    await relock();
+    const { workspace } = await ownerOrAdmin(slug);
+    await relock(workspace.id);
     revalidatePath(`/w/${slug}`, "layout");
   });
 }

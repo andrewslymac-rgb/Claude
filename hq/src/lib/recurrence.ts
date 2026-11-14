@@ -89,7 +89,7 @@ export function doneThisPeriod(frequency: Frequency, lastDoneOn: string | null, 
 
 export const PERIOD_LABELS: Record<Frequency, string> = { daily: "today", weekly: "this week", monthly: "this month", quarterly: "this quarter", annual: "this year", once: "" };
 
-export type DueState = "overdue" | "today" | "soon" | "later" | "done";
+export type DueState = "overdue" | "today" | "soon" | "later" | "done" | "paused";
 
 export function dueState(nextDueOn: string | null, today = todayISO()): DueState {
   if (!nextDueOn) return "done";
@@ -106,6 +106,7 @@ export const DUE_LABELS: Record<DueState, { label: string; tone: "danger" | "war
   soon: { label: "Due soon", tone: "accent" },
   later: { label: "Scheduled", tone: "muted" },
   done: { label: "Done", tone: "ok" },
+  paused: { label: "On hold", tone: "muted" },
 };
 
 export const FREQUENCY_LABELS: Record<Frequency, string> = {

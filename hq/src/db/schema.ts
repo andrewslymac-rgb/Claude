@@ -12,7 +12,11 @@ import {
   primaryKey,
   index,
   uniqueIndex,
+  customType,
 } from "drizzle-orm/pg-core";
+
+/** Raw file bytes (task attachments). */
+const bytea = customType<{ data: Buffer; driverData: Buffer }>({ dataType: () => "bytea" });
 
 // ---------------------------------------------------------------------------
 // People & access
@@ -389,6 +393,8 @@ export const tasks = pgTable(
     followUpOn: date("follow_up_on"),
     followUpNote: text("follow_up_note"),
     archivedAt: timestamp("archived_at", { withTimezone: true }),
+    /** On hold: kept, but not due, not overdue and not counted until resumed. */
+    pausedAt: timestamp("paused_at", { withTimezone: true }),
     createdById: uuid("created_by_id").references(() => users.id, { onDelete: "set null" }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
@@ -788,3 +794,44 @@ export const arFollowups = pgTable(
   (t) => [index("ar_followups_invoice_idx").on(t.workspaceId, t.invoiceId)],
 );
 export type ArFollowup = typeof arFollowups.$inferSelect;
+
+/**
+ * Files and links attached to a task: photos of finished work, receipts, PDFs, a link to a
+ * Google Doc. Files live in the database (10 MB cap each) so there's no extra storage service.
+ */
+export const taskFiles = pgTable(
+  "task_files",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    taskId: uuid("task_id")
+      .notNull()
+      .references(() => tasks.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    /** A link instead of a file: set for links, null for uploads. */
+    url: text("url"),
+    mimeType: text("mime_type"),
+    size: integer("size").notNull().default(0),
+    data: bytea("data"),
+    uploadedById: uuid("uploaded_by_id").references(() => users.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("task_files_task_idx").on(t.taskId)],
+);
+
+/** Which companies' locked dashboards are open on which sign-in, and until when. One unlock per company. */
+export const dashUnlocks = pgTable(
+  "dash_unlocks",
+  {
+    sessionId: text("session_id")
+      .notNull()
+      .references(() => sessions.id, { onDelete: "cascade" }),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    unlockedUntil: timestamp("unlocked_until", { withTimezone: true }).notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.sessionId, t.workspaceId] })],
+);

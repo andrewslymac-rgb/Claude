@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, useTransition } from "react";
-import { ArrowLeft, Check, ExternalLink, Mail } from "lucide-react";
+import { ArrowLeft, Check, ExternalLink, Mail, CalendarDays } from "lucide-react";
 import type { Frequency } from "@/db/schema";
 import type { CadenceProgress, PersonTask, Source } from "@/lib/services/team";
 import { completeTaskAction } from "@/app/actions";
@@ -130,7 +130,9 @@ export function PersonView({ slug, person, tasks, summary, byDay, recent, today,
       <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
         <Avatar name={person.name} size={56} />
         <div className="min-w-0 flex-1">
-          <h1 className="page-title">{isMe ? `${person.name} (you)` : person.name}</h1>
+          <h1 className="page-title flex flex-wrap items-center gap-x-3">{isMe ? `${person.name} (you)` : person.name}
+            <Link href={`/w/${slug}/tasks/calendar?person=${person.userId}`} className="btn btn-sm text-sm font-normal"><CalendarDays size={14} /> Calendar</Link>
+          </h1>
           <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-ink-soft">
             {person.jobRoles.map((r) => (
               <span key={r.id} className="rounded-full border border-line px-2 py-0.5 text-xs" style={{ borderColor: r.color }}>
@@ -259,7 +261,7 @@ export function PersonView({ slug, person, tasks, summary, byDay, recent, today,
                   {doneNow && <Check size={13} />}
                 </button>
                 <div className="min-w-0 flex-1">
-                  <div className={`truncate text-sm font-medium ${doneNow ? "text-ink-faint line-through" : ""}`}>{t.title}</div>
+                  <Link href={`/w/${slug}/tasks/${t.id}`} className={`block truncate text-sm font-medium hover:underline ${doneNow ? "text-ink-faint line-through" : ""}`}>{t.title}</Link>
                   <div className="mt-0.5 flex flex-wrap gap-x-3 text-[11px] text-ink-faint">
                     <span>{CAD_LABEL[t.frequency]}{t.whenText ? ` · ${t.whenText}` : ""}</span>
                     <span>{SOURCE_LABEL[t.source]}{t.source === "role" && t.role ? `: ${t.role.emoji} ${t.role.name}` : ""}</span>

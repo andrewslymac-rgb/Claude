@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useEffect, useState, useTransition } from "react";
-import { Check, Undo2, X, Trash2, History, CalendarClock, SkipForward, MessageSquare, Bell, BellOff } from "lucide-react";
+import { Check, X, Trash2, History, CalendarClock, MessageSquare, Bell, BellOff, Maximize2 } from "lucide-react";
+import { StatusPicker, Attachments } from "./TaskExtras";
 import { addTaskNoteAction, archiveTaskAction, completeTaskAction, createTaskAction, deleteTaskNoteAction, listCompletionsAction, listTaskNotesAction, moveDueAction, setFollowUpAction, updateTaskAction } from "@/app/actions";
 import { doneThisPeriod, todayISO } from "@/lib/recurrence";
 import type { TaskRow } from "@/lib/services/tasks";
@@ -21,7 +22,7 @@ export const TONE: Record<string, string> = {
   ok: "bg-ok-soft text-ok",
 };
 
-export function TaskDrawer({ slug, task, members, roles = [], pages, categories, canEdit, onClose, onDone, onUndo }: { slug: string; task: TaskRow; members: Member[]; roles?: JobRole[]; pages: PageOpt[]; categories: readonly string[]; canEdit: boolean; onClose: () => void; onDone: (t: TaskRow) => void; onUndo: (t: TaskRow) => void }) {
+export function TaskDrawer({ slug, task, members, roles = [], pages, categories, canEdit, onClose, onDone, onUndo, asPage = false }: { slug: string; task: TaskRow; members: Member[]; roles?: JobRole[]; pages: PageOpt[]; categories: readonly string[]; canEdit: boolean; onClose: () => void; onDone: (t: TaskRow) => void; onUndo: (t: TaskRow) => void; asPage?: boolean }) {
   const [editing, setEditing] = useState(false);
   const [history, setHistory] = useState<Awaited<ReturnType<typeof listCompletionsAction>> | null>(null);
   const [notes, setNotes] = useState<Awaited<ReturnType<typeof listTaskNotesAction>> | null>(null);
@@ -40,19 +41,28 @@ export function TaskDrawer({ slug, task, members, roles = [], pages, categories,
   const isDoneNow = task.state === "done" || (doneThisPeriod(task.frequency, task.lastDoneOn === "today" ? today : task.lastDoneOn, today) && task.state !== "overdue");
   if (editing) return <TaskForm slug={slug} task={task} members={members} roles={roles} pages={pages} categories={categories} onClose={() => setEditing(false)} />;
   return (
-    <div className="fixed inset-0 z-50 flex justify-end bg-black/60" onMouseDown={onClose}>
-      <div className="pt-safe pb-safe flex h-full w-full max-w-lg flex-col overflow-y-auto border-l border-line bg-card p-4 shadow-2xl md:p-6" onMouseDown={(e) => e.stopPropagation()}>
-        <div className="sticky -top-4 z-10 -mx-4 -mt-4 flex items-start justify-between gap-3 bg-card px-4 pb-2 pt-4 md:static md:m-0 md:p-0">
-          <h2 className="text-xl font-semibold">{task.title}</h2>
-          <button onClick={onClose} className="tap-icon rounded p-1 hover:bg-hover" aria-label="Close">
-            <X size={18} />
-          </button>
+    <Shell asPage={asPage} onClose={onClose}>
+        <div className={asPage ? "flex items-start justify-between gap-3" : "sticky -top-4 z-10 -mx-4 -mt-4 flex items-start justify-between gap-3 bg-card px-4 pb-2 pt-4 md:static md:m-0 md:p-0"}>
+          <h2 className={asPage ? "page-title" : "text-xl font-semibold"}>{task.title}</h2>
+          <div className="flex shrink-0 items-center gap-1">
+            {!asPage && (
+              <Link href={`/w/${slug}/tasks/${task.id}`} className="tap-icon rounded p-1 text-ink-faint hover:bg-hover hover:text-ink" aria-label="Open full page" title="Open full page">
+                <Maximize2 size={16} />
+              </Link>
+            )}
+            {!asPage && (
+              <button onClick={onClose} className="tap-icon rounded p-1 hover:bg-hover" aria-label="Close">
+                <X size={18} />
+              </button>
+            )}
+          </div>
         </div>
         <div className="mt-2 flex flex-wrap gap-2 text-xs">
           <Chip>{FREQUENCY_LABELS[task.frequency]}</Chip>
           {task.whenText && <Chip>{task.whenText}</Chip>}
           {task.category && <Chip>{task.category}</Chip>}
           <span className={`rounded px-2 py-0.5 font-medium ${TONE[DUE_LABELS[task.state].tone]}`}>{task.state === "done" ? "Done" : DUE_LABELS[task.state].label}</span>
+          {task.pausedAt && <span className="text-ink-faint">since {new Date(task.pausedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "America/Los_Angeles" })}</span>}
         </div>
 
         <dl className="mt-5 grid grid-cols-[96px_1fr] gap-y-2 text-sm md:grid-cols-[120px_1fr]">
@@ -97,6 +107,8 @@ export function TaskDrawer({ slug, task, members, roles = [], pages, categories,
           )}
         </dl>
 
+        <StatusPicker slug={slug} task={task} isDoneNow={isDoneNow} canEdit={canEdit} onDone={() => onDone(task)} onUndo={() => onUndo(task)} />
+
         {task.instructions && (
           <div className="mt-5">
             <div className="mb-1 text-xs font-medium uppercase tracking-wide text-ink-faint">Instructions</div>
@@ -104,24 +116,10 @@ export function TaskDrawer({ slug, task, members, roles = [], pages, categories,
           </div>
         )}
 
-        <div className="mt-6 flex gap-2">
-          {isDoneNow ? (
-            <button onClick={() => onUndo(task)} disabled={!task.canUndo} title={task.canUndo ? "Uncheck it; the completion is removed" : "Done more than 7 days ago. Use Last done → change to correct it."} className="flex items-center gap-1 btn btn-secondary">
-              <Undo2 size={14} /> Mark undone
-            </button>
-          ) : (
-            <button onClick={() => onDone(task)} className="flex items-center gap-1 btn btn-primary">
-              <Check size={14} /> Mark done
-            </button>
-          )}
+        <div className="mt-5 flex gap-2">
           {canEdit && (
             <button onClick={() => setEditing(true)} className="btn btn-secondary">
               Edit
-            </button>
-          )}
-          {canEdit && task.state !== "done" && (
-            <button onClick={() => start(async () => (await moveDueAction(slug, task.id), onClose()))} className="flex items-center gap-1 btn btn-secondary" title={task.frequency === "once" ? "Push a week" : "Skip this time; due again next period"}>
-              <SkipForward size={14} /> Skip
             </button>
           )}
           <button
@@ -297,6 +295,8 @@ export function TaskDrawer({ slug, task, members, roles = [], pages, categories,
           </ul>
         )}
 
+        <Attachments slug={slug} taskId={task.id} canManage={canEdit} />
+
         <div className="mt-6">
           <div className="mb-2 flex items-center gap-1 text-xs font-medium uppercase tracking-wide text-ink-faint">
             <MessageSquare size={12} /> Notes {notes && notes.length > 0 && <span className="rounded-full bg-hover px-1.5 text-[10px] normal-case">{notes.length}</span>}
@@ -347,8 +347,7 @@ export function TaskDrawer({ slug, task, members, roles = [], pages, categories,
             <Trash2 size={14} /> Remove task
           </button>
         )}
-      </div>
-    </div>
+    </Shell>
   );
 }
 
@@ -497,6 +496,18 @@ export function TaskForm({ slug, task, members, roles = [], pages, categories, p
             {busy ? "Saving…" : task ? "Save" : "Add task"}
           </button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+/** The drawer slides in over the page; the full page sits in the normal layout. Same contents either way. */
+function Shell({ asPage, onClose, children }: { asPage: boolean; onClose: () => void; children: React.ReactNode }) {
+  if (asPage) return <div className="mx-auto flex max-w-2xl flex-col px-4 py-6 md:px-8 md:py-10">{children}</div>;
+  return (
+    <div className="fixed inset-0 z-50 flex justify-end bg-black/60" onMouseDown={onClose}>
+      <div className="pt-safe pb-safe flex h-full w-full max-w-lg flex-col overflow-y-auto border-l border-line bg-card p-4 shadow-2xl md:p-6" onMouseDown={(e) => e.stopPropagation()}>
+        {children}
       </div>
     </div>
   );
