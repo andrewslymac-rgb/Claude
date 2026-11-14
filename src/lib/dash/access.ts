@@ -11,13 +11,13 @@ import { isUnlocked } from "./lock";
 export async function dashboardPage(slug: string) {
   const access = await requireWorkspacePage(slug);
   if (!can(access.abilities, "view_dashboards")) notFound();
-  return { ...access, unlocked: await isUnlocked() };
+  return { ...access, unlocked: await isUnlocked(access.workspace.id) };
 }
 
 /** For server actions and API routes: owner or admin, with the area unlocked on this device. */
 export async function requireDashboard(slug: string) {
   const access = await requireAccess(slug);
   if (!can(access.abilities, "view_dashboards")) throw new ForbiddenError();
-  if (!(await isUnlocked())) throw new ForbiddenError("Your dashboards are locked. Enter the emailed code to open them.");
+  if (!(await isUnlocked(access.workspace.id))) throw new ForbiddenError("Your dashboards are locked. Enter the emailed code to open them.");
   return access;
 }

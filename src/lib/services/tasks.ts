@@ -31,6 +31,8 @@ export type TaskRow = {
   assignees: { id: string; name: string }[];
   /** True if the latest completion can be undone (done within the last 7 days). */
   canUndo: boolean;
+  /** When the task was put on hold, or null. */
+  pausedAt: string | null;
 };
 
 export async function listTasks(workspaceId: string): Promise<TaskRow[]> {
@@ -71,9 +73,10 @@ export async function listTasks(workspaceId: string): Promise<TaskRow[]> {
     followUpOn: t.followUpOn,
     followUpNote: t.followUpNote,
     noteCount,
-    state: dueState(t.nextDueOn, today),
+    state: t.pausedAt ? ("paused" as const) : dueState(t.nextDueOn, today),
     assignees: byTask.get(t.id) ?? [],
     canUndo: Boolean(t.lastDoneOn && t.lastDoneOn >= undoCutoff),
+    pausedAt: t.pausedAt?.toISOString() ?? null,
   }));
 }
 
@@ -313,4 +316,22 @@ export async function resolveAssignees(workspaceId: string, names: string[]): Pr
     else unknown.push(raw);
   }
   return { ids: Array.from(new Set(ids)), unknown };
+}
+
+/**
+ * Put a task on hold, or resume it. While on hold it isn't due, overdue or counted anywhere.
+ * Resuming sets the next due date (default today) so it doesn't come back already overdue.
+ */
+export async function setPaused(workspaceId: string, id: string, paused: boolean, resumeOn?: string) {
+  if (paused) {
+    await db.update(tasks).set({ pausedAt: new Date(), updatedAt: new Date() }).where(and(eq(tasks.workspaceId, workspaceId), eq(tasks.id, id)));
+    return;
+  }
+  await db.update(tasks).set({ pausedAt: null, updatedAt: new Date() }).where(and(eq(tasks.workspaceId, workspaceId), eq(tasks.id, id)));
+  await moveDue(workspaceId, id, resumeOn ?? todayISO());
+}
+
+/** One task, or null if it isn't in this company. */
+export async function getTask(workspaceId: string, id: string) {
+  return (await listTasks(workspaceId)).find((t) => t.id === id) ?? null;
 }

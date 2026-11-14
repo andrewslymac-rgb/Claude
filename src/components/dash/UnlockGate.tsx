@@ -6,7 +6,7 @@ import { Lock, Mail } from "lucide-react";
 import { sendUnlockCodeAction, verifyUnlockCodeAction } from "@/app/dash-actions";
 
 /** Shown in place of any dashboard until the owner or admin enters the code emailed to them. */
-export function UnlockGate({ slug, email }: { slug: string; email: string }) {
+export function UnlockGate({ slug, email, company }: { slug: string; email: string; company: string }) {
   const [sent, setSent] = useState(false);
   const [code, setCode] = useState("");
   const [msg, setMsg] = useState<{ text: string; bad?: boolean } | null>(null);
@@ -36,7 +36,8 @@ export function UnlockGate({ slug, email }: { slug: string; email: string }) {
           <Lock size={22} />
         </div>
         <h1 className="text-lg font-semibold">Dashboards are locked</h1>
-        <p className="mt-1 text-sm text-ink-soft">Only owners and admins can open them. We&apos;ll email a 6-digit code to {email}. It keeps them open on this device for 12 hours.</p>
+        <p className="mt-1 text-sm text-ink-soft">Only owners and admins can open them. We&apos;ll email a 6-digit code to {email}, your {company} address. It keeps this company&apos;s dashboards open on this device for 12 hours.</p>
+        <p className="mt-2 text-xs text-ink-faint">Wrong address? Change it in Settings → People → My notifications.</p>
         {!sent ? (
           <button onClick={send} disabled={busy} className="btn btn-primary mt-5 w-full">
             <Mail size={16} /> Email me a code

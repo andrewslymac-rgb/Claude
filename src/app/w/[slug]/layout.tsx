@@ -23,7 +23,7 @@ export default async function WorkspaceLayout({ children, params }: { children: 
   const attention = tasks.filter((t) => t.state === "overdue" || t.state === "today").length;
   const openFlags = flags.filter((f) => f.status === "open").length;
   // Owners and admins only. Tool links are only sent to the browser once the area is unlocked.
-  const dashUnlocked = can(abilities, "view_dashboards") ? await isUnlocked() : false;
+  const dashUnlocked = can(abilities, "view_dashboards") ? await isUnlocked(workspace.id) : false;
   const dash = can(abilities, "view_dashboards")
     ? { screens: screensFor(workspace.fieldTool).map((s) => ({ id: s.id, label: s.label })), tools: dashUnlocked ? await listToolLinks(workspace.id) : [], unlocked: dashUnlocked }
     : null;

@@ -370,7 +370,7 @@ function WidgetBody({ w, slug, stats, isAdmin, googleCalendar }: { w: WidgetData
       return (
         <List>
           {w.items.map((t) => (
-            <Row key={t.id} href={`/w/${slug}/tasks`} title={t.title} sub={t.nextDueOn ? fmtDay(t.nextDueOn) : undefined} badge={<Badge cls={tone[t.state ?? ""] ?? ""}>{label[t.state ?? ""] ?? ""}</Badge>} />
+            <Row key={t.id} href={`/w/${slug}/tasks/${t.id}`} title={t.title} sub={t.nextDueOn ? fmtDay(t.nextDueOn) : undefined} badge={<Badge cls={tone[t.state ?? ""] ?? ""}>{label[t.state ?? ""] ?? ""}</Badge>} />
           ))}
           <More href={`/w/${slug}/tasks`}>All tasks</More>
         </List>
@@ -382,7 +382,7 @@ function WidgetBody({ w, slug, stats, isAdmin, googleCalendar }: { w: WidgetData
       return (
         <List>
           {w.items.map((t) => (
-            <Row key={t.id} href={`/w/${slug}/tasks`} title={t.title} sub={t.subtitle ?? fmtDay(t.nextDueOn)} badge={<Badge cls={t.state === "overdue" ? "bg-danger-soft text-danger" : "bg-warn-soft text-warn"}>{t.state === "overdue" ? `was ${fmtDay(t.nextDueOn)}` : "Today"}</Badge>} />
+            <Row key={t.id} href={`/w/${slug}/tasks/${t.id}`} title={t.title} sub={t.subtitle ?? fmtDay(t.nextDueOn)} badge={<Badge cls={t.state === "overdue" ? "bg-danger-soft text-danger" : "bg-warn-soft text-warn"}>{t.state === "overdue" ? `was ${fmtDay(t.nextDueOn)}` : "Today"}</Badge>} />
           ))}
           <More href={`/w/${slug}/tasks`}>All tasks</More>
         </List>

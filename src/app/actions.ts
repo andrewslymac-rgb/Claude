@@ -510,6 +510,41 @@ export async function undoTaskAction(slug: string, id: string) {
   revalidatePath(`/w/${slug}`, "layout");
 }
 
+/** On hold or resume. Resuming sets the next due date (default today). */
+export async function setTaskPausedAction(slug: string, id: string, paused: boolean, resumeOn?: string) {
+  const { workspace } = await requireAbility(slug, "manage_tasks");
+  await taskSvc.setPaused(workspace.id, uuid.parse(id), paused, resumeOn ? isoDate.parse(resumeOn) : undefined);
+  revalidatePath(`/w/${slug}`, "layout");
+}
+
+export async function listTaskFilesAction(slug: string, id: string) {
+  const { workspace } = await requireAbility(slug, "read");
+  const { listTaskFiles } = await import("@/lib/services/task-files");
+  return listTaskFiles(workspace.id, uuid.parse(id));
+}
+
+export async function addTaskLinkAction(slug: string, id: string, name: string, url: string): Promise<Result> {
+  return wrap(async () => {
+    const { user, workspace } = await requireAbility(slug, "read");
+    const p = z.object({ name: z.string().trim().max(160), url: z.string().trim().url("That doesn't look like a link.").refine((u) => /^https?:\/\//i.test(u), "Use a web link (https://…).") }).safeParse({ name, url });
+    if (!p.success) throw new Error(p.error.issues[0]?.message ?? "Check the link.");
+    const { addTaskLink } = await import("@/lib/services/task-files");
+    await addTaskLink(workspace.id, uuid.parse(id), p.data.name || new URL(p.data.url).host, p.data.url, user.id);
+  });
+}
+
+/** The person who attached it, or anyone who manages tasks, can remove it. */
+export async function deleteTaskFileAction(slug: string, id: string, fileId: string): Promise<Result> {
+  return wrap(async () => {
+    const { user, workspace, abilities } = await requireAbility(slug, "read");
+    const { getTaskFile, deleteTaskFile } = await import("@/lib/services/task-files");
+    const f = await getTaskFile(workspace.id, uuid.parse(id), uuid.parse(fileId));
+    if (!f) throw new Error("Attachment not found.");
+    if (f.uploadedById !== user.id && !can(abilities, "manage_tasks")) throw new ForbiddenError("Only the person who attached it, or a manager, can remove it.");
+    await deleteTaskFile(workspace.id, uuid.parse(id), uuid.parse(fileId));
+  });
+}
+
 export async function listCompletionsAction(slug: string, id: string) {
   const { workspace } = await requireAbility(slug, "read");
   return taskSvc.listCompletions(workspace.id, uuid.parse(id));

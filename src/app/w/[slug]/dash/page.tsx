@@ -5,6 +5,7 @@ import { screensFor } from "@/lib/dash/screens";
 import { listToolLinks } from "@/lib/dash/tools";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { UnlockGate } from "@/components/dash/UnlockGate";
+import { codeAddressFor } from "@/lib/dash/lock";
 import { ToolLinks } from "@/components/dash/ToolLinks";
 import { LockButton } from "@/components/dash/LockButton";
 
@@ -13,7 +14,7 @@ export const dynamic = "force-dynamic";
 export default async function DashboardsHome({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const { user, workspace, unlocked } = await dashboardPage(slug);
-  if (!unlocked) return <UnlockGate slug={slug} email={user.email} />;
+  if (!unlocked) return <UnlockGate slug={slug} email={await codeAddressFor(user, workspace.id)} company={workspace.name} />;
   const screens = screensFor(workspace.fieldTool);
   const tools = await listToolLinks(workspace.id);
 
