@@ -94,7 +94,7 @@ export function Sidebar(props: { workspace: Ws; workspaces: Ws[]; tree: Node[]; 
     });
 
   return (
-    <aside className="pt-safe flex h-full w-full flex-col border-r border-line bg-side text-[15px] md:text-[14px]">
+    <aside className="pt-safe flex h-full w-full flex-col overflow-y-auto overscroll-contain border-r border-line bg-side text-[15px] scrollbar-thin md:text-[14px]">
       <Link href="/" className="flex items-center gap-2 px-4 pb-1 pt-4 text-accent hover:opacity-80" title="All companies">
         <OrbitLogo size={22} />
         <span className="text-lg font-bold tracking-tight text-ink">orbit</span>
@@ -182,7 +182,7 @@ export function Sidebar(props: { workspace: Ws; workspaces: Ws[]; tree: Node[]; 
           )}
         </span>
       </div>
-      <div className="min-h-24 flex-1 overflow-y-auto px-2 pb-4 scrollbar-thin">
+      <div className="flex-none px-2 pb-4 md:min-h-40 md:flex-1 md:overflow-y-auto scrollbar-thin">
         <PageTree slug={workspace.slug} nodes={tree} canEdit={canEdit} onNew={newPage} />
         {canEdit && (
           <button onClick={() => newPage(null)} disabled={pending} className="mt-1 flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-ink-faint hover:bg-hover hover:text-ink">
@@ -191,7 +191,7 @@ export function Sidebar(props: { workspace: Ws; workspaces: Ws[]; tree: Node[]; 
         )}
       </div>
 
-      <div className="space-y-0.5 border-t border-line px-2 py-2 pb-20 md:pb-2">
+      <div className="pb-safe space-y-0.5 border-t border-line px-2 py-2 md:pb-2">
         <NavItem href={`${base}/ai`} icon={<Bot size={16} />} label="AI" active={pathname === `${base}/ai`} badge={props.pendingAi || undefined} />
         <NavItem href={`${base}/settings`} icon={<Settings size={16} />} label="Settings" active={pathname.startsWith(`${base}/settings`)} />
         <NavItem href={`${base}/feedback${pathname.startsWith(`${base}/feedback`) ? "" : `?from=${encodeURIComponent(pathname)}`}`} icon={<MessageSquareHeart size={16} />} label="Feedback & bugs" active={pathname.startsWith(`${base}/feedback`)} badge={props.newFeedback || undefined} />
