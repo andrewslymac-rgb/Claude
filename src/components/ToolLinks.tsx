@@ -2,13 +2,19 @@
 
 import { useState, useTransition } from "react";
 import { ExternalLink, Plus, Trash2 } from "lucide-react";
-import { addToolLinkAction, removeToolLinkAction } from "@/app/tool-actions";
+import { addLinkAction, removeLinkAction } from "@/app/tool-actions";
 import { useToast } from "@/components/ui/Toast";
 
 type Link = { id: string; label: string; url: string };
 
-/** Pinned links under Tools, such as the Schedule Planner that lives in Claude. */
-export function ToolLinks({ slug, links }: { slug: string; links: Link[] }) {
+const WORDS = {
+  tools: { section: "Tools and reports", placeholder: "Name, e.g. Schedule Planner", addMore: "Add another tool link", addFirst: "Add a tool link (e.g. the Schedule Planner)" },
+  links: { section: "Links", placeholder: "Name, e.g. Google Business Profile", addMore: "Add another link", addFirst: "Add a link to a website you use" },
+};
+
+/** A list of pinned menu links: Tools and reports, or Links. Only owners and admins can add or remove. */
+export function ToolLinks({ slug, links, kind = "tools", canManage = true }: { slug: string; links: Link[]; kind?: "tools" | "links"; canManage?: boolean }) {
+  const w = WORDS[kind];
   const [adding, setAdding] = useState(false);
   const [label, setLabel] = useState("");
   const [url, setUrl] = useState("");
@@ -32,23 +38,27 @@ export function ToolLinks({ slug, links }: { slug: string; links: Link[] }) {
               <span className="block truncate text-xs text-ink-soft">Opens {host(l.url)}</span>
             </span>
           </a>
+          {canManage && (
           <button
-            onClick={() => confirm(`Remove "${l.label}" from Tools?`) && start(async () => { const r = await removeToolLinkAction(slug, l.id); if (!r.ok) toast(r.error, false); })}
+            onClick={() => confirm(`Remove "${l.label}" from ${w.section}?`) && start(async () => { const r = await removeLinkAction(slug, kind, l.id); if (!r.ok) toast(r.error, false); })}
             disabled={busy}
             className="tap-icon rounded-lg p-2 text-ink-faint hover:bg-hover hover:text-danger"
             aria-label={`Remove ${l.label}`}
           >
             <Trash2 size={16} />
           </button>
+          )}
         </div>
       ))}
-      {adding ? (
+      {!canManage ? (
+        links.length ? null : <p className="px-4 py-6 text-sm text-ink-soft">No links yet.</p>
+      ) : adding ? (
         <form
           className="space-y-2 p-4"
           onSubmit={(e) => {
             e.preventDefault();
             start(async () => {
-              const r = await addToolLinkAction(slug, label, url);
+              const r = await addLinkAction(slug, kind, label, url);
               if (!r.ok) return toast(r.error, false);
               setLabel("");
               setUrl("");
@@ -56,7 +66,7 @@ export function ToolLinks({ slug, links }: { slug: string; links: Link[] }) {
             });
           }}
         >
-          <input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Name, e.g. Schedule Planner" className="field" maxLength={60} />
+          <input value={label} onChange={(e) => setLabel(e.target.value)} placeholder={w.placeholder} className="field" maxLength={60} />
           <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://…" inputMode="url" className="field" />
           <div className="flex gap-2">
             <button type="submit" disabled={busy || !label.trim() || !url.trim()} className="btn btn-primary">Add link</button>
@@ -65,7 +75,7 @@ export function ToolLinks({ slug, links }: { slug: string; links: Link[] }) {
         </form>
       ) : (
         <button onClick={() => setAdding(true)} className="flex min-h-12 w-full items-center gap-2 px-4 py-3 text-left text-sm text-ink-soft hover:bg-hover hover:text-ink">
-          <Plus size={16} /> {links.length ? "Add another tool link" : "Add a tool link (e.g. the Schedule Planner)"}
+          <Plus size={16} /> {links.length ? w.addMore : w.addFirst}
         </button>
       )}
     </div>

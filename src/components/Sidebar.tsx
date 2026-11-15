@@ -4,7 +4,7 @@ import { useAct } from "@/components/ui/Toast";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
-import { ChevronDown, ChevronRight, Home, LogOut, MoreHorizontal, Plus, Search, Settings, Trash2, CheckSquare, BookOpen, Library, Flag, Bot, FolderOpen, AlertTriangle, MessageSquareHeart, Users, UserRound, Briefcase, Wrench, ExternalLink, CalendarDays, MessagesSquare } from "lucide-react";
+import { ChevronDown, ChevronRight, Home, LogOut, MoreHorizontal, Plus, Search, Settings, Trash2, CheckSquare, BookOpen, Library, Flag, Bot, FolderOpen, AlertTriangle, MessageSquareHeart, Users, UserRound, Briefcase, Wrench, ExternalLink, Link2, CalendarDays, MessagesSquare } from "lucide-react";
 import { NamePrompt } from "@/components/NamePrompt";
 import { createPortal } from "react-dom";
 import { NewTaskButton } from "@/components/tasks/NewTaskButton";
@@ -22,7 +22,7 @@ type Node = { id: string; parentId: string | null; title: string; icon: string |
 export type ToolLinkNav = { id: string; label: string; url: string }[];
 export type CollectionNav = { id: string; label: string; icon: string; count: number; rootPageId: string | null };
 
-export function Sidebar(props: { workspace: Ws; workspaces: Ws[]; tree: Node[]; collections: CollectionNav[]; user: { name: string; email: string; isAppAdmin: boolean; firstName?: string | null; lastName?: string | null }; canEdit: boolean; canManage: boolean; attention?: number; overdue: OverdueItem[]; me: string; openFlags?: number; pendingAi?: number; newFeedback?: number; canManageTasks?: boolean; toolLinks?: ToolLinkNav | null }) {
+export function Sidebar(props: { workspace: Ws; workspaces: Ws[]; tree: Node[]; collections: CollectionNav[]; user: { name: string; email: string; isAppAdmin: boolean; firstName?: string | null; lastName?: string | null }; canEdit: boolean; canManage: boolean; attention?: number; overdue: OverdueItem[]; me: string; openFlags?: number; pendingAi?: number; newFeedback?: number; canManageTasks?: boolean; toolLinks?: ToolLinkNav | null; links?: ToolLinkNav; canManageLinks?: boolean }) {
   const { workspace, canEdit, collections } = props;
   const [overdueOpen, setOverdueOpen] = useState(false);
   useEffect(() => {
@@ -138,6 +138,23 @@ export function Sidebar(props: { workspace: Ws; workspaces: Ws[]; tree: Node[]; 
               </a>
             ))}
             <NavItem href={`${base}/tools`} icon={<Wrench size={16} />} label={props.toolLinks.length ? "Manage tools" : "Add a tool"} active={pathname === `${base}/tools`} />
+          </nav>
+        </>
+      )}
+
+      {/* Links: websites the team uses. Everyone sees them; owners and admins manage them. */}
+      {((props.links?.length ?? 0) > 0 || props.canManageLinks) && (
+        <>
+          <div className="eyebrow flex items-center gap-1 px-4 pb-1 pt-3">
+            <Link2 size={11} /> Links
+          </div>
+          <nav className="space-y-0.5 px-2 pb-1">
+            {(props.links ?? []).map((t) => (
+              <a key={t.id} href={t.url} target="_blank" rel="noopener noreferrer" className="nav-item">
+                <span className="text-ink-faint"><ExternalLink size={16} /></span> <span className="min-w-0 flex-1 truncate">{t.label}</span>
+              </a>
+            ))}
+            {props.canManageLinks && <NavItem href={`${base}/links`} icon={<Link2 size={16} />} label={props.links?.length ? "Manage links" : "Add a link"} active={pathname === `${base}/links`} />}
           </nav>
         </>
       )}
