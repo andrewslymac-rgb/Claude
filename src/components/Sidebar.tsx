@@ -132,8 +132,8 @@ export function Sidebar(props: { workspace: Ws; workspaces: Ws[]; tree: Node[]; 
             <Wrench size={11} /> Tools and reports
           </div>
           <nav className="space-y-0.5 px-2 pb-1">
-            {props.toolLinks.map((t, i, all) => (
-              <a key={t.id} href={t.url} target="_blank" rel="noopener noreferrer" className={`nav-item ${!t.starred && i > 0 && all[i - 1].starred ? "mt-1 border-t border-line/60 pt-2" : ""}`}>
+            {props.toolLinks.map((t) => (
+              <a key={t.id} href={t.url} target="_blank" rel="noopener noreferrer" className="nav-item">
                 <span className={t.starred ? "text-amber-400" : "text-ink-faint"}>{t.starred ? <Star size={16} className="fill-current" /> : <ExternalLink size={16} />}</span> <span className="min-w-0 flex-1 truncate">{t.label}</span>
               </a>
             ))}
@@ -149,8 +149,8 @@ export function Sidebar(props: { workspace: Ws; workspaces: Ws[]; tree: Node[]; 
             <Link2 size={11} /> Links
           </div>
           <nav className="space-y-0.5 px-2 pb-1">
-            {(props.links ?? []).map((t, i, all) => (
-              <a key={t.id} href={t.url} target="_blank" rel="noopener noreferrer" className={`nav-item ${!t.starred && i > 0 && all[i - 1].starred ? "mt-1 border-t border-line/60 pt-2" : ""}`}>
+            {(props.links ?? []).map((t) => (
+              <a key={t.id} href={t.url} target="_blank" rel="noopener noreferrer" className="nav-item">
                 <span className={t.starred ? "text-amber-400" : "text-ink-faint"}>{t.starred ? <Star size={16} className="fill-current" /> : <ExternalLink size={16} />}</span> <span className="min-w-0 flex-1 truncate">{t.label}</span>
               </a>
             ))}
