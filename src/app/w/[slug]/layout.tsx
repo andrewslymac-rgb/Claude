@@ -12,8 +12,7 @@ import { countPending } from "@/lib/services/ai-proposals";
 import { collectionCounts, listCollections } from "@/lib/drive/sync";
 import { workspaceThemeVars } from "@/lib/theme/workspace-theme";
 import { listFeedback } from "@/lib/services/feedback";
-import { screensFor } from "@/lib/dash/screens";
-import { listToolLinks } from "@/lib/dash/tools";
+import { listToolLinks } from "@/lib/tool-links";
 
 export default async function WorkspaceLayout({ children, params }: { children: React.ReactNode; params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -21,10 +20,8 @@ export default async function WorkspaceLayout({ children, params }: { children: 
   const [tree, workspaces, tasks, flags, pendingAi, collections, counts, fb] = await Promise.all([listTree(workspace.id), listWorkspacesForUser(user), listTasks(workspace.id), listFlags(workspace.id), countPending(workspace.id), listCollections(workspace.id), collectionCounts(workspace.id), listFeedback(workspace.id)]);
   const attention = tasks.filter((t) => t.state === "overdue" || t.state === "today").length;
   const openFlags = flags.filter((f) => f.status === "open").length;
-  // Owners and admins only.
-  const dash = can(abilities, "view_dashboards")
-    ? { screens: screensFor(workspace.fieldTool).map((s) => ({ id: s.id, label: s.label })), tools: await listToolLinks(workspace.id) }
-    : null;
+  // Tools links: owners and admins only.
+  const toolLinks = can(abilities, "view_dashboards") ? await listToolLinks(workspace.id) : null;
 
   return (
     // The company's color becomes the accent for everything inside it: buttons, active
@@ -47,7 +44,7 @@ export default async function WorkspaceLayout({ children, params }: { children: 
         newFeedback={can(abilities, "manage_members") ? fb.filter((f) => f.status === "new").length : 0}
         pendingAi={pendingAi}
         canManageTasks={can(abilities, "manage_tasks")}
-        dash={dash}
+        toolLinks={toolLinks}
       />
       }>
         {children}

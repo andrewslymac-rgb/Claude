@@ -49,12 +49,6 @@ export const sessions = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
-    /** The locked owner area (dashboards, tools) is open on this sign-in until then. */
-    unlockedUntil: timestamp("unlocked_until", { withTimezone: true }),
-    /** SHA-256 of the emailed code that unlocks it, and when that code stops working. */
-    unlockCodeHash: text("unlock_code_hash"),
-    unlockCodeExpires: timestamp("unlock_code_expires", { withTimezone: true }),
-    unlockAttempts: integer("unlock_attempts").notNull().default(0),
   },
   (t) => [index("sessions_user_idx").on(t.userId)],
 );
@@ -765,42 +759,6 @@ export const feedback = pgTable(
 );
 
 /**
- * Server-side cache for heavy pulls from Jobber and GorillaDesk, one row per company and
- * screen. Lives in the database so a deploy doesn't throw it away and hammer the API.
- */
-export const dataCache = pgTable(
-  "data_cache",
-  {
-    workspaceId: uuid("workspace_id")
-      .notNull()
-      .references(() => workspaces.id, { onDelete: "cascade" }),
-    key: text("key").notNull(),
-    payload: jsonb("payload").$type<unknown>().notNull(),
-    fetchedAt: timestamp("fetched_at", { withTimezone: true }).notNull().defaultNow(),
-  },
-  (t) => [primaryKey({ columns: [t.workspaceId, t.key] })],
-);
-
-/** "Called them Tuesday, try again Friday" notes on unpaid invoices. Kept in Orbit only, never written to Jobber. */
-export const arFollowups = pgTable(
-  "ar_followups",
-  {
-    id: uuid("id").primaryKey().defaultRandom(),
-    workspaceId: uuid("workspace_id")
-      .notNull()
-      .references(() => workspaces.id, { onDelete: "cascade" }),
-    /** Jobber's invoice ID. */
-    invoiceId: text("invoice_id").notNull(),
-    note: text("note").notNull(),
-    followUpOn: date("follow_up_on"),
-    createdById: uuid("created_by_id").references(() => users.id, { onDelete: "set null" }),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-  },
-  (t) => [index("ar_followups_invoice_idx").on(t.workspaceId, t.invoiceId)],
-);
-export type ArFollowup = typeof arFollowups.$inferSelect;
-
-/**
  * Files and links attached to a task: photos of finished work, receipts, PDFs, a link to a
  * Google Doc. Files live in the database (10 MB cap each) so there's no extra storage service.
  */
@@ -824,21 +782,6 @@ export const taskFiles = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index("task_files_task_idx").on(t.taskId)],
-);
-
-/** Which companies' locked dashboards are open on which sign-in, and until when. One unlock per company. */
-export const dashUnlocks = pgTable(
-  "dash_unlocks",
-  {
-    sessionId: text("session_id")
-      .notNull()
-      .references(() => sessions.id, { onDelete: "cascade" }),
-    workspaceId: uuid("workspace_id")
-      .notNull()
-      .references(() => workspaces.id, { onDelete: "cascade" }),
-    unlockedUntil: timestamp("unlocked_until", { withTimezone: true }).notNull(),
-  },
-  (t) => [primaryKey({ columns: [t.sessionId, t.workspaceId] })],
 );
 
 /** A Google Drive folder Orbit reads meeting notes from (e.g. someone's "Meet Recordings"). */

@@ -4,7 +4,7 @@ import { useAct } from "@/components/ui/Toast";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
-import { ChevronDown, ChevronRight, Home, LogOut, MoreHorizontal, Plus, Search, Settings, Trash2, CheckSquare, BookOpen, Library, Flag, Bot, FolderOpen, AlertTriangle, MessageSquareHeart, Users, UserRound, Briefcase, LayoutDashboard, Receipt, Wrench, ExternalLink, CalendarDays, MessagesSquare } from "lucide-react";
+import { ChevronDown, ChevronRight, Home, LogOut, MoreHorizontal, Plus, Search, Settings, Trash2, CheckSquare, BookOpen, Library, Flag, Bot, FolderOpen, AlertTriangle, MessageSquareHeart, Users, UserRound, Briefcase, Wrench, ExternalLink, CalendarDays, MessagesSquare } from "lucide-react";
 import { NamePrompt } from "@/components/NamePrompt";
 import { createPortal } from "react-dom";
 import { NewTaskButton } from "@/components/tasks/NewTaskButton";
@@ -18,11 +18,11 @@ import { PopMenu, MenuItem } from "@/components/ui/Menu";
 
 type Ws = { slug: string; name: string; icon: string; color: string };
 type Node = { id: string; parentId: string | null; title: string; icon: string | null; position: number; isSop: boolean; source: string };
-/** The owner-and-admin area: dashboards and tool links. */
-export type DashNav = { screens: { id: string; label: string }[]; tools: { id: string; label: string; url: string }[] };
+/** Owners' and admins' links to outside tools. */
+export type ToolLinkNav = { id: string; label: string; url: string }[];
 export type CollectionNav = { id: string; label: string; icon: string; count: number; rootPageId: string | null };
 
-export function Sidebar(props: { workspace: Ws; workspaces: Ws[]; tree: Node[]; collections: CollectionNav[]; user: { name: string; email: string; isAppAdmin: boolean; firstName?: string | null; lastName?: string | null }; canEdit: boolean; canManage: boolean; attention?: number; overdue: OverdueItem[]; me: string; openFlags?: number; pendingAi?: number; newFeedback?: number; canManageTasks?: boolean; dash?: DashNav | null }) {
+export function Sidebar(props: { workspace: Ws; workspaces: Ws[]; tree: Node[]; collections: CollectionNav[]; user: { name: string; email: string; isAppAdmin: boolean; firstName?: string | null; lastName?: string | null }; canEdit: boolean; canManage: boolean; attention?: number; overdue: OverdueItem[]; me: string; openFlags?: number; pendingAi?: number; newFeedback?: number; canManageTasks?: boolean; toolLinks?: ToolLinkNav | null }) {
   const { workspace, canEdit, collections } = props;
   const [overdueOpen, setOverdueOpen] = useState(false);
   useEffect(() => {
@@ -126,27 +126,18 @@ export function Sidebar(props: { workspace: Ws; workspaces: Ws[]; tree: Node[]; 
         <NavItem href={`${base}/flags`} icon={<Flag size={16} />} label="Flags" active={pathname.startsWith(`${base}/flags`)} badge={props.openFlags || undefined} />
       </nav>
 
-      {props.dash && (
+      {props.toolLinks && (
         <>
-          <div className="eyebrow flex items-center gap-1 px-4 pb-1 pt-3">
-            <LayoutDashboard size={11} /> Dashboards
-          </div>
-          <nav className="space-y-0.5 px-2 pb-1">
-            {props.dash.screens.map((s) => (
-              <NavItem key={s.id} href={`${base}/dash/${s.id}`} icon={<Receipt size={16} />} label={s.label} active={pathname.startsWith(`${base}/dash/${s.id}`)} />
-            ))}
-            {!props.dash.screens.length && <NavItem href={`${base}/dash`} icon={<LayoutDashboard size={16} />} label="All dashboards" active={pathname === `${base}/dash`} />}
-          </nav>
           <div className="eyebrow flex items-center gap-1 px-4 pb-1 pt-3">
             <Wrench size={11} /> Tools
           </div>
           <nav className="space-y-0.5 px-2 pb-1">
-            {props.dash.tools.map((t) => (
+            {props.toolLinks.map((t) => (
               <a key={t.id} href={t.url} target="_blank" rel="noopener noreferrer" className="nav-item">
                 <span className="text-ink-faint"><ExternalLink size={16} /></span> <span className="min-w-0 flex-1 truncate">{t.label}</span>
               </a>
             ))}
-            <NavItem href={`${base}/tools`} icon={<Wrench size={16} />} label={props.dash.tools.length ? "Manage tools" : "Add a tool"} active={pathname === `${base}/tools`} />
+            <NavItem href={`${base}/tools`} icon={<Wrench size={16} />} label={props.toolLinks.length ? "Manage tools" : "Add a tool"} active={pathname === `${base}/tools`} />
           </nav>
         </>
       )}
