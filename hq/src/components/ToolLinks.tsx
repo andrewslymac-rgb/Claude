@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { ExternalLink, Plus, Trash2 } from "lucide-react";
-import { addToolLinkAction, removeToolLinkAction } from "@/app/dash-actions";
+import { addToolLinkAction, removeToolLinkAction } from "@/app/tool-actions";
 import { useToast } from "@/components/ui/Toast";
 
 type Link = { id: string; label: string; url: string };

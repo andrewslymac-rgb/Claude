@@ -10,7 +10,7 @@ export type Ability =
   | "manage_members"
   | "manage_workspace" // rename, color, delete
   | "view_sensitive" // documents marked sensitive
-  | "view_dashboards"; // the locked owner area: money, pay and business dashboards
+  | "view_dashboards"; // owner/admin-only areas: Tools links and admin-only meeting types
 
 const NEEDS: Record<Ability, Role> = {
   read: "viewer",

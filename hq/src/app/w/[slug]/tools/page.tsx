@@ -2,9 +2,9 @@ import { notFound } from "next/navigation";
 import { Wrench } from "lucide-react";
 import { requireWorkspacePage } from "@/lib/access";
 import { can } from "@/lib/permissions";
-import { listToolLinks } from "@/lib/dash/tools";
+import { listToolLinks } from "@/lib/tool-links";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { ToolLinks } from "@/components/dash/ToolLinks";
+import { ToolLinks } from "@/components/ToolLinks";
 
 export const dynamic = "force-dynamic";
 
