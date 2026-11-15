@@ -4,7 +4,7 @@ import { useAct } from "@/components/ui/Toast";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
-import { ChevronDown, ChevronRight, Home, LogOut, MoreHorizontal, Plus, Search, Settings, Trash2, CheckSquare, BookOpen, Library, Flag, Bot, FolderOpen, AlertTriangle, MessageSquareHeart, Users, UserRound, Briefcase, LayoutDashboard, Receipt, Wrench, ExternalLink, Lock, CalendarDays } from "lucide-react";
+import { ChevronDown, ChevronRight, Home, LogOut, MoreHorizontal, Plus, Search, Settings, Trash2, CheckSquare, BookOpen, Library, Flag, Bot, FolderOpen, AlertTriangle, MessageSquareHeart, Users, UserRound, Briefcase, LayoutDashboard, Receipt, Wrench, ExternalLink, Lock, CalendarDays, MessagesSquare } from "lucide-react";
 import { NamePrompt } from "@/components/NamePrompt";
 import { createPortal } from "react-dom";
 import { NewTaskButton } from "@/components/tasks/NewTaskButton";
@@ -122,6 +122,7 @@ export function Sidebar(props: { workspace: Ws; workspaces: Ws[]; tree: Node[]; 
           <span className={props.overdue.length ? "text-danger" : "text-ink-faint"}><AlertTriangle size={16} /></span> <span className="flex-1 text-left">Past due</span>
           {props.overdue.length > 0 && <span className="num rounded-full bg-danger px-1.5 text-[11px] font-semibold text-paper">{props.overdue.length}</span>}
         </button>
+        <NavItem href={`${base}/meetings`} icon={<MessagesSquare size={16} />} label="Meetings" active={pathname.startsWith(`${base}/meetings`)} />
         <NavItem href={`${base}/flags`} icon={<Flag size={16} />} label="Flags" active={pathname.startsWith(`${base}/flags`)} badge={props.openFlags || undefined} />
       </nav>
 

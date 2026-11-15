@@ -75,6 +75,22 @@ export default async function Home({ params }: { params: Promise<{ slug: string 
             const mine = tasksForUser(allTasks, user.id, roleIds).filter((t) => t.state === "overdue" || t.state === "today" || (t.state === "soon" && !(t.lastDoneOn && t.lastDoneOn >= twoDaysAgo)));
             return { ...base, total: mine.length, items: mine.slice(0, limit).map((t) => ({ id: t.id, title: t.title, icon: null, state: t.state, nextDueOn: t.nextDueOn })) };
           }
+          case "meetings": {
+            const { listMeetings } = await import("@/lib/meetings/service");
+            const ms = await listMeetings(workspace.id, can(abilities, "view_dashboards"));
+            return {
+              ...base,
+              total: ms.length,
+              items: ms.slice(0, limit).map((m) => ({
+                id: m.id,
+                title: m.series,
+                icon: null,
+                subtitle: m.summary || m.summaryPoints[0]?.title || undefined,
+                updatedAt: m.occurredAt.toISOString(),
+                count: m.nextSteps.filter((n) => !n.taskId).length,
+              })),
+            };
+          }
           case "followups":
             return { ...base, total: followUps.length, items: followUps.slice(0, limit).map((t) => ({ id: t.id, title: t.title, icon: null, nextDueOn: t.followUpOn, subtitle: t.followUpNote ?? undefined, state: t.followUpOn! < todayStr ? "overdue" : "today" })) };
           case "reviews":

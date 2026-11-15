@@ -10,6 +10,10 @@ export async function register() {
   const { sendDailyDigests } = await import("@/lib/services/digest");
   setTimeout(() => void sendDailyDigests().catch((e) => console.error("Digest failed", e)), 45_000); // catch up after a restart
   setInterval(() => void sendDailyDigests().catch((e) => console.error("Digest failed", e)), 10 * 60_000);
+  // Meeting notes from Google Meet: every 30 minutes (Sync now on the Meetings page for sooner).
+  const { syncAllMeetings } = await import("@/lib/meetings/service");
+  setTimeout(() => void syncAllMeetings().catch((e) => console.error("Meeting sync failed", e)), 60_000);
+  setInterval(() => void syncAllMeetings().catch((e) => console.error("Meeting sync failed", e)), 30 * 60_000);
   const { pushAllPending } = await import("@/lib/drive/twoway");
   setInterval(() => void pushAllPending().catch((e) => console.error("Two-way push failed", e)), 30_000);
 }

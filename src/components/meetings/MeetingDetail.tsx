@@ -1,0 +1,94 @@
+"use client";
+
+import { useRouter } from "next/navigation";
+import { ChevronDown, ChevronLeft, ExternalLink, Gavel, ListChecks, MessagesSquare, Sparkles, Users } from "lucide-react";
+import { useState } from "react";
+import { StepRow, fmtLong, type MeetingView } from "./shared";
+
+/** One meeting: the overview, decisions and next steps up top; topic details folded below. */
+export function MeetingDetail({ slug, m, canMakeTasks }: { slug: string; m: MeetingView; canMakeTasks: boolean }) {
+  const router = useRouter();
+  const [openTopics, setOpenTopics] = useState<Set<number>>(new Set());
+  const toggle = (i: number) => setOpenTopics((s) => (s.has(i) ? (s.delete(i), new Set(s)) : new Set(s.add(i))));
+  return (
+    <div className="mx-auto max-w-3xl space-y-6 px-4 py-6 md:px-8 md:py-10">
+      <button onClick={() => (history.length > 1 ? router.back() : router.push(`/w/${slug}/meetings`))} className="flex min-h-10 items-center gap-1 text-sm text-ink-soft hover:text-ink">
+        <ChevronLeft size={16} /> Meetings
+      </button>
+      <header>
+        <h1 className="page-title">{m.series}</h1>
+        <p className="mt-1 text-sm text-ink-soft">{fmtLong(m.at)}</p>
+        {m.attendees.length > 0 && (
+          <div className="mt-3 flex flex-wrap items-center gap-1.5 text-xs">
+            <Users size={13} className="text-ink-faint" />
+            {m.attendees.map((a) => (
+              <span key={a} className="rounded-full border border-line px-2 py-0.5">{a}</span>
+            ))}
+          </div>
+        )}
+        <a href={m.docUrl} target="_blank" rel="noopener noreferrer" className="btn btn-sm mt-4">
+          <ExternalLink size={14} /> Full notes and transcript in Google Docs
+        </a>
+      </header>
+
+      {!m.recognised && <p className="rounded-xl bg-warn-soft px-4 py-3 text-sm text-warn">Orbit couldn&apos;t find Gemini&apos;s usual sections in this doc. Open it in Google Docs to read it.</p>}
+
+      {(m.summary || m.points.length > 0) && (
+        <section>
+          <h2 className="mb-2 flex items-center gap-1.5 text-sm font-semibold"><Sparkles size={14} className="text-accent" /> Summary</h2>
+          <div className="card space-y-3 p-4 text-sm leading-relaxed">
+            {m.summary && <p className="font-medium">{m.summary}</p>}
+            {m.points.map((p) => (
+              <div key={p.title}>
+                <div className="font-medium">{p.title}</div>
+                <p className="text-ink-soft">{p.text}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {m.nextSteps.length > 0 && (
+        <section>
+          <h2 className="mb-2 flex items-center gap-1.5 text-sm font-semibold"><ListChecks size={14} className="text-accent" /> Next steps <span className="font-normal text-ink-faint">{m.nextSteps.length}</span></h2>
+          <ul className="card divide-y divide-line">
+            {m.nextSteps.map((s, i) => (
+              <StepRow key={i} slug={slug} meetingId={m.id} index={i} step={s} canMakeTasks={canMakeTasks} />
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {m.decisions.length > 0 && (
+        <section>
+          <h2 className="mb-2 flex items-center gap-1.5 text-sm font-semibold"><Gavel size={14} className="text-accent" /> Decisions</h2>
+          <ul className="card divide-y divide-line">
+            {m.decisions.map((d, i) => (
+              <li key={i} className="px-4 py-3 text-sm">
+                <div className="font-medium">{d.title}</div>
+                {d.text && <p className="mt-0.5 text-ink-soft">{d.text}</p>}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {m.topics.length > 0 && (
+        <section>
+          <h2 className="mb-2 flex items-center gap-1.5 text-sm font-semibold"><MessagesSquare size={14} className="text-accent" /> What was discussed</h2>
+          <ul className="card divide-y divide-line">
+            {m.topics.map((t, i) => (
+              <li key={i}>
+                <button onClick={() => toggle(i)} className="flex min-h-12 w-full items-center gap-2 px-4 py-2 text-left text-sm font-medium" aria-expanded={openTopics.has(i)}>
+                  <span className="flex-1">{t.title}</span>
+                  <ChevronDown size={15} className={`shrink-0 text-ink-faint transition ${openTopics.has(i) ? "rotate-180" : ""}`} />
+                </button>
+                {openTopics.has(i) && <p className="px-4 pb-3 text-sm leading-relaxed text-ink-soft">{t.text}</p>}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+    </div>
+  );
+}
