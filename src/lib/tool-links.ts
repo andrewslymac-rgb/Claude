@@ -70,3 +70,14 @@ export function withStars(links: ToolLink[], stars: string[]): StarredLink[] {
   const rest = links.filter((l) => !rank.has(l.id));
   return [...starred.map((l) => ({ ...l, starred: true })), ...rest.map((l) => ({ ...l, starred: false }))];
 }
+
+/** Moves a link between Websites and Documents, keeping its id so stars stay with it. */
+export async function moveLink(workspaceId: string, from: "links" | "docs", id: string) {
+  const to = from === "links" ? "docs" : "links";
+  const [src, dst] = await Promise.all([listLinks(workspaceId, from), listLinks(workspaceId, to)]);
+  const item = src.find((l) => l.id === id);
+  if (!item) throw new Error("That link no longer exists.");
+  if (dst.length >= MAX[to]) throw new Error(`That's ${MAX[to]} links already. Remove one first.`);
+  await setSetting(key(workspaceId, to), JSON.stringify([...dst, item]));
+  await setSetting(key(workspaceId, from), JSON.stringify(src.filter((l) => l.id !== id)));
+}

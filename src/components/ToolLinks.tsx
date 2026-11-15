@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { ExternalLink, Plus, Star, Trash2 } from "lucide-react";
-import { addLinkAction, removeLinkAction, toggleLinkStarAction } from "@/app/tool-actions";
+import { ArrowLeftRight, ExternalLink, Plus, Star, Trash2 } from "lucide-react";
+import { addLinkAction, moveLinkAction, removeLinkAction, toggleLinkStarAction } from "@/app/tool-actions";
 import { useToast } from "@/components/ui/Toast";
 
 type Link = { id: string; label: string; url: string; starred?: boolean };
@@ -54,6 +54,17 @@ export function ToolLinks({ slug, links, kind = "tools", canManage = true }: { s
           >
             <Star size={16} className={l.starred ? "fill-current" : ""} />
           </button>
+          {canManage && kind !== "tools" && (
+            <button
+              onClick={() => start(async () => { const r = await moveLinkAction(slug, kind, l.id); if (!r.ok) toast(r.error, false); })}
+              disabled={busy}
+              className="tap-icon rounded-lg p-2 text-ink-faint hover:bg-hover hover:text-ink"
+              aria-label={`Move ${l.label} to ${kind === "links" ? "Documents" : "Websites"}`}
+              title={`Move to ${kind === "links" ? "Documents" : "Websites"}`}
+            >
+              <ArrowLeftRight size={16} />
+            </button>
+          )}
           {canManage && (
           <button
             onClick={() => confirm(`Remove "${l.label}" from ${w.section}?`) && start(async () => { const r = await removeLinkAction(slug, kind, l.id); if (!r.ok) toast(r.error, false); })}
