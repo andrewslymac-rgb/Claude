@@ -150,8 +150,8 @@ export function Sidebar(props: { workspace: Ws; workspaces: Ws[]; tree: Node[]; 
           </div>
           <nav className="space-y-0.5 px-2 pb-1">
             {[
-              { label: "Websites", items: props.links ?? [] },
               { label: "Documents", items: props.docLinks ?? [] },
+              { label: "Websites", items: props.links ?? [] },
             ]
               .filter((g) => g.items.length)
               .map((g) => (
