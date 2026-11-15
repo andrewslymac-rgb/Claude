@@ -170,63 +170,7 @@ footer{color:var(--muted);font-size:12px;text-align:center;padding:10px}
 <footer>Changes save instantly and show for everyone at Adapt in Orbit. <a href="#" id="settingsLink">Alert settings</a></footer>
 <div id="modalRoot"></div>
 
-<script>
-/*__ORBIT__*/
-// Orbit's stand-in for the storage the screens were written against. Same calls, but the
-// data lives in Orbit's database and every change goes through Orbit's permission checks.
-(() => {
-  const api = ORBIT.api + "/data";
-  let data = null, loading = null, busy = 0;
-  const colSubs = {}, docSubs = {};
-  const split = p => { const i = p.indexOf("/"); return [p.slice(0, i), p.slice(i + 1)]; };
-  const fail = (code, message) => Object.assign(new Error(message), { code });
-  const snapCol = c => ({ docs: Object.entries(data[c] || {}).map(([id, d]) => ({ id, data: () => d })), metadata: { fromCache: false } });
-  const snapDoc = (c, id) => { const d = (data[c] || {})[id]; return { exists: d !== undefined, data: () => d }; };
-  const emit = only => {
-    for (const c in colSubs) if (!only || only === c) colSubs[c].forEach(s => s.ok(snapCol(c)));
-    for (const p in docSubs) { const [c, id] = split(p); if (!only || only === c) docSubs[p].forEach(s => s.ok(snapDoc(c, id))); }
-  };
-  async function load() {
-    const r = await fetch(api, { cache: "no-store" });
-    if (!r.ok) throw fail(r.status === 403 ? "permission_denied" : "unavailable", "Orbit couldn't load the tracker (" + r.status + ").");
-    return r.json();
-  }
-  const ready = () => loading || (loading = load().then(d => { data = d; }));
-  async function refresh() {
-    if (busy || document.hidden || !data) return;
-    try { const d = await load(); if (!busy && JSON.stringify(d) !== JSON.stringify(data)) { data = d; emit(); } } catch (e) {}
-  }
-  setInterval(refresh, 15000);
-  document.addEventListener("visibilitychange", () => { if (!document.hidden) refresh(); });
-  async function write(path, op, body) {
-    const [collection, id] = split(path);
-    busy++;
-    try {
-      const r = await fetch(api, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ collection, id, op, data: body }) });
-      if (!r.ok) { const j = await r.json().catch(() => ({})); throw fail(r.status === 403 ? "permission_denied" : "failed", j.error || "Orbit couldn't save that (" + r.status + ")."); }
-      data[collection] = data[collection] || {};
-      if (op === "delete") delete data[collection][id];
-      else if (op === "set") data[collection][id] = body;
-      else data[collection][id] = { ...(data[collection][id] || {}), ...body };
-      emit(collection);
-    } finally { busy--; }
-  }
-  const sub = (map, key, ok, err, snap) => {
-    const s = { ok, err }; (map[key] = map[key] || []).push(s);
-    ready().then(() => ok(snap()), e => { loading = null; err && err(e); });
-    return () => { map[key] = map[key].filter(x => x !== s); };
-  };
-  const newId = () => { const a = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789", b = crypto.getRandomValues(new Uint8Array(20)); return Array.from(b, x => a[x % a.length]).join(""); };
-  const db = {
-    collection: c => ({ onSnapshot: (ok, err) => sub(colSubs, c, ok, err, () => snapCol(c)), doc: () => ({ id: newId() }) }),
-    doc: p => ({
-      set: d => write(p, "set", d), update: d => write(p, "update", d), delete: () => write(p, "delete"),
-      onSnapshot: (ok, err) => { const [c, id] = split(p); return sub(docSubs, p, ok, err, () => snapDoc(c, id)); },
-    }),
-  };
-  window.claude = { use: async cap => (cap === "db" ? db : null) };
-})();
-</script>
+<script>/*__ORBIT__*/</script>
 <script>
 (() => {
 "use strict";

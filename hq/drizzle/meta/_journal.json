@@ -183,6 +183,13 @@
       "when": 1794731343191,
       "tag": "0025_zippy_mantis",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1794732188629,
+      "tag": "0026_supreme_guardian",
+      "breakpoints": true
     }
   ]
 }

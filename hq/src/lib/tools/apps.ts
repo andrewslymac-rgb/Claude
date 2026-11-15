@@ -4,14 +4,20 @@ import type { Role } from "@/db/schema";
  * Tools built into Orbit for one company. They show in the menu for every member of that
  * company and nowhere else. The owner-managed tool links are separate (lib/dash/tools).
  */
-export type BuiltInApp = { id: "tracker"; label: string; blurb: string; emoji: string };
+export type AppId = "tracker" | "coi" | "quotes";
+export type BuiltInApp = { id: AppId; label: string; blurb: string; emoji: string };
+export const isAppId = (v: string): v is AppId => v === "tracker" || v === "coi" || v === "quotes";
 
 const ADAPT = "adapt-pest-pros";
 /** The shared inbox the Adapt tools read and draft in. */
 export const ADAPT_MAILBOX = "info@adaptpestpros.com";
 
 const APPS: Record<string, BuiltInApp[]> = {
-  [ADAPT]: [{ id: "tracker", label: "Compliance Tracker", blurb: "Property managers, locations, compliance and vendor portals.", emoji: "📋" }],
+  [ADAPT]: [
+    { id: "tracker", label: "Compliance Tracker", blurb: "Property managers, locations, compliance and vendor portals.", emoji: "📋" },
+    { id: "coi", label: "COI Request Builder", blurb: "Certificate requests to the insurance agents, with each property manager's holder wording.", emoji: "📄" },
+    { id: "quotes", label: "Multifamily Quote Builder", blurb: "Build a multifamily proposal, download the PDF or draft the email.", emoji: "🧮" },
+  ],
 };
 
 export function builtInApps(workspaceSlug: string): BuiltInApp[] {

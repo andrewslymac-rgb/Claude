@@ -928,3 +928,14 @@ export const trackerTasks = toolDoc("tracker_tasks");
 export const trackerComms = toolDoc("tracker_comms");
 /** Tracker settings: "insurance" (policies, agents), "settings" (alert thresholds, team), "scan" (last email scan). */
 export const trackerConfig = toolDoc("tracker_config");
+
+/** COI Request Builder: each property manager's certificate holder wording, endorsements, limits and portal. */
+export const coiHolders = toolDoc("coi_holders");
+/** COI Request Builder: the log of certificate requests sent to the insurance agents. */
+export const coiRequests = toolDoc("coi_requests");
+/** COI Request Builder settings: "agents" (who handles which coverage). */
+export const coiConfig = toolDoc("coi_config");
+/** Multifamily Quote Builder: saved quotes. */
+export const mfQuotes = toolDoc("mf_quotes");
+/** Multifamily Quote Builder settings: "pricelist". */
+export const mfConfig = toolDoc("mf_config");
