@@ -129,7 +129,7 @@ export function Sidebar(props: { workspace: Ws; workspaces: Ws[]; tree: Node[]; 
       {props.toolLinks && (
         <>
           <div className="eyebrow flex items-center gap-1 px-4 pb-1 pt-3">
-            <Wrench size={11} /> Tools
+            <Wrench size={11} /> Tools and reports
           </div>
           <nav className="space-y-0.5 px-2 pb-1">
             {props.toolLinks.map((t) => (
