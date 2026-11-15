@@ -2,22 +2,17 @@ import "server-only";
 import { notFound } from "next/navigation";
 import { requireWorkspacePage, requireAccess } from "@/lib/access";
 import { can, ForbiddenError } from "@/lib/permissions";
-import { isUnlocked } from "./lock";
 
-/**
- * For dashboard pages. Anyone below admin gets a plain 404, so the area doesn't even
- * admit it exists. Owners and admins get `unlocked: false` until they enter an emailed code.
- */
+/** For dashboard pages: owners and admins only. Anyone else gets a plain 404, so the area doesn't admit it exists. */
 export async function dashboardPage(slug: string) {
   const access = await requireWorkspacePage(slug);
   if (!can(access.abilities, "view_dashboards")) notFound();
-  return { ...access, unlocked: await isUnlocked(access.workspace.id) };
+  return access;
 }
 
-/** For server actions and API routes: owner or admin, with the area unlocked on this device. */
+/** For server actions and API routes: owners and admins only. */
 export async function requireDashboard(slug: string) {
   const access = await requireAccess(slug);
   if (!can(access.abilities, "view_dashboards")) throw new ForbiddenError();
-  if (!(await isUnlocked(access.workspace.id))) throw new ForbiddenError("Your dashboards are locked. Enter the emailed code to open them.");
   return access;
 }

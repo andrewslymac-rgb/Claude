@@ -4,7 +4,7 @@ import { useAct } from "@/components/ui/Toast";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
-import { ChevronDown, ChevronRight, Home, LogOut, MoreHorizontal, Plus, Search, Settings, Trash2, CheckSquare, BookOpen, Library, Flag, Bot, FolderOpen, AlertTriangle, MessageSquareHeart, Users, UserRound, Briefcase, LayoutDashboard, Receipt, Wrench, ExternalLink, Lock, CalendarDays, MessagesSquare } from "lucide-react";
+import { ChevronDown, ChevronRight, Home, LogOut, MoreHorizontal, Plus, Search, Settings, Trash2, CheckSquare, BookOpen, Library, Flag, Bot, FolderOpen, AlertTriangle, MessageSquareHeart, Users, UserRound, Briefcase, LayoutDashboard, Receipt, Wrench, ExternalLink, CalendarDays, MessagesSquare } from "lucide-react";
 import { NamePrompt } from "@/components/NamePrompt";
 import { createPortal } from "react-dom";
 import { NewTaskButton } from "@/components/tasks/NewTaskButton";
@@ -18,8 +18,8 @@ import { PopMenu, MenuItem } from "@/components/ui/Menu";
 
 type Ws = { slug: string; name: string; icon: string; color: string };
 type Node = { id: string; parentId: string | null; title: string; icon: string | null; position: number; isSop: boolean; source: string };
-/** The owner-and-admin area: dashboards (locked behind an emailed code) and tool links (not locked). */
-export type DashNav = { screens: { id: string; label: string }[]; tools: { id: string; label: string; url: string }[]; unlocked: boolean };
+/** The owner-and-admin area: dashboards and tool links. */
+export type DashNav = { screens: { id: string; label: string }[]; tools: { id: string; label: string; url: string }[] };
 export type CollectionNav = { id: string; label: string; icon: string; count: number; rootPageId: string | null };
 
 export function Sidebar(props: { workspace: Ws; workspaces: Ws[]; tree: Node[]; collections: CollectionNav[]; user: { name: string; email: string; isAppAdmin: boolean; firstName?: string | null; lastName?: string | null }; canEdit: boolean; canManage: boolean; attention?: number; overdue: OverdueItem[]; me: string; openFlags?: number; pendingAi?: number; newFeedback?: number; canManageTasks?: boolean; dash?: DashNav | null }) {
@@ -129,7 +129,7 @@ export function Sidebar(props: { workspace: Ws; workspaces: Ws[]; tree: Node[]; 
       {props.dash && (
         <>
           <div className="eyebrow flex items-center gap-1 px-4 pb-1 pt-3">
-            <LayoutDashboard size={11} /> Dashboards {!props.dash.unlocked && <Lock size={10} className="ml-auto" aria-label="Locked" />}
+            <LayoutDashboard size={11} /> Dashboards
           </div>
           <nav className="space-y-0.5 px-2 pb-1">
             {props.dash.screens.map((s) => (

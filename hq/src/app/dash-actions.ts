@@ -5,7 +5,6 @@ import { z } from "zod";
 import { requireAccess } from "@/lib/access";
 import { can, ForbiddenError } from "@/lib/permissions";
 import { requireDashboard } from "@/lib/dash/access";
-import { relock, sendUnlockCode, verifyUnlockCode } from "@/lib/dash/lock";
 import { addFollowup, deleteFollowup } from "@/lib/dash/ar";
 import { addToolLink, removeToolLink } from "@/lib/dash/tools";
 
@@ -18,35 +17,11 @@ const wrap = async (fn: () => Promise<string | void>): Promise<Result> => {
   }
 };
 
-/** Owners and admins only, before the area is unlocked. */
+/** Owners and admins only. */
 async function ownerOrAdmin(slug: string) {
   const a = await requireAccess(slug);
   if (!can(a.abilities, "view_dashboards")) throw new ForbiddenError();
   return a;
-}
-
-export async function sendUnlockCodeAction(slug: string): Promise<Result> {
-  return wrap(async () => {
-    const { user, workspace } = await ownerOrAdmin(slug);
-    const { to } = await sendUnlockCode(user, workspace);
-    return `Code sent to ${to}`;
-  });
-}
-
-export async function verifyUnlockCodeAction(slug: string, code: string): Promise<Result> {
-  return wrap(async () => {
-    const { workspace } = await ownerOrAdmin(slug);
-    await verifyUnlockCode(code, workspace.id);
-    revalidatePath(`/w/${slug}`, "layout");
-  });
-}
-
-export async function relockAction(slug: string): Promise<Result> {
-  return wrap(async () => {
-    const { workspace } = await ownerOrAdmin(slug);
-    await relock(workspace.id);
-    revalidatePath(`/w/${slug}`, "layout");
-  });
 }
 
 const iso = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
