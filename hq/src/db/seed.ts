@@ -56,7 +56,7 @@ const START_HERE = {
     h("Finding things"),
     li("The left sidebar lists every page. Click the arrow next to a page to see the pages inside it."),
     li("Press Ctrl + K (⌘ + K on Mac) to search everything."),
-    li("Home (top of the sidebar) is the dashboard: links, SOPs and what's new."),
+    li("Home (top of the sidebar) is the dashboard: tasks, SOPs and what's new. Links to the websites you use are in the menu under Links."),
     h("Writing"),
     li("Just click and type. Changes save automatically."),
     li('Type "/" for headings, checklists, images, tables and more.'),
@@ -128,8 +128,7 @@ async function main() {
     await mk(SAMPLE_SOP, 1, sops.id, true);
 
     await db.insert(dashboardWidgets).values([
-      { workspaceId: ws.id, type: "welcome", title: "Welcome", width: 2, position: 1, config: { text: `This is the ${s.name} home base. Pin the links and SOPs your team uses every day.` } },
-      { workspaceId: ws.id, type: "links", title: "Tools", width: 1, position: 2, config: { links: s.links } },
+      { workspaceId: ws.id, type: "welcome", title: "Welcome", width: 2, position: 1, config: { text: `This is the ${s.name} home base: your tasks, SOPs and what's new.` } },
       { workspaceId: ws.id, type: "sops", title: "SOPs & Policies", width: 1, position: 3, config: { limit: 8 } },
       { workspaceId: ws.id, type: "pages", title: "Pinned pages", width: 1, position: 4, config: { pageIds: [start.id, sops.id] } },
       { workspaceId: ws.id, type: "recent", title: "Recently updated", width: 1, position: 5, config: { limit: 6 } },

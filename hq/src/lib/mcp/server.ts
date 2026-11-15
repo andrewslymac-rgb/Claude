@@ -7,7 +7,7 @@ import { createProposal, needsApproval } from "@/lib/services/ai-proposals";
 import * as pagesSvc from "@/lib/services/pages";
 import * as tasksSvc from "@/lib/services/tasks";
 import * as flagsSvc from "@/lib/services/flags";
-import { listCompanyWidgets } from "@/lib/services/dashboard";
+import { listLinks } from "@/lib/tool-links";
 import { listMembers } from "@/lib/services/members";
 import { listRoles } from "@/lib/services/roles";
 import { blocksToMarkdown, markdownToBlocks } from "@/lib/markdown";
@@ -184,17 +184,16 @@ export function buildServer(p: AiPrincipal) {
     return text(flags.map((f) => `- [${f.severity}] ${f.title} (${f.type.replace("_", " ")}${f.pageTitle ? `, about "${f.pageTitle}"` : ""})${f.whatWeFound ? `\n  ${f.whatWeFound}` : ""}`).join("\n"));
   });
 
-  server.registerTool("get_dashboard", { title: "Dashboard summary", description: "What the workspace home shows: tasks needing attention, documents due for review, open flags, quick links.", inputSchema: {} }, async () => {
-    const [tasks, docs, flags, widgets] = await Promise.all([tasksSvc.listTasks(ws), pagesSvc.listLibrary(ws), flagsSvc.listFlags(ws), listCompanyWidgets(ws)]);
+  server.registerTool("get_dashboard", { title: "Dashboard summary", description: "What the workspace home shows: tasks needing attention, documents due for review, open flags, and the company's Links.", inputSchema: {} }, async () => {
+    const [tasks, docs, flags, links] = await Promise.all([tasksSvc.listTasks(ws), pagesSvc.listLibrary(ws), flagsSvc.listFlags(ws), listLinks(ws, "links")]);
     const attention = tasks.filter((t) => t.state === "overdue" || t.state === "today");
-    const links = widgets.filter((w) => w.type === "links").flatMap((w) => w.config.links ?? []);
     return text(
       [
         `# ${wsName}`,
         `Tasks needing attention: ${attention.length}${attention.length ? "\n" + attention.map((t) => `- ${t.title} (${DUE_LABELS[t.state].label})`).join("\n") : ""}`,
         `Documents: ${docs.length} (${docs.filter((d) => d.docStatus === "needs_review").length} need review)`,
         `Open flags: ${flags.filter((f) => f.status === "open").length}`,
-        links.length ? `Tools: ${links.map((l) => `${l.label} (${l.url})`).join(", ")}` : "",
+        links.length ? `Links: ${links.map((l) => `${l.label} (${l.url})`).join(", ")}` : "",
       ].join("\n\n"),
     );
   });

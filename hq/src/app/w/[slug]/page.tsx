@@ -1,6 +1,6 @@
 import { requireWorkspacePage } from "@/lib/access";
 import { can } from "@/lib/permissions";
-import { listWidgetsFor, WIDGET_CATALOG, KNOWN_APP_LINKS, ensureTrackerWidget } from "@/lib/services/dashboard";
+import { listWidgetsFor, WIDGET_CATALOG } from "@/lib/services/dashboard";
 import { getPagesByIds, listRecent, listSops, listTree, listLibrary, listChangeLog } from "@/lib/services/pages";
 import { Dashboard, type WidgetData, type Stat } from "@/components/dashboard/Dashboard";
 import { listTasks, tasksForUser } from "@/lib/services/tasks";
@@ -16,18 +16,9 @@ import { listFeedback } from "@/lib/services/feedback";
 import { googleCalendarEnabled, listConnections } from "@/lib/calendar";
 import { TASK_CATEGORIES } from "@/db/schema";
 
-const safeHost = (u: string) => {
-  try {
-    return new URL(u).hostname;
-  } catch {
-    return "";
-  }
-};
-
 export default async function Home({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const { user, workspace, abilities, roleIds } = await requireWorkspacePage(slug);
-  await ensureTrackerWidget(workspace.id);
   const [{ widgets, personal }, tree, allTasks, flags, library, collections, counts, jobber, pendingAi] = await Promise.all([
     listWidgetsFor(workspace.id, user.id),
     listTree(workspace.id),
@@ -59,9 +50,9 @@ export default async function Home({ params }: { params: Promise<{ slug: string 
 
   // Each widget loads on its own: one broken data source shows an error in its tile, not a blank page.
   const data: WidgetData[] = await Promise.all(
-    widgets.map(async (w): Promise<WidgetData> => {
-      const config = w.type === "tools" && w.config.links ? { ...w.config, links: w.config.links.map((l) => ({ ...l, appUrl: l.appUrl || KNOWN_APP_LINKS[safeHost(l.url)] })) } : w.config;
-      const base: WidgetData = { id: w.id, type: w.type, title: w.title, width: w.width, config, items: [] };
+    // App-launcher tiles are retired; links live in the menu now.
+    widgets.filter((w) => !WIDGET_CATALOG[w.type].retired).map(async (w): Promise<WidgetData> => {
+      const base: WidgetData = { id: w.id, type: w.type, title: w.title, width: w.width, config: w.config, items: [] };
       const limit = w.config.limit ?? 6;
       try {
         switch (w.type) {
@@ -119,7 +110,7 @@ export default async function Home({ params }: { params: Promise<{ slug: string 
           case "calendar":
             return { ...base, connected: (await listConnections(user.id)).length > 0 };
           case "notes":
-            return { ...base, config: { ...config, text: config.notesBy?.[user.id] ?? "" } };
+            return { ...base, config: { ...w.config, text: w.config.notesBy?.[user.id] ?? "" } };
           case "tracker": {
             const [{ members }, roles] = await Promise.all([listMembers(workspace.id), listRoles(workspace.id)]);
             return {
