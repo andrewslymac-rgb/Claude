@@ -14,7 +14,6 @@ import { workspaceThemeVars } from "@/lib/theme/workspace-theme";
 import { listFeedback } from "@/lib/services/feedback";
 import { screensFor } from "@/lib/dash/screens";
 import { listToolLinks } from "@/lib/dash/tools";
-import { isUnlocked } from "@/lib/dash/lock";
 
 export default async function WorkspaceLayout({ children, params }: { children: React.ReactNode; params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -22,10 +21,9 @@ export default async function WorkspaceLayout({ children, params }: { children: 
   const [tree, workspaces, tasks, flags, pendingAi, collections, counts, fb] = await Promise.all([listTree(workspace.id), listWorkspacesForUser(user), listTasks(workspace.id), listFlags(workspace.id), countPending(workspace.id), listCollections(workspace.id), collectionCounts(workspace.id), listFeedback(workspace.id)]);
   const attention = tasks.filter((t) => t.state === "overdue" || t.state === "today").length;
   const openFlags = flags.filter((f) => f.status === "open").length;
-  // Owners and admins only. Dashboards need the emailed code; Tools links don't.
-  const dashUnlocked = can(abilities, "view_dashboards") ? await isUnlocked(workspace.id) : false;
+  // Owners and admins only.
   const dash = can(abilities, "view_dashboards")
-    ? { screens: screensFor(workspace.fieldTool).map((s) => ({ id: s.id, label: s.label })), tools: await listToolLinks(workspace.id), unlocked: dashUnlocked }
+    ? { screens: screensFor(workspace.fieldTool).map((s) => ({ id: s.id, label: s.label })), tools: await listToolLinks(workspace.id) }
     : null;
 
   return (

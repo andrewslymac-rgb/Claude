@@ -3,21 +3,17 @@ import { ChevronRight, LayoutDashboard, Receipt } from "lucide-react";
 import { dashboardPage } from "@/lib/dash/access";
 import { screensFor } from "@/lib/dash/screens";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { UnlockGate } from "@/components/dash/UnlockGate";
-import { codeAddressFor } from "@/lib/dash/lock";
-import { LockButton } from "@/components/dash/LockButton";
 
 export const dynamic = "force-dynamic";
 
 export default async function DashboardsHome({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const { user, workspace, unlocked } = await dashboardPage(slug);
-  if (!unlocked) return <UnlockGate slug={slug} email={await codeAddressFor(user, workspace.id)} company={workspace.name} />;
+  const { workspace } = await dashboardPage(slug);
   const screens = screensFor(workspace.fieldTool);
 
   return (
     <div className="mx-auto max-w-3xl space-y-8 px-4 py-6 md:px-8 md:py-10">
-      <PageHeader eyebrow="Owners and admins only" title="Dashboards" icon={<LayoutDashboard size={22} className="text-accent" />} subtitle={`Live views of ${workspace.name}'s numbers. Read-only: Jobber and GorillaDesk stay the source of truth.`} actions={<LockButton slug={slug} />} />
+      <PageHeader eyebrow="Owners and admins only" title="Dashboards" icon={<LayoutDashboard size={22} className="text-accent" />} subtitle={`Live views of ${workspace.name}'s numbers. Read-only: Jobber and GorillaDesk stay the source of truth.`} />
 
       <section>
         <h2 className="eyebrow mb-2">Dashboards</h2>
@@ -40,7 +36,7 @@ export default async function DashboardsHome({ params }: { params: Promise<{ slu
       </section>
 
       <p className="text-sm text-ink-soft">
-        Looking for your tool links? They&apos;re under <Link href={`/w/${slug}/tools`} className="text-accent">Tools</Link>, which doesn&apos;t need a code.
+        Looking for your tool links? They&apos;re under <Link href={`/w/${slug}/tools`} className="text-accent">Tools</Link>.
       </p>
     </div>
   );
