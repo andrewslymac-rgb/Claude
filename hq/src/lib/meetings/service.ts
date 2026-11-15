@@ -1,5 +1,5 @@
 import "server-only";
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull } from "drizzle-orm";
 import { db, schema } from "@/db";
 import type { Meeting, MeetingNextStep } from "@/db/schema";
 import { exportDocMarkdown, getFile, listChildren, FOLDER, GDOC, SHORTCUT, driveEnabled, type DriveFile } from "@/lib/drive/client";
@@ -9,7 +9,7 @@ import { parseGeminiMarkdown } from "./parse";
 import { createTask } from "@/lib/services/tasks";
 import { addDays, todayISO } from "@/lib/recurrence";
 
-const { meetingSources, meetings, workspaces } = schema;
+const { meetingSources, meetings, workspaces, meetingPeople, tasks } = schema;
 
 /** Gemini note docs only, so other files in a recordings folder are ignored. */
 const isNotes = (name: string) => /notes by gemini/i.test(name);
@@ -111,11 +111,11 @@ async function findNotes(folderId: string, depth = 0, seen = new Set<string>()):
   return { found: out, unreadable };
 }
 
-export type MeetingSyncResult = { added: number; updated: number; removed: number; unreadable: number; errors: string[] };
+export type MeetingSyncResult = { added: number; updated: number; removed: number; unreadable: number; tasksMade: number; errors: string[] };
 
 /** Reads every connected folder for one company. Only docs that changed since last time are re-read. */
 export async function syncMeetings(workspaceId: string): Promise<MeetingSyncResult> {
-  const res: MeetingSyncResult = { added: 0, updated: 0, removed: 0, unreadable: 0, errors: [] };
+  const res: MeetingSyncResult = { added: 0, updated: 0, removed: 0, unreadable: 0, tasksMade: 0, errors: [] };
   if (!(await driveEnabled())) return { ...res, errors: ["Google Drive isn't connected to Orbit."] };
   const sources = await listSources(workspaceId);
   const existing = new Map((await db.select({ id: meetings.id, driveFileId: meetings.driveFileId, driveModifiedAt: meetings.driveModifiedAt }).from(meetings).where(eq(meetings.workspaceId, workspaceId))).map((m) => [m.driveFileId, m]));
@@ -155,12 +155,17 @@ export async function syncMeetings(workspaceId: string): Promise<MeetingSyncResu
           if (prev) {
             // Keep any "made into a task" links on next steps that haven't changed.
             const [old] = await db.select({ nextSteps: meetings.nextSteps }).from(meetings).where(eq(meetings.id, prev.id));
-            values.nextSteps = values.nextSteps.map((n) => ({ ...n, taskId: old?.nextSteps.find((o) => o.title === n.title && o.owner === n.owner)?.taskId ?? null }));
+            values.nextSteps = values.nextSteps.map((n) => {
+              const o = old?.nextSteps.find((x) => x.title === n.title && x.owner === n.owner);
+              return { ...n, taskId: o?.taskId ?? null, doneAt: o?.doneAt ?? null };
+            });
             await db.update(meetings).set(values).where(eq(meetings.id, prev.id));
             res.updated++;
+            res.tasksMade += await autoCreateFor(prev.id);
           } else {
-            await db.insert(meetings).values(values).onConflictDoNothing();
+            const [row] = await db.insert(meetings).values(values).onConflictDoNothing().returning({ id: meetings.id });
             res.added++;
+            if (row) res.tasksMade += await autoCreateFor(row.id);
           }
         } catch (e) {
           res.errors.push(`${f.name}: ${(e as Error).message.slice(0, 120)}`);
@@ -202,26 +207,144 @@ export async function syncAllMeetings() {
 
 // ---------------------------------------------------------------- next step → task
 
-/** Turns one next step into a one-off Orbit task (due in 3 days, unassigned) and remembers the link. */
+/** Turns one next step into a one-off task, assigned to the matched person if there is one. */
 export async function nextStepToTask(workspaceId: string, meetingId: string, index: number, userId: string) {
   const [m] = await db.select().from(meetings).where(and(eq(meetings.workspaceId, workspaceId), eq(meetings.id, meetingId)));
   if (!m) throw new Error("Meeting not found.");
   const step = m.nextSteps[index];
   if (!step) throw new Error("That next step no longer exists. The notes may have changed.");
-  if (step.taskId) return step.taskId;
-  const when = m.occurredAt.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "America/Los_Angeles" });
+  if (step.taskId) {
+    const [t] = await db.select({ id: tasks.id }).from(tasks).where(and(eq(tasks.id, step.taskId), isNull(tasks.archivedAt)));
+    if (t) return t.id;
+  }
+  const taskId = await makeTask(m, index, userId, await peopleMap(workspaceId));
+  const next = m.nextSteps.map((s, i) => (i === index ? { ...s, taskId } : s));
+  await db.update(meetings).set({ nextSteps: next }).where(eq(meetings.id, m.id));
+  return taskId;
+}
+
+// ---------------------------------------------------------------- labels, people, automatic tasks
+
+/** "Google Meet · Adapt Weekly Admin Meeting · Fri, Nov 13 at 8:55 AM" */
+export function meetingLabel(m: Pick<Meeting, "series" | "occurredAt">) {
+  const when = m.occurredAt.toLocaleString("en-US", { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZone: "America/Los_Angeles" }).replace(/, (\d+:\d+)/, " at $1");
+  return `Google Meet · ${m.series} · ${when}`;
+}
+
+const norm = (s: string) => s.trim().toLowerCase().replace(/\s+/g, " ");
+
+/** Names used in the notes → Orbit person (or null for "not on the team"). */
+export async function peopleMap(workspaceId: string) {
+  const rows = await db.select().from(meetingPeople).where(eq(meetingPeople.workspaceId, workspaceId));
+  return new Map(rows.map((r) => [r.alias, r.userId]));
+}
+
+/** Every name that appears as an attendee or next-step owner, with how often. */
+export async function namesInMeetings(workspaceId: string) {
+  const ms = await db.select({ attendees: meetings.attendees, nextSteps: meetings.nextSteps }).from(meetings).where(eq(meetings.workspaceId, workspaceId));
+  const count = new Map<string, { name: string; steps: number }>();
+  for (const m of ms) {
+    for (const a of m.attendees) if (!count.has(norm(a))) count.set(norm(a), { name: a, steps: 0 });
+    for (const n of m.nextSteps) if (n.owner) {
+      const k = norm(n.owner);
+      count.set(k, { name: count.get(k)?.name ?? n.owner, steps: (count.get(k)?.steps ?? 0) + 1 });
+    }
+  }
+  return [...count.entries()].map(([alias, v]) => ({ alias, ...v })).sort((a, b) => b.steps - a.steps || a.name.localeCompare(b.name));
+}
+
+/** userId: a person; null: not on the team; undefined: forget the match. */
+export async function setPersonFor(workspaceId: string, name: string, userId: string | null | undefined) {
+  const alias = norm(name);
+  if (userId === undefined) {
+    await db.delete(meetingPeople).where(and(eq(meetingPeople.workspaceId, workspaceId), eq(meetingPeople.alias, alias)));
+    return;
+  }
+  await db.insert(meetingPeople).values({ workspaceId, alias, userId }).onConflictDoUpdate({ target: [meetingPeople.workspaceId, meetingPeople.alias], set: { userId } });
+}
+
+const autoKey = (ws: string) => `meetings_autotasks:${ws}`;
+/** The date automatic tasks were switched on (only meetings on or after it get tasks), or null when off. */
+export async function autoTasksFrom(workspaceId: string) {
+  return (await getSetting(autoKey(workspaceId))) || null;
+}
+export async function setAutoTasks(workspaceId: string, on: boolean) {
+  await setSetting(autoKey(workspaceId), on ? new Date().toISOString() : null);
+}
+
+/** Creates the task for one next step, assigned to the matched person, labelled with the meeting. */
+async function makeTask(m: Meeting, index: number, createdById: string, people: Map<string, string | null>) {
+  const step = m.nextSteps[index];
+  const userId = step.owner ? people.get(norm(step.owner)) ?? null : null;
+  const label = meetingLabel(m);
   const t = await createTask(
-    workspaceId,
+    m.workspaceId,
     {
       title: step.title.slice(0, 200),
       frequency: "once",
-      instructions: [step.text, step.owner ? `Owner in the meeting: ${step.owner}.` : "", `From ${m.series}, ${when}: ${m.docUrl}`].filter(Boolean).join("\n\n"),
+      instructions: [step.text, step.owner ? `Named in the meeting: ${step.owner}.` : "", `From ${label}`, `Full notes: ${m.docUrl}`].filter(Boolean).join("\n\n"),
       dueOn: addDays(todayISO(), 3),
-      assigneeIds: [],
+      assigneeIds: userId ? [userId] : [],
     },
-    userId,
+    createdById,
+    { source: { meetingId: m.id, label } },
   );
-  const next = m.nextSteps.map((s, i) => (i === index ? { ...s, taskId: t.id } : s));
-  await db.update(meetings).set({ nextSteps: next }).where(eq(meetings.id, m.id));
   return t.id;
+}
+
+/** After a sync: new meetings (on or after the switch-on date) get tasks for next steps with a matched person. */
+export async function autoCreateFor(meetingId: string) {
+  const [m] = await db.select().from(meetings).where(eq(meetings.id, meetingId));
+  if (!m) return 0;
+  const from = await autoTasksFrom(m.workspaceId);
+  if (!from || m.occurredAt < new Date(from)) return 0;
+  const people = await peopleMap(m.workspaceId);
+  // Tasks need a creator; use the company's first owner.
+  const [owner] = await db.select({ id: schema.memberships.userId }).from(schema.memberships).where(and(eq(schema.memberships.workspaceId, m.workspaceId), eq(schema.memberships.role, "owner"))).limit(1);
+  if (!owner) return 0;
+  let made = 0;
+  const next = [...m.nextSteps];
+  for (let i = 0; i < next.length; i++) {
+    const s = next[i];
+    if (s.taskId || s.doneAt || !s.owner || !people.get(norm(s.owner))) continue;
+    next[i] = { ...s, taskId: await makeTask({ ...m, nextSteps: next }, i, owner.id, people) };
+    made++;
+  }
+  if (made) await db.update(meetings).set({ nextSteps: next }).where(eq(meetings.id, m.id));
+  return made;
+}
+
+// ---------------------------------------------------------------- next-step status
+
+export type StepStatus = { status: "open" | "task" | "done"; taskDue?: string | null; taskOverdue?: boolean; taskRemoved?: boolean };
+
+/** Open (nobody has it), a live task (with its due date), or done (task done, or marked done here). */
+export async function stepStatuses(list: Meeting[]): Promise<Map<string, StepStatus[]>> {
+  const ids = [...new Set(list.flatMap((m) => m.nextSteps.map((n) => n.taskId).filter(Boolean) as string[]))];
+  const rows = ids.length ? await db.select({ id: tasks.id, nextDueOn: tasks.nextDueOn, lastDoneOn: tasks.lastDoneOn, archivedAt: tasks.archivedAt }).from(tasks).where(inArray(tasks.id, ids)) : [];
+  const byId = new Map(rows.map((r) => [r.id, r]));
+  const today = todayISO();
+  const out = new Map<string, StepStatus[]>();
+  for (const m of list) {
+    out.set(
+      m.id,
+      m.nextSteps.map((n) => {
+        if (n.doneAt) return { status: "done" };
+        if (!n.taskId) return { status: "open" };
+        const t = byId.get(n.taskId);
+        if (!t || t.archivedAt) return { status: "open", taskRemoved: true };
+        if (t.lastDoneOn && !t.nextDueOn) return { status: "done" };
+        return { status: "task", taskDue: t.nextDueOn, taskOverdue: Boolean(t.nextDueOn && t.nextDueOn < today) };
+      }),
+    );
+  }
+  return out;
+}
+
+/** Mark a next step done (or open again) without making a task. */
+export async function setStepDone(workspaceId: string, meetingId: string, index: number, done: boolean) {
+  const [m] = await db.select().from(meetings).where(and(eq(meetings.workspaceId, workspaceId), eq(meetings.id, meetingId)));
+  if (!m || !m.nextSteps[index]) throw new Error("That next step no longer exists.");
+  const next = m.nextSteps.map((s, i) => (i === index ? { ...s, doneAt: done ? new Date().toISOString() : null } : s));
+  await db.update(meetings).set({ nextSteps: next }).where(eq(meetings.id, m.id));
 }

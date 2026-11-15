@@ -169,6 +169,13 @@
       "when": 1794706037275,
       "tag": "0023_sour_lady_vermin",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1794707011180,
+      "tag": "0024_swift_sunset_bain",
+      "breakpoints": true
     }
   ]
 }

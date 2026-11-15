@@ -13,6 +13,7 @@ import {
   index,
   uniqueIndex,
   customType,
+  type AnyPgColumn,
 } from "drizzle-orm/pg-core";
 
 /** Raw file bytes (task attachments). */
@@ -396,6 +397,9 @@ export const tasks = pgTable(
     archivedAt: timestamp("archived_at", { withTimezone: true }),
     /** On hold: kept, but not due, not overdue and not counted until resumed. */
     pausedAt: timestamp("paused_at", { withTimezone: true }),
+    /** Made from a meeting's next step: which meeting, and a readable label that outlives it. */
+    sourceMeetingId: uuid("source_meeting_id").references((): AnyPgColumn => meetings.id, { onDelete: "set null" }),
+    sourceLabel: text("source_label"),
     createdById: uuid("created_by_id").references(() => users.id, { onDelete: "set null" }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
@@ -850,7 +854,7 @@ export const meetingSources = pgTable("meeting_sources", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
-export type MeetingNextStep = { owner: string | null; title: string; text: string; taskId?: string | null };
+export type MeetingNextStep = { owner: string | null; title: string; text: string; taskId?: string | null; /** Marked done in Orbit without a task. */ doneAt?: string | null };
 export type MeetingPart = { title: string; text: string };
 
 /** One meeting, read from its Google Meet "Notes by Gemini" doc. The doc stays the source of truth. */
@@ -880,3 +884,20 @@ export const meetings = pgTable(
   (t) => [uniqueIndex("meetings_ws_file_idx").on(t.workspaceId, t.driveFileId), index("meetings_ws_time_idx").on(t.workspaceId, t.occurredAt)],
 );
 export type Meeting = typeof meetings.$inferSelect;
+
+/**
+ * The names Gemini uses in meeting notes ("Office Manager", "Andrew MacIntosh") matched to
+ * people in Orbit, so next steps land on the right person's task list. userId null = not on the team.
+ */
+export const meetingPeople = pgTable(
+  "meeting_people",
+  {
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    /** Lower-cased name as it appears in the notes. */
+    alias: text("alias").notNull(),
+    userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }),
+  },
+  (t) => [primaryKey({ columns: [t.workspaceId, t.alias] })],
+);

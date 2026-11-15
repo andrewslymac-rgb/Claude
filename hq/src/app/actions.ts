@@ -1023,7 +1023,7 @@ export async function syncMeetingsAction(slug: string): Promise<Result> {
     const r = await m.syncMeetings(workspace.id);
     revalidatePath(`/w/${slug}`, "layout");
     if (r.errors.length && !r.added && !r.updated) throw new Error(r.errors[0]);
-    return `Synced: ${r.added} new, ${r.updated} updated${r.removed ? `, ${r.removed} removed` : ""}.${r.unreadable ? ` ${r.unreadable} couldn't be read.` : ""}`;
+    return `Synced: ${r.added} new, ${r.updated} updated${r.removed ? `, ${r.removed} removed` : ""}.${r.tasksMade ? ` ${r.tasksMade} task${r.tasksMade === 1 ? "" : "s"} created from next steps.` : ""}${r.unreadable ? ` ${r.unreadable} couldn't be read.` : ""}`;
   });
 }
 
@@ -1046,4 +1046,57 @@ export async function meetingStepToTaskAction(slug: string, meetingId: string, i
     revalidatePath(`/w/${slug}`, "layout");
     return id;
   });
+}
+
+/** Match a name from the notes to an Orbit person ("" = forget, "none" = not on the team). */
+export async function setMeetingPersonAction(slug: string, name: string, userId: string): Promise<Result> {
+  return wrap(async () => {
+    const { workspace } = await meetingAdmin(slug);
+    const m = await import("@/lib/meetings/service");
+    const { members } = await import("@/lib/services/members").then((x) => x.listMembers(workspace.id));
+    if (userId && userId !== "none" && !members.some((p) => p.userId === userId)) throw new Error("That person isn't in this company.");
+    await m.setPersonFor(workspace.id, z.string().min(1).max(120).parse(name), userId === "" ? undefined : userId === "none" ? null : userId);
+    revalidatePath(`/w/${slug}/meetings`);
+  });
+}
+
+export async function setMeetingAutoTasksAction(slug: string, on: boolean): Promise<Result> {
+  return wrap(async () => {
+    const { workspace } = await meetingAdmin(slug);
+    const m = await import("@/lib/meetings/service");
+    await m.setAutoTasks(workspace.id, on);
+    revalidatePath(`/w/${slug}/meetings`);
+    return on ? "On. Next steps from new meetings become tasks for the matched person." : "Off. Make tasks by hand with the Task button.";
+  });
+}
+
+/** Anyone who can see the meeting can tick a next step off (or reopen it). */
+export async function setMeetingStepDoneAction(slug: string, meetingId: string, index: number, done: boolean): Promise<Result> {
+  return wrap(async () => {
+    const { workspace, abilities } = await requireAbility(slug, "read");
+    const m = await import("@/lib/meetings/service");
+    if (!(await m.getMeeting(workspace.id, uuid.parse(meetingId), can(abilities, "view_dashboards")))) throw new ForbiddenError();
+    await m.setStepDone(workspace.id, meetingId, z.number().int().min(0).max(200).parse(index), done);
+    revalidatePath(`/w/${slug}/meetings`, "layout");
+  });
+}
+
+const askLog = new Map<string, number[]>();
+/** Ask a question across the meetings this person may see. 30 questions an hour per person. */
+export async function askMeetingsAction(slug: string, question: string) {
+  try {
+    const { user, workspace, abilities } = await requireAbility(slug, "read");
+    const q = z.string().trim().min(3, "Ask a longer question.").max(1000).safeParse(question);
+    if (!q.success) return { ok: false as const, error: q.error.issues[0]?.message ?? "Ask a question." };
+    const now = Date.now();
+    const recent = (askLog.get(user.id) ?? []).filter((t) => now - t < 3600_000);
+    if (recent.length >= 30) return { ok: false as const, error: "That's 30 questions this hour. Try again later." };
+    askLog.set(user.id, [...recent, now]);
+    const { listMeetings } = await import("@/lib/meetings/service");
+    const { askMeetings } = await import("@/lib/meetings/ask");
+    const list = await listMeetings(workspace.id, can(abilities, "view_dashboards"));
+    return { ok: true as const, ...(await askMeetings(q.data, list)) };
+  } catch (e) {
+    return { ok: false as const, error: (e as Error).message };
+  }
 }

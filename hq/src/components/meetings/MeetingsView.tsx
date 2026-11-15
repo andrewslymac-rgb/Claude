@@ -6,20 +6,24 @@ import { useRouter } from "next/navigation";
 import { ChevronRight, Copy, FolderPlus, Gavel, ListChecks, MessagesSquare, RefreshCw, Search, Settings2, Trash2, Users } from "lucide-react";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { useToast } from "@/components/ui/Toast";
-import { addMeetingSourceAction, removeMeetingSourceAction, setMeetingSeriesSharedAction, syncMeetingsAction } from "@/app/actions";
+import { addMeetingSourceAction, removeMeetingSourceAction, setMeetingAutoTasksAction, setMeetingPersonAction, setMeetingSeriesSharedAction, syncMeetingsAction } from "@/app/actions";
 import { StepRow, fmtDay, type MeetingView } from "./shared";
+import { AskBox } from "./AskBox";
+
+type Name = { name: string; steps: number; match: string };
+type Person = { id: string; name: string };
 
 type Source = { id: string; label: string; folderId: string; lastSyncedAt: string | null; lastError: string | null };
 type Tab = "meetings" | "steps" | "decisions";
 const PREF = "orbit.meetings.prefs";
 
-export function MeetingsView({ slug, company, isAdmin, canMakeTasks, orbitDriveEmail, sources, shared, meetings }: { slug: string; company: string; isAdmin: boolean; canMakeTasks: boolean; orbitDriveEmail: string | null; sources: Source[]; shared: string[]; meetings: MeetingView[] }) {
+export function MeetingsView({ slug, company, isAdmin, canMakeTasks, orbitDriveEmail, sources, shared, meetings, autoTasksFrom, team, names, aiEnabled }: { aiEnabled: boolean; slug: string; company: string; isAdmin: boolean; canMakeTasks: boolean; orbitDriveEmail: string | null; sources: Source[]; shared: string[]; meetings: MeetingView[]; autoTasksFrom: string | null; team: Person[]; names: Name[] }) {
   const [tab, setTab] = useState<Tab>("meetings");
   const [q, setQ] = useState("");
   const [series, setSeries] = useState<string>("all");
   const [person, setPerson] = useState<string>("all");
   const [range, setRange] = useState<"30" | "90" | "all">("90");
-  const [openOnly, setOpenOnly] = useState(true);
+  const [stepView, setStepView] = useState<"open" | "done" | "all">("open");
   const [setup, setSetup] = useState(isAdmin && sources.length === 0);
   const [busy, start] = useTransition();
   const toast = useToast();
@@ -31,14 +35,14 @@ export function MeetingsView({ slug, company, isAdmin, canMakeTasks, orbitDriveE
       const p = JSON.parse(localStorage.getItem(PREF) ?? "{}");
       if (p.tab) setTab(p.tab);
       if (p.range) setRange(p.range);
-      if (typeof p.openOnly === "boolean") setOpenOnly(p.openOnly);
+      if (p.stepView) setStepView(p.stepView);
     } catch {}
   }, []);
   useEffect(() => {
     try {
-      localStorage.setItem(PREF, JSON.stringify({ tab, range, openOnly }));
+      localStorage.setItem(PREF, JSON.stringify({ tab, range, stepView }));
     } catch {}
-  }, [tab, range, openOnly]);
+  }, [tab, range, stepView]);
 
   const seriesCounts = useMemo(() => {
     const c = new Map<string, number>();
@@ -64,7 +68,12 @@ export function MeetingsView({ slug, company, isAdmin, canMakeTasks, orbitDriveE
     const hay = [m.series, m.summary, ...m.points.flatMap((p) => [p.title, p.text]), ...m.decisions.flatMap((d) => [d.title, d.text]), ...m.nextSteps.flatMap((n) => [n.owner ?? "", n.title, n.text]), ...m.topics.flatMap((t) => [t.title, t.text]), ...m.attendees].join(" ").toLowerCase();
     return hay.includes(needle);
   });
-  const steps = shown.flatMap((m) => m.nextSteps.map((s, i) => ({ m, s, i }))).filter(({ s }) => (person === "all" || s.owner === person) && (!openOnly || !s.taskId));
+  // "Still open" = nobody has it yet, or its task isn't done. Oldest first, so forgotten items surface.
+  const allSteps = shown.flatMap((m) => m.nextSteps.map((s, i) => ({ m, s, i, st: m.status[i] ?? { status: "open" as const } }))).filter(({ s }) => person === "all" || s.owner === person);
+  const openCount = allSteps.filter(({ st }) => st.status !== "done").length;
+  const steps = allSteps
+    .filter(({ st }) => (stepView === "all" ? true : stepView === "done" ? st.status === "done" : st.status !== "done"))
+    .sort((a, b) => (stepView === "open" ? a.m.at.localeCompare(b.m.at) : b.m.at.localeCompare(a.m.at)));
   const decisions = shown.flatMap((m) => m.decisions.map((d) => ({ m, d })));
 
   // Group meetings by month for the list.
@@ -95,7 +104,7 @@ export function MeetingsView({ slug, company, isAdmin, canMakeTasks, orbitDriveE
         }
       />
 
-      {isAdmin && setup && <SetupPanel slug={slug} orbitDriveEmail={orbitDriveEmail} sources={sources} seriesCounts={seriesCounts} shared={shared} />}
+      {isAdmin && setup && <SetupPanel slug={slug} orbitDriveEmail={orbitDriveEmail} sources={sources} seriesCounts={seriesCounts} shared={shared} autoTasksFrom={autoTasksFrom} team={team} names={names} />}
 
       {!meetings.length ? (
         <div className="card px-4 py-10 text-center text-sm text-ink-soft">
@@ -103,10 +112,12 @@ export function MeetingsView({ slug, company, isAdmin, canMakeTasks, orbitDriveE
         </div>
       ) : (
         <>
+          <AskBox slug={slug} enabled={aiEnabled} isAdmin={isAdmin} />
+
           <div className="flex gap-1 border-b border-line">
             {([
               ["meetings", "Meetings", <MessagesSquare key="m" size={14} />, shown.length],
-              ["steps", "Next steps", <ListChecks key="s" size={14} />, steps.length],
+              ["steps", "Next steps", <ListChecks key="s" size={14} />, openCount],
               ["decisions", "Decisions", <Gavel key="d" size={14} />, decisions.length],
             ] as const).map(([k, label, icon, n]) => (
               <button key={k} onClick={() => setTab(k)} className={`-mb-px flex min-h-11 items-center gap-1.5 border-b-2 px-3 text-sm ${tab === k ? "border-accent font-medium text-ink" : "border-transparent text-ink-soft hover:text-ink"}`}>
@@ -179,13 +190,16 @@ export function MeetingsView({ slug, company, isAdmin, canMakeTasks, orbitDriveE
 
           {tab === "steps" && (
             <>
-              <label className="flex items-center gap-2 text-sm text-ink-soft">
-                <input type="checkbox" checked={openOnly} onChange={(e) => setOpenOnly(e.target.checked)} /> Hide next steps already made into tasks
-              </label>
+              <div className="flex flex-wrap items-center gap-2">
+                {([["open", `Still open (${openCount})`], ["done", "Done"], ["all", "All"]] as const).map(([k, label]) => (
+                  <button key={k} onClick={() => setStepView(k)} className={`min-h-9 rounded-full border px-3 text-sm ${stepView === k ? "border-accent bg-accent-soft text-accent" : "border-line text-ink-soft hover:bg-hover"}`}>{label}</button>
+                ))}
+                {stepView === "open" && <span className="text-xs text-ink-faint">Oldest first. Set the date range to All time to see everything.</span>}
+              </div>
               {steps.length ? (
                 <ul className="card divide-y divide-line">
-                  {steps.map(({ m, s, i }) => (
-                    <StepRow key={`${m.id}-${i}`} slug={slug} meetingId={m.id} index={i} step={s} canMakeTasks={canMakeTasks} meetingLabel={{ href: `/w/${slug}/meetings/${m.id}`, text: `${m.series} · ${fmtDay(m.at)}` }} />
+                  {steps.map(({ m, s, i, st }) => (
+                    <StepRow key={`${m.id}-${i}`} slug={slug} meetingId={m.id} index={i} step={s} status={st} meetingAt={m.at} canMakeTasks={canMakeTasks} meetingLabel={{ href: `/w/${slug}/meetings/${m.id}`, text: `${m.series} · ${fmtDay(m.at)}` }} />
                   ))}
                 </ul>
               ) : (
@@ -215,7 +229,7 @@ export function MeetingsView({ slug, company, isAdmin, canMakeTasks, orbitDriveE
 }
 
 /** Owners and admins: which Drive folders to read, and which meeting types the whole team can see. */
-function SetupPanel({ slug, orbitDriveEmail, sources, seriesCounts, shared }: { slug: string; orbitDriveEmail: string | null; sources: Source[]; seriesCounts: [string, number][]; shared: string[] }) {
+function SetupPanel({ slug, orbitDriveEmail, sources, seriesCounts, shared, autoTasksFrom, team, names }: { slug: string; orbitDriveEmail: string | null; sources: Source[]; seriesCounts: [string, number][]; shared: string[]; autoTasksFrom: string | null; team: Person[]; names: Name[] }) {
   const [link, setLink] = useState("");
   const [label, setLabel] = useState("");
   const [busy, start] = useTransition();
@@ -283,6 +297,50 @@ function SetupPanel({ slug, orbitDriveEmail, sources, seriesCounts, shared }: { 
           </button>
         </div>
       </form>
+
+      {names.length > 0 && (
+        <div>
+          <h2 className="font-semibold">Match names to people</h2>
+          <p className="mt-1 text-ink-soft">Gemini names people the way Google Meet shows them (sometimes an account name like &ldquo;Office Manager&rdquo;). Match each to someone in Orbit so their next steps land on the right task list.</p>
+          <ul className="mt-2 divide-y divide-line rounded-lg border border-line">
+            {names.map((n) => (
+              <li key={n.name} className="flex flex-wrap items-center gap-2 px-3 py-2">
+                <span className="min-w-0 flex-1">
+                  {n.name}
+                  {n.steps > 0 && <span className="ml-1 text-xs text-ink-faint">· {n.steps} next step{n.steps === 1 ? "" : "s"}</span>}
+                </span>
+                <select
+                  defaultValue={n.match}
+                  onChange={(e) => start(async () => { const r = await setMeetingPersonAction(slug, n.name, e.target.value); if (!r.ok) toast(r.error, false); })}
+                  className="field w-auto min-w-40 py-1.5"
+                  aria-label={`Who is ${n.name}`}
+                >
+                  <option value="">Not matched yet</option>
+                  {team.map((p) => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+                  <option value="none">Not on the team</option>
+                </select>
+              </li>
+            ))}
+          </ul>
+          <label className="mt-3 flex items-start gap-3 rounded-lg border border-line p-3">
+            <input
+              type="checkbox"
+              className="mt-1"
+              defaultChecked={Boolean(autoTasksFrom)}
+              onChange={(e) => start(async () => { const r = await setMeetingAutoTasksAction(slug, e.target.checked); toast(r.ok ? r.message ?? "Saved" : r.error, r.ok); router.refresh(); })}
+            />
+            <span>
+              <span className="font-medium">Create tasks automatically</span>
+              <span className="block text-ink-soft">
+                Next steps from new meetings become one-off tasks for the matched person, due in 3 days and labelled with the meeting&apos;s day and time.
+                {autoTasksFrom ? ` On since ${new Date(autoTasksFrom).toLocaleDateString("en-US", { month: "short", day: "numeric" })}; older meetings are left alone.` : " Older meetings are left alone; use their Task buttons."}
+              </span>
+            </span>
+          </label>
+        </div>
+      )}
 
       {seriesCounts.length > 0 && (
         <div>
