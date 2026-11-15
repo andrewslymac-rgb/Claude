@@ -185,6 +185,7 @@ export function Tracker({ slug, tasks, members, roles = [], pages, categories, m
                       <button onClick={() => setOpen(t)} className="min-w-0 flex-1 text-left">
                         <div className={`line-clamp-2 text-sm leading-snug ${done ? "text-ink-faint line-through decoration-ink-faint/50" : ""}`}>{t.title}</div>
                         <div className="truncate text-[11px] text-ink-faint">
+                          {t.sourceLabel ? "🎥 Meeting · " : ""}
                           {t.whenText || (t.nextDueOn && !done ? fmtDate(t.nextDueOn) : "")}
                           {groupBy === "list" && (t.assignees.length || t.role || t.ownerRole) ? ` · ${[...t.assignees.map((a) => a.name.split(" ")[0]), t.role ? `${t.role.emoji} ${t.role.name}` : null].filter(Boolean).join(", ") || t.ownerRole}` : ""}
                           {t.assignees.length > 1 && groupBy === "person" ? ` · with ${t.assignees.filter((a) => a.id !== g.memberId).map((a) => a.name.split(" ")[0]).join(", ")}` : ""}

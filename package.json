@@ -13,6 +13,7 @@
     "setup": "npm run db:migrate && npm run db:seed"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^1.8.0",
     "@blocknote/core": "0.57.0",
     "@blocknote/mantine": "0.57.0",
     "@blocknote/react": "0.57.0",

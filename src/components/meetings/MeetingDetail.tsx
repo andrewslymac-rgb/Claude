@@ -53,7 +53,7 @@ export function MeetingDetail({ slug, m, canMakeTasks }: { slug: string; m: Meet
           <h2 className="mb-2 flex items-center gap-1.5 text-sm font-semibold"><ListChecks size={14} className="text-accent" /> Next steps <span className="font-normal text-ink-faint">{m.nextSteps.length}</span></h2>
           <ul className="card divide-y divide-line">
             {m.nextSteps.map((s, i) => (
-              <StepRow key={i} slug={slug} meetingId={m.id} index={i} step={s} canMakeTasks={canMakeTasks} />
+              <StepRow key={i} slug={slug} meetingId={m.id} index={i} step={s} status={m.status[i]} meetingAt={m.at} canMakeTasks={canMakeTasks} />
             ))}
           </ul>
         </section>

@@ -33,6 +33,9 @@ export type TaskRow = {
   canUndo: boolean;
   /** When the task was put on hold, or null. */
   pausedAt: string | null;
+  /** "Google Meet · Adapt Weekly Admin Meeting · Fri, Nov 13 at 8:55 AM" when made from a meeting. */
+  sourceLabel: string | null;
+  sourceMeetingId: string | null;
 };
 
 export async function listTasks(workspaceId: string): Promise<TaskRow[]> {
@@ -77,6 +80,8 @@ export async function listTasks(workspaceId: string): Promise<TaskRow[]> {
     assignees: byTask.get(t.id) ?? [],
     canUndo: Boolean(t.lastDoneOn && t.lastDoneOn >= undoCutoff),
     pausedAt: t.pausedAt?.toISOString() ?? null,
+    sourceLabel: t.sourceLabel,
+    sourceMeetingId: t.sourceMeetingId,
   }));
 }
 
@@ -111,7 +116,7 @@ async function resolveRoleId(workspaceId: string, input: Partial<TaskInput>): Pr
   return undefined;
 }
 
-export async function createTask(workspaceId: string, input: TaskInput, createdById: string, opts: { notify?: boolean } = {}) {
+export async function createTask(workspaceId: string, input: TaskInput, createdById: string, opts: { notify?: boolean; source?: { meetingId: string; label: string } } = {}) {
   const roleId = (await resolveRoleId(workspaceId, input)) ?? null;
   const [t] = await db
     .insert(tasks)
@@ -127,6 +132,8 @@ export async function createTask(workspaceId: string, input: TaskInput, createdB
       sopPageId: input.sopPageId ?? null,
       dueOn: input.dueOn ?? null,
       nextDueOn: computeNextDue(input.frequency, input.dueOn ?? null, null),
+      sourceMeetingId: opts.source?.meetingId ?? null,
+      sourceLabel: opts.source?.label ?? null,
       createdById,
     })
     .returning();

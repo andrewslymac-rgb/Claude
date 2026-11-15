@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState, useTransition } from "react";
-import { Check, X, Trash2, History, CalendarClock, MessageSquare, Bell, BellOff, Maximize2 } from "lucide-react";
+import { Check, X, Trash2, History, CalendarClock, MessageSquare, Bell, BellOff, Maximize2, Video } from "lucide-react";
 import { StatusPicker, Attachments } from "./TaskExtras";
 import { addTaskNoteAction, archiveTaskAction, completeTaskAction, createTaskAction, deleteTaskNoteAction, listCompletionsAction, listTaskNotesAction, moveDueAction, setFollowUpAction, updateTaskAction } from "@/app/actions";
 import { doneThisPeriod, todayISO } from "@/lib/recurrence";
@@ -64,6 +64,20 @@ export function TaskDrawer({ slug, task, members, roles = [], pages, categories,
           <span className={`rounded px-2 py-0.5 font-medium ${TONE[DUE_LABELS[task.state].tone]}`}>{task.state === "done" ? "Done" : DUE_LABELS[task.state].label}</span>
           {task.pausedAt && <span className="text-ink-faint">since {new Date(task.pausedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "America/Los_Angeles" })}</span>}
         </div>
+
+        {task.sourceLabel && (
+          <Link
+            href={task.sourceMeetingId ? `/w/${slug}/meetings/${task.sourceMeetingId}` : "#"}
+            className="mt-4 flex items-start gap-2 rounded-xl border border-accent/30 bg-accent-soft px-3 py-2.5 text-sm"
+          >
+            <Video size={16} className="mt-0.5 shrink-0 text-accent" />
+            <span className="min-w-0">
+              <span className="block text-xs font-medium uppercase tracking-wide text-accent">From a meeting</span>
+              <span className="block">{task.sourceLabel.replace(/^Google Meet · /, "")}</span>
+              <span className="block text-xs text-ink-soft">Google Meet{task.sourceMeetingId ? " · tap for the notes" : ""}</span>
+            </span>
+          </Link>
+        )}
 
         <dl className="mt-5 grid grid-cols-[96px_1fr] gap-y-2 text-sm md:grid-cols-[120px_1fr]">
           <dt className="text-ink-faint">Owner</dt>
