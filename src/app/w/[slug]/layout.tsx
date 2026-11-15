@@ -25,6 +25,7 @@ export default async function WorkspaceLayout({ children, params }: { children: 
   const toolLinks = can(abilities, "view_dashboards") ? withStars(await listLinks(workspace.id, "tools"), stars) : null;
   // Links: everyone in the company sees them; owners and admins add and remove.
   const links = withStars(await listLinks(workspace.id, "links"), stars);
+  const docLinks = withStars(await listLinks(workspace.id, "docs"), stars);
 
   return (
     // The company's color becomes the accent for everything inside it: buttons, active
@@ -49,6 +50,7 @@ export default async function WorkspaceLayout({ children, params }: { children: 
         canManageTasks={can(abilities, "manage_tasks")}
         toolLinks={toolLinks}
         links={links}
+        docLinks={docLinks}
         canManageLinks={can(abilities, "view_dashboards")}
       />
       }>

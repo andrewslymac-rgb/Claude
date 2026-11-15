@@ -9,11 +9,12 @@ type Link = { id: string; label: string; url: string; starred?: boolean };
 
 const WORDS = {
   tools: { section: "Tools and reports", placeholder: "Name, e.g. Schedule Planner", addMore: "Add another tool link", addFirst: "Add a tool link (e.g. the Schedule Planner)" },
-  links: { section: "Links", placeholder: "Name, e.g. Google Business Profile", addMore: "Add another link", addFirst: "Add a link to a website you use" },
+  links: { section: "Websites", placeholder: "Name, e.g. Google Business Profile", addMore: "Add another website", addFirst: "Add a link to a website you use" },
+  docs: { section: "Documents", placeholder: "Name, e.g. Price sheet", addMore: "Add another document", addFirst: "Add a link to a document (Google Doc, Sheet, PDF…)" },
 };
 
 /** A list of pinned menu links: Tools and reports, or Links. Only owners and admins can add or remove. */
-export function ToolLinks({ slug, links, kind = "tools", canManage = true }: { slug: string; links: Link[]; kind?: "tools" | "links"; canManage?: boolean }) {
+export function ToolLinks({ slug, links, kind = "tools", canManage = true }: { slug: string; links: Link[]; kind?: "tools" | "links" | "docs"; canManage?: boolean }) {
   const w = WORDS[kind];
   const [adding, setAdding] = useState(false);
   const [label, setLabel] = useState("");
