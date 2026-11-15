@@ -190,6 +190,13 @@
       "when": 1794732188629,
       "tag": "0026_supreme_guardian",
       "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1794733126540,
+      "tag": "0027_groovy_red_wolf",
+      "breakpoints": true
     }
   ]
 }
