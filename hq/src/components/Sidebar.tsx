@@ -4,7 +4,7 @@ import { useAct } from "@/components/ui/Toast";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
-import { ChevronDown, ChevronRight, Home, LogOut, MoreHorizontal, Plus, Search, Settings, Trash2, CheckSquare, BookOpen, Library, Flag, Bot, FolderOpen, AlertTriangle, MessageSquareHeart, Users, UserRound, Briefcase, Wrench, ExternalLink, Link2, Star, CalendarDays, MessagesSquare } from "lucide-react";
+import { ChevronDown, ChevronRight, Home, LogOut, MoreHorizontal, Plus, Search, Settings, Trash2, CheckSquare, BookOpen, Library, Flag, Bot, FolderOpen, AlertTriangle, MessageSquareHeart, Users, UserRound, Briefcase, Wrench, ExternalLink, Link2, Star, FileText, CalendarDays, MessagesSquare } from "lucide-react";
 import { NamePrompt } from "@/components/NamePrompt";
 import { createPortal } from "react-dom";
 import { NewTaskButton } from "@/components/tasks/NewTaskButton";
@@ -22,7 +22,7 @@ type Node = { id: string; parentId: string | null; title: string; icon: string |
 export type ToolLinkNav = { id: string; label: string; url: string; starred?: boolean }[];
 export type CollectionNav = { id: string; label: string; icon: string; count: number; rootPageId: string | null };
 
-export function Sidebar(props: { workspace: Ws; workspaces: Ws[]; tree: Node[]; collections: CollectionNav[]; user: { name: string; email: string; isAppAdmin: boolean; firstName?: string | null; lastName?: string | null }; canEdit: boolean; canManage: boolean; attention?: number; overdue: OverdueItem[]; me: string; openFlags?: number; pendingAi?: number; newFeedback?: number; canManageTasks?: boolean; toolLinks?: ToolLinkNav | null; links?: ToolLinkNav; canManageLinks?: boolean }) {
+export function Sidebar(props: { workspace: Ws; workspaces: Ws[]; tree: Node[]; collections: CollectionNav[]; user: { name: string; email: string; isAppAdmin: boolean; firstName?: string | null; lastName?: string | null }; canEdit: boolean; canManage: boolean; attention?: number; overdue: OverdueItem[]; me: string; openFlags?: number; pendingAi?: number; newFeedback?: number; canManageTasks?: boolean; toolLinks?: ToolLinkNav | null; links?: ToolLinkNav; docLinks?: ToolLinkNav; canManageLinks?: boolean }) {
   const { workspace, canEdit, collections } = props;
   const [overdueOpen, setOverdueOpen] = useState(false);
   useEffect(() => {
@@ -142,19 +142,29 @@ export function Sidebar(props: { workspace: Ws; workspaces: Ws[]; tree: Node[]; 
         </>
       )}
 
-      {/* Links: websites the team uses. Everyone sees them; owners and admins manage them. */}
-      {((props.links?.length ?? 0) > 0 || props.canManageLinks) && (
+      {/* Links: websites and documents the team uses. Everyone sees them; owners and admins manage them. */}
+      {((props.links?.length ?? 0) + (props.docLinks?.length ?? 0) > 0 || props.canManageLinks) && (
         <>
           <div className="eyebrow flex items-center gap-1 px-4 pb-1 pt-3">
             <Link2 size={11} /> Links
           </div>
           <nav className="space-y-0.5 px-2 pb-1">
-            {(props.links ?? []).map((t) => (
-              <a key={t.id} href={t.url} target="_blank" rel="noopener noreferrer" className="nav-item">
-                <span className={t.starred ? "text-amber-400" : "text-ink-faint"}>{t.starred ? <Star size={16} className="fill-current" /> : <ExternalLink size={16} />}</span> <span className="min-w-0 flex-1 truncate">{t.label}</span>
-              </a>
-            ))}
-            <NavItem href={`${base}/links`} icon={<Link2 size={16} />} label={props.canManageLinks ? (props.links?.length ? "Manage links" : "Add a link") : "Star links"} active={pathname === `${base}/links`} />
+            {[
+              { label: "Websites", items: props.links ?? [] },
+              { label: "Documents", items: props.docLinks ?? [] },
+            ]
+              .filter((g) => g.items.length)
+              .map((g) => (
+                <div key={g.label} className="space-y-0.5">
+                  <div className="px-2.5 pb-0.5 pt-1.5 text-[11px] font-medium text-ink-faint">{g.label}</div>
+                  {g.items.map((t) => (
+                    <a key={t.id} href={t.url} target="_blank" rel="noopener noreferrer" className="nav-item">
+                      <span className={t.starred ? "text-amber-400" : "text-ink-faint"}>{t.starred ? <Star size={16} className="fill-current" /> : g.label === "Documents" ? <FileText size={16} /> : <ExternalLink size={16} />}</span> <span className="min-w-0 flex-1 truncate">{t.label}</span>
+                    </a>
+                  ))}
+                </div>
+              ))}
+            <NavItem href={`${base}/links`} icon={<Link2 size={16} />} label={props.canManageLinks ? ((props.links?.length ?? 0) + (props.docLinks?.length ?? 0) ? "Manage links" : "Add a link") : "Star links"} active={pathname === `${base}/links`} />
           </nav>
         </>
       )}
