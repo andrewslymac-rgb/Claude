@@ -14,7 +14,6 @@ import { workspaceThemeVars } from "@/lib/theme/workspace-theme";
 import { listFeedback } from "@/lib/services/feedback";
 import { screensFor } from "@/lib/dash/screens";
 import { listToolLinks } from "@/lib/dash/tools";
-import { builtInApps } from "@/lib/tools/apps";
 
 export default async function WorkspaceLayout({ children, params }: { children: React.ReactNode; params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -49,7 +48,6 @@ export default async function WorkspaceLayout({ children, params }: { children: 
         pendingAi={pendingAi}
         canManageTasks={can(abilities, "manage_tasks")}
         dash={dash}
-        apps={builtInApps(workspace.slug).map((a) => ({ id: a.id, label: a.label, emoji: a.emoji }))}
       />
       }>
         {children}
