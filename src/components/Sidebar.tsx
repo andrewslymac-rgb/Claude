@@ -4,7 +4,7 @@ import { useAct } from "@/components/ui/Toast";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
-import { ChevronDown, ChevronRight, Home, LogOut, MoreHorizontal, Plus, Search, Settings, Trash2, CheckSquare, BookOpen, Library, Flag, Bot, FolderOpen, AlertTriangle, MessageSquareHeart, Users, UserRound, Briefcase, Wrench, ExternalLink, Link2, Star, FileText, CalendarDays, MessagesSquare } from "lucide-react";
+import { ChevronDown, ChevronRight, Home, LogOut, MoreHorizontal, Plus, Search, Settings, Trash2, CheckSquare, BookOpen, Library, Flag, Bot, FolderOpen, AlertTriangle, MessageSquareHeart, Users, UserRound, Briefcase, Wrench, ExternalLink, Link2, Star, FileText, BarChart3, CalendarDays, MessagesSquare } from "lucide-react";
 import { NamePrompt } from "@/components/NamePrompt";
 import { createPortal } from "react-dom";
 import { NewTaskButton } from "@/components/tasks/NewTaskButton";
@@ -22,7 +22,7 @@ type Node = { id: string; parentId: string | null; title: string; icon: string |
 export type ToolLinkNav = { id: string; label: string; url: string; starred?: boolean }[];
 export type CollectionNav = { id: string; label: string; icon: string; count: number; rootPageId: string | null };
 
-export function Sidebar(props: { workspace: Ws; workspaces: Ws[]; tree: Node[]; collections: CollectionNav[]; user: { name: string; email: string; isAppAdmin: boolean; firstName?: string | null; lastName?: string | null }; canEdit: boolean; canManage: boolean; attention?: number; overdue: OverdueItem[]; me: string; openFlags?: number; pendingAi?: number; newFeedback?: number; canManageTasks?: boolean; toolLinks?: ToolLinkNav | null; links?: ToolLinkNav; docLinks?: ToolLinkNav; canManageLinks?: boolean }) {
+export function Sidebar(props: { workspace: Ws; workspaces: Ws[]; tree: Node[]; collections: CollectionNav[]; user: { name: string; email: string; isAppAdmin: boolean; firstName?: string | null; lastName?: string | null }; canEdit: boolean; canManage: boolean; attention?: number; overdue: OverdueItem[]; me: string; openFlags?: number; pendingAi?: number; newFeedback?: number; canManageTasks?: boolean; toolLinks?: ToolLinkNav | null; reportLinks?: ToolLinkNav | null; links?: ToolLinkNav; docLinks?: ToolLinkNav; canManageLinks?: boolean }) {
   const { workspace, canEdit, collections } = props;
   const [overdueOpen, setOverdueOpen] = useState(false);
   useEffect(() => {
@@ -126,10 +126,11 @@ export function Sidebar(props: { workspace: Ws; workspaces: Ws[]; tree: Node[]; 
         <NavItem href={`${base}/flags`} icon={<Flag size={16} />} label="Flags" active={pathname.startsWith(`${base}/flags`)} badge={props.openFlags || undefined} />
       </nav>
 
+      {/* Tools and Reports: owners and admins only. */}
       {props.toolLinks && (
         <>
           <div className="eyebrow flex items-center gap-1 px-4 pb-1 pt-3">
-            <Wrench size={11} /> Tools and reports
+            <Wrench size={11} /> Tools
           </div>
           <nav className="space-y-0.5 px-2 pb-1">
             {props.toolLinks.map((t) => (
@@ -137,7 +138,22 @@ export function Sidebar(props: { workspace: Ws; workspaces: Ws[]; tree: Node[]; 
                 <span className={t.starred ? "text-amber-400" : "text-ink-faint"}>{t.starred ? <Star size={16} className="fill-current" /> : <ExternalLink size={16} />}</span> <span className="min-w-0 flex-1 truncate">{t.label}</span>
               </a>
             ))}
-            <NavItem href={`${base}/tools`} icon={<Wrench size={16} />} label={props.toolLinks.length ? "Manage tools" : "Add a tool"} active={pathname === `${base}/tools`} />
+            <NavItem href={`${base}/tools#tools`} icon={<Wrench size={16} />} label={props.toolLinks.length ? "Manage tools" : "Add a tool"} active={false} />
+          </nav>
+        </>
+      )}
+      {props.reportLinks && (
+        <>
+          <div className="eyebrow flex items-center gap-1 px-4 pb-1 pt-3">
+            <BarChart3 size={11} /> Reports
+          </div>
+          <nav className="space-y-0.5 px-2 pb-1">
+            {props.reportLinks.map((t) => (
+              <a key={t.id} href={t.url} target="_blank" rel="noopener noreferrer" className="nav-item">
+                <span className={t.starred ? "text-amber-400" : "text-ink-faint"}>{t.starred ? <Star size={16} className="fill-current" /> : <ExternalLink size={16} />}</span> <span className="min-w-0 flex-1 truncate">{t.label}</span>
+              </a>
+            ))}
+            <NavItem href={`${base}/tools#reports`} icon={<BarChart3 size={16} />} label={props.reportLinks.length ? "Manage reports" : "Add a report"} active={false} />
           </nav>
         </>
       )}

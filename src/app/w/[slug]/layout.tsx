@@ -20,9 +20,10 @@ export default async function WorkspaceLayout({ children, params }: { children: 
   const [tree, workspaces, tasks, flags, pendingAi, collections, counts, fb] = await Promise.all([listTree(workspace.id), listWorkspacesForUser(user), listTasks(workspace.id), listFlags(workspace.id), countPending(workspace.id), listCollections(workspace.id), collectionCounts(workspace.id), listFeedback(workspace.id)]);
   const attention = tasks.filter((t) => t.state === "overdue" || t.state === "today").length;
   const openFlags = flags.filter((f) => f.status === "open").length;
-  // Tools links: owners and admins only.
+  // Tools and Reports links: owners and admins only.
   const stars = await listStars(user.id, workspace.id);
   const toolLinks = can(abilities, "view_dashboards") ? withStars(await listLinks(workspace.id, "tools"), stars) : null;
+  const reportLinks = can(abilities, "view_dashboards") ? withStars(await listLinks(workspace.id, "reports"), stars) : null;
   // Links: everyone in the company sees them; owners and admins add and remove.
   const links = withStars(await listLinks(workspace.id, "links"), stars);
   const docLinks = withStars(await listLinks(workspace.id, "docs"), stars);
@@ -49,6 +50,7 @@ export default async function WorkspaceLayout({ children, params }: { children: 
         pendingAi={pendingAi}
         canManageTasks={can(abilities, "manage_tasks")}
         toolLinks={toolLinks}
+        reportLinks={reportLinks}
         links={links}
         docLinks={docLinks}
         canManageLinks={can(abilities, "view_dashboards")}

@@ -8,13 +8,14 @@ import { useToast } from "@/components/ui/Toast";
 type Link = { id: string; label: string; url: string; starred?: boolean };
 
 const WORDS = {
-  tools: { section: "Tools and reports", placeholder: "Name, e.g. Schedule Planner", addMore: "Add another tool link", addFirst: "Add a tool link (e.g. the Schedule Planner)" },
-  links: { section: "Websites", placeholder: "Name, e.g. Google Business Profile", addMore: "Add another website", addFirst: "Add a link to a website you use" },
-  docs: { section: "Documents", placeholder: "Name, e.g. Price sheet", addMore: "Add another document", addFirst: "Add a link to a document (Google Doc, Sheet, PDF…)" },
+  tools: { section: "Tools", other: "Reports", placeholder: "Name, e.g. Schedule Planner", addMore: "Add another tool", addFirst: "Add a tool (e.g. the Schedule Planner)" },
+  reports: { section: "Reports", other: "Tools", placeholder: "Name, e.g. Weekly sales report", addMore: "Add another report", addFirst: "Add a report link" },
+  links: { section: "Websites", other: "Documents", placeholder: "Name, e.g. Google Business Profile", addMore: "Add another website", addFirst: "Add a link to a website you use" },
+  docs: { section: "Documents", other: "Websites", placeholder: "Name, e.g. Price sheet", addMore: "Add another document", addFirst: "Add a link to a document (Google Doc, Sheet, PDF…)" },
 };
 
 /** A list of pinned menu links: Tools and reports, or Links. Only owners and admins can add or remove. */
-export function ToolLinks({ slug, links, kind = "tools", canManage = true }: { slug: string; links: Link[]; kind?: "tools" | "links" | "docs"; canManage?: boolean }) {
+export function ToolLinks({ slug, links, kind = "tools", canManage = true }: { slug: string; links: Link[]; kind?: "tools" | "reports" | "links" | "docs"; canManage?: boolean }) {
   const w = WORDS[kind];
   const [adding, setAdding] = useState(false);
   const [label, setLabel] = useState("");
@@ -54,13 +55,13 @@ export function ToolLinks({ slug, links, kind = "tools", canManage = true }: { s
           >
             <Star size={16} className={l.starred ? "fill-current" : ""} />
           </button>
-          {canManage && kind !== "tools" && (
+          {canManage && (
             <button
               onClick={() => start(async () => { const r = await moveLinkAction(slug, kind, l.id); if (!r.ok) toast(r.error, false); })}
               disabled={busy}
               className="tap-icon rounded-lg p-2 text-ink-faint hover:bg-hover hover:text-ink"
-              aria-label={`Move ${l.label} to ${kind === "links" ? "Documents" : "Websites"}`}
-              title={`Move to ${kind === "links" ? "Documents" : "Websites"}`}
+              aria-label={`Move ${l.label} to ${w.other}`}
+              title={`Move to ${w.other}`}
             >
               <ArrowLeftRight size={16} />
             </button>

@@ -4,17 +4,20 @@ import { getSetting, setSetting } from "@/lib/services/app-settings";
 
 /**
  * Links pinned in the menu, stored per company:
- * - "tools": Tools and reports (e.g. the Schedule Planner in Claude). Owners and admins only.
+ * - "tools": Tools (e.g. the Schedule Planner in Claude). Owners and admins only.
+ * - "reports": Reports. Owners and admins only.
  * - "links": websites the team uses. Everyone in the company sees them.
  * - "docs": documents the team uses (Google Docs, Sheets, PDFs…). Everyone sees them too.
  */
 export type ToolLink = { id: string; label: string; url: string };
-export type LinkKind = "tools" | "links" | "docs";
-export const LINK_KINDS = ["tools", "links", "docs"] as const;
+export type LinkKind = "tools" | "reports" | "links" | "docs";
+export const LINK_KINDS = ["tools", "reports", "links", "docs"] as const;
+/** Lists a link can be moved between: Websites ⇄ Documents, Tools ⇄ Reports. */
+export const MOVE_PAIRS = { links: "docs", docs: "links", tools: "reports", reports: "tools" } as const satisfies Record<LinkKind, LinkKind>;
 
 // "dash_tools" is the original key for Tools links; kept so existing links stay put.
-const key = (workspaceId: string, kind: LinkKind) => (kind === "tools" ? `dash_tools:${workspaceId}` : kind === "docs" ? `doc_links:${workspaceId}` : `links:${workspaceId}`);
-const MAX: Record<LinkKind, number> = { tools: 20, links: 50, docs: 50 };
+const key = (workspaceId: string, kind: LinkKind) => (kind === "tools" ? `dash_tools:${workspaceId}` : kind === "reports" ? `report_links:${workspaceId}` : kind === "docs" ? `doc_links:${workspaceId}` : `links:${workspaceId}`);
+const MAX: Record<LinkKind, number> = { tools: 30, reports: 30, links: 50, docs: 50 };
 
 export async function listLinks(workspaceId: string, kind: LinkKind): Promise<ToolLink[]> {
   try {
@@ -56,8 +59,8 @@ export async function listStars(userId: string, workspaceId: string): Promise<st
 
 /** Stars or unstars one link for this person. Stars only point at links that still exist. */
 export async function toggleStar(userId: string, workspaceId: string, linkId: string) {
-  const [stars, tools, links, docs] = await Promise.all([listStars(userId, workspaceId), listLinks(workspaceId, "tools"), listLinks(workspaceId, "links"), listLinks(workspaceId, "docs")]);
-  const exists = new Set([...tools, ...links, ...docs].map((l) => l.id));
+  const [stars, ...lists] = await Promise.all([listStars(userId, workspaceId), ...LINK_KINDS.map((k) => listLinks(workspaceId, k))]);
+  const exists = new Set(lists.flat().map((l) => l.id));
   if (!exists.has(linkId)) throw new Error("That link no longer exists.");
   const next = stars.includes(linkId) ? stars.filter((s) => s !== linkId) : [...stars, linkId];
   await setSetting(starKey(userId, workspaceId), JSON.stringify(next.filter((s) => exists.has(s))));
@@ -71,9 +74,9 @@ export function withStars(links: ToolLink[], stars: string[]): StarredLink[] {
   return [...starred.map((l) => ({ ...l, starred: true })), ...rest.map((l) => ({ ...l, starred: false }))];
 }
 
-/** Moves a link between Websites and Documents, keeping its id so stars stay with it. */
-export async function moveLink(workspaceId: string, from: "links" | "docs", id: string) {
-  const to = from === "links" ? "docs" : "links";
+/** Moves a link to its paired list (Websites ⇄ Documents, Tools ⇄ Reports), keeping its id so stars stay with it. */
+export async function moveLink(workspaceId: string, from: LinkKind, id: string) {
+  const to = MOVE_PAIRS[from];
   const [src, dst] = await Promise.all([listLinks(workspaceId, from), listLinks(workspaceId, to)]);
   const item = src.find((l) => l.id === id);
   if (!item) throw new Error("That link no longer exists.");
