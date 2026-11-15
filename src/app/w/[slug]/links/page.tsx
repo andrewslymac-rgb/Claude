@@ -16,7 +16,7 @@ export default async function LinksPage({ params }: { params: Promise<{ slug: st
   const canManage = can(abilities, "view_dashboards");
   return (
     <div className="mx-auto max-w-3xl space-y-6 px-4 py-6 md:px-8 md:py-10">
-      <PageHeader eyebrow={workspace.name} title="Links" icon={<Link2 size={22} className="text-accent" />} subtitle="Websites and documents the team uses. Paste in an address and give it a name. They open in a new tab and appear in the menu for everyone in this company." />
+      <PageHeader eyebrow={workspace.name} title="Quick Links" icon={<Link2 size={22} className="text-accent" />} subtitle="Websites and documents the team uses. Paste in an address and give it a name. They open in a new tab and appear in the menu for everyone in this company." />
       <section className="space-y-2">
         <h2 className="section-title">Websites</h2>
         <ToolLinks slug={slug} links={withStars(sites, stars)} kind="links" canManage={canManage} />

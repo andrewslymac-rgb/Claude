@@ -146,7 +146,7 @@ export function Sidebar(props: { workspace: Ws; workspaces: Ws[]; tree: Node[]; 
       {((props.links?.length ?? 0) + (props.docLinks?.length ?? 0) > 0 || props.canManageLinks) && (
         <>
           <div className="eyebrow flex items-center gap-1 px-4 pb-1 pt-3">
-            <Link2 size={11} /> Links
+            <Link2 size={11} /> Quick Links
           </div>
           <nav className="space-y-0.5 px-2 pb-1">
             {[
