@@ -71,7 +71,7 @@ export async function deleteArFollowupAction(slug: string, id: string): Promise<
 
 export async function addToolLinkAction(slug: string, label: string, url: string): Promise<Result> {
   return wrap(async () => {
-    const { workspace } = await requireDashboard(slug);
+    const { workspace } = await ownerOrAdmin(slug);
     await addToolLink(workspace.id, label, url);
     revalidatePath(`/w/${slug}`, "layout");
   });
@@ -79,7 +79,7 @@ export async function addToolLinkAction(slug: string, label: string, url: string
 
 export async function removeToolLinkAction(slug: string, id: string): Promise<Result> {
   return wrap(async () => {
-    const { workspace } = await requireDashboard(slug);
+    const { workspace } = await ownerOrAdmin(slug);
     await removeToolLink(workspace.id, id);
     revalidatePath(`/w/${slug}`, "layout");
   });

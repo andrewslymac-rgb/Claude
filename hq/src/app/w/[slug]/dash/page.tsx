@@ -1,12 +1,10 @@
 import Link from "next/link";
-import { ChevronRight, LayoutDashboard, Receipt, Wrench } from "lucide-react";
+import { ChevronRight, LayoutDashboard, Receipt } from "lucide-react";
 import { dashboardPage } from "@/lib/dash/access";
 import { screensFor } from "@/lib/dash/screens";
-import { listToolLinks } from "@/lib/dash/tools";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { UnlockGate } from "@/components/dash/UnlockGate";
 import { codeAddressFor } from "@/lib/dash/lock";
-import { ToolLinks } from "@/components/dash/ToolLinks";
 import { LockButton } from "@/components/dash/LockButton";
 
 export const dynamic = "force-dynamic";
@@ -16,7 +14,6 @@ export default async function DashboardsHome({ params }: { params: Promise<{ slu
   const { user, workspace, unlocked } = await dashboardPage(slug);
   if (!unlocked) return <UnlockGate slug={slug} email={await codeAddressFor(user, workspace.id)} company={workspace.name} />;
   const screens = screensFor(workspace.fieldTool);
-  const tools = await listToolLinks(workspace.id);
 
   return (
     <div className="mx-auto max-w-3xl space-y-8 px-4 py-6 md:px-8 md:py-10">
@@ -42,10 +39,9 @@ export default async function DashboardsHome({ params }: { params: Promise<{ slu
         )}
       </section>
 
-      <section>
-        <h2 className="eyebrow mb-2 flex items-center gap-1"><Wrench size={11} /> Tools</h2>
-        <ToolLinks slug={slug} links={tools} />
-      </section>
+      <p className="text-sm text-ink-soft">
+        Looking for your tool links? They&apos;re under <Link href={`/w/${slug}/tools`} className="text-accent">Tools</Link>, which doesn&apos;t need a code.
+      </p>
     </div>
   );
 }

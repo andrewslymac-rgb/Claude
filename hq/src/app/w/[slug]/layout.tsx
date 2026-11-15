@@ -22,10 +22,10 @@ export default async function WorkspaceLayout({ children, params }: { children: 
   const [tree, workspaces, tasks, flags, pendingAi, collections, counts, fb] = await Promise.all([listTree(workspace.id), listWorkspacesForUser(user), listTasks(workspace.id), listFlags(workspace.id), countPending(workspace.id), listCollections(workspace.id), collectionCounts(workspace.id), listFeedback(workspace.id)]);
   const attention = tasks.filter((t) => t.state === "overdue" || t.state === "today").length;
   const openFlags = flags.filter((f) => f.status === "open").length;
-  // Owners and admins only. Tool links are only sent to the browser once the area is unlocked.
+  // Owners and admins only. Dashboards need the emailed code; Tools links don't.
   const dashUnlocked = can(abilities, "view_dashboards") ? await isUnlocked(workspace.id) : false;
   const dash = can(abilities, "view_dashboards")
-    ? { screens: screensFor(workspace.fieldTool).map((s) => ({ id: s.id, label: s.label })), tools: dashUnlocked ? await listToolLinks(workspace.id) : [], unlocked: dashUnlocked }
+    ? { screens: screensFor(workspace.fieldTool).map((s) => ({ id: s.id, label: s.label })), tools: await listToolLinks(workspace.id), unlocked: dashUnlocked }
     : null;
 
   return (
