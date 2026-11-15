@@ -901,3 +901,30 @@ export const meetingPeople = pgTable(
   },
   (t) => [primaryKey({ columns: [t.workspaceId, t.alias] })],
 );
+
+/* ---------- Built-in tools (Adapt Pest Pros) ---------- */
+
+/** One row per record, kept in the shape the tool's screens use, so an import loses nothing. */
+const toolDoc = (name: string) =>
+  pgTable(
+    name,
+    {
+      workspaceId: uuid("workspace_id")
+        .notNull()
+        .references(() => workspaces.id, { onDelete: "cascade" }),
+      id: text("id").notNull(),
+      data: jsonb("data").$type<Record<string, unknown>>().notNull(),
+      updatedById: uuid("updated_by_id").references(() => users.id, { onDelete: "set null" }),
+      updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    },
+    (t) => [primaryKey({ columns: [t.workspaceId, t.id] })],
+  );
+
+/** Compliance and Pipeline Tracker: property management companies with their contacts, portals, properties and requirements. */
+export const trackerCompanies = toolDoc("tracker_companies");
+/** Tracker to-dos and waiting-on items. */
+export const trackerTasks = toolDoc("tracker_tasks");
+/** Tracker communication log. */
+export const trackerComms = toolDoc("tracker_comms");
+/** Tracker settings: "insurance" (policies, agents), "settings" (alert thresholds, team), "scan" (last email scan). */
+export const trackerConfig = toolDoc("tracker_config");

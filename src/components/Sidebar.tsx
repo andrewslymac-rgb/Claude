@@ -22,7 +22,7 @@ type Node = { id: string; parentId: string | null; title: string; icon: string |
 export type DashNav = { screens: { id: string; label: string }[]; tools: { id: string; label: string; url: string }[] };
 export type CollectionNav = { id: string; label: string; icon: string; count: number; rootPageId: string | null };
 
-export function Sidebar(props: { workspace: Ws; workspaces: Ws[]; tree: Node[]; collections: CollectionNav[]; user: { name: string; email: string; isAppAdmin: boolean; firstName?: string | null; lastName?: string | null }; canEdit: boolean; canManage: boolean; attention?: number; overdue: OverdueItem[]; me: string; openFlags?: number; pendingAi?: number; newFeedback?: number; canManageTasks?: boolean; dash?: DashNav | null }) {
+export function Sidebar(props: { workspace: Ws; workspaces: Ws[]; tree: Node[]; collections: CollectionNav[]; user: { name: string; email: string; isAppAdmin: boolean; firstName?: string | null; lastName?: string | null }; canEdit: boolean; canManage: boolean; attention?: number; overdue: OverdueItem[]; me: string; openFlags?: number; pendingAi?: number; newFeedback?: number; canManageTasks?: boolean; dash?: DashNav | null; apps?: { id: string; label: string; emoji: string }[] }) {
   const { workspace, canEdit, collections } = props;
   const [overdueOpen, setOverdueOpen] = useState(false);
   useEffect(() => {
@@ -137,16 +137,27 @@ export function Sidebar(props: { workspace: Ws; workspaces: Ws[]; tree: Node[]; 
             ))}
             {!props.dash.screens.length && <NavItem href={`${base}/dash`} icon={<LayoutDashboard size={16} />} label="All dashboards" active={pathname === `${base}/dash`} />}
           </nav>
+        </>
+      )}
+
+      {/* Tools: the company's built-in tools are for every member; link shortcuts stay with owners and admins. */}
+      {(props.dash || (props.apps?.length ?? 0) > 0) && (
+        <>
           <div className="eyebrow flex items-center gap-1 px-4 pb-1 pt-3">
             <Wrench size={11} /> Tools
           </div>
           <nav className="space-y-0.5 px-2 pb-1">
-            {props.dash.tools.map((t) => (
+            {(props.apps ?? []).map((a) => (
+              <Link key={a.id} href={`${base}/tools/${a.id}`} data-active={pathname.startsWith(`${base}/tools/${a.id}`) ? "true" : "false"} className="nav-item">
+                <span className="w-5 shrink-0 text-center">{a.emoji}</span> <span className="min-w-0 flex-1 truncate">{a.label}</span>
+              </Link>
+            ))}
+            {props.dash?.tools.map((t) => (
               <a key={t.id} href={t.url} target="_blank" rel="noopener noreferrer" className="nav-item">
                 <span className="text-ink-faint"><ExternalLink size={16} /></span> <span className="min-w-0 flex-1 truncate">{t.label}</span>
               </a>
             ))}
-            <NavItem href={`${base}/tools`} icon={<Wrench size={16} />} label={props.dash.tools.length ? "Manage tools" : "Add a tool"} active={pathname === `${base}/tools`} />
+            {props.dash && <NavItem href={`${base}/tools`} icon={<Wrench size={16} />} label={props.dash.tools.length ? "Manage tools" : "Add a tool"} active={pathname === `${base}/tools`} />}
           </nav>
         </>
       )}
