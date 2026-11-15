@@ -176,6 +176,13 @@
       "when": 1794707011180,
       "tag": "0024_swift_sunset_bain",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1794731343191,
+      "tag": "0025_zippy_mantis",
+      "breakpoints": true
     }
   ]
 }

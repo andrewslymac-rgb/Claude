@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Adapt Multifamily Compliance and Pipeline Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Plus+Jakarta+Sans:wght@700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --green:#268257;--g1:#206F4A;--g2:#203C3C;--forest:#0F1F17;--text:#171C1C;--muted:#6D7878;
+  --bg:#F6F8F7;--card:#fff;--tint:#E6F2EB;--border:#DDE3E0;--gray:#EBEEED;--amber:#F59E0B;--red:#EF4444;
+  --amberbg:#FEF3C7;--redbg:#FEE2E2;--r:12px;--shadow:0 4px 24px rgba(23,28,28,.08);
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 Inter,Arial,Helvetica,sans-serif}
+h1,h2,h3{font-family:"Plus Jakarta Sans",Arial,sans-serif;font-weight:800;letter-spacing:-.01em;margin:0}
+a{color:var(--green)}
+button{font:inherit;cursor:pointer}
+header{background:linear-gradient(135deg,var(--g1),var(--g2));color:#fff;padding:18px 20px 0}
+.hrow{display:flex;align-items:center;gap:12px;flex-wrap:wrap;max-width:1280px;margin:0 auto}
+.hrow h1{font-size:22px;flex:1;min-width:220px}
+.hrow .sub{font-size:12px;opacity:.8;font-weight:500;display:block;font-family:Inter,sans-serif;letter-spacing:0}
+.pill{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);color:#fff;border-radius:999px;padding:4px 10px;font-size:12px}
+.bell{position:relative;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:10px;padding:7px 12px}
+.bell b{background:var(--red);color:#fff;border-radius:999px;padding:1px 7px;margin-left:6px;font-size:12px}
+nav{display:flex;gap:2px;max-width:1280px;margin:14px auto 0;overflow-x:auto;scrollbar-width:none}
+nav a{color:#fff;opacity:.75;text-decoration:none;padding:10px 14px;border-radius:10px 10px 0 0;font-weight:500;white-space:nowrap}
+nav a.on{background:var(--bg);color:var(--text);opacity:1}
+nav a .n{background:var(--red);color:#fff;border-radius:999px;padding:0 6px;font-size:11px;margin-left:4px}
+main{max-width:1280px;margin:0 auto;padding:18px 16px 60px}
+.note{background:var(--amberbg);border:1px solid #F5D58A;border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:13px}
+.note.err{background:var(--redbg);border-color:#F8B4B4}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+.toolbar h2{font-size:20px;margin-right:auto}
+input,select,textarea{font:inherit;border:1px solid var(--border);border-radius:10px;padding:8px 10px;background:#fff;color:var(--text);min-width:0}
+textarea{width:100%;min-height:70px;resize:vertical}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--tint);border-color:var(--green)}
+.btn{border:0;border-radius:10px;padding:8px 14px;background:var(--green);color:#fff;font-weight:500}
+.btn.sec{background:var(--gray);color:var(--text)}
+.btn.ghost{background:transparent;color:var(--green);padding:6px 8px}
+.btn.danger{background:var(--redbg);color:#B91C1C}
+.btn.sm{padding:5px 10px;font-size:12px}
+.btn:disabled{opacity:.5;cursor:default}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:12px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--shadow);padding:14px 16px}
+.card.click{cursor:pointer;transition:transform .08s}
+.card.click:hover{transform:translateY(-1px);border-color:var(--green)}
+.card h3{font-size:15px;margin-bottom:6px}
+.muted{color:var(--muted)}
+.small{font-size:12px}
+.badge{display:inline-block;border-radius:999px;padding:2px 9px;font-size:11.5px;font-weight:500;background:var(--gray);color:var(--text);margin:0 4px 4px 0;white-space:nowrap}
+.b-green{background:var(--tint);color:#14603D}
+.b-amber{background:var(--amberbg);color:#92400E}
+.b-red{background:var(--redbg);color:#B91C1C}
+.b-dark{background:var(--forest);color:#fff}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:16px}
+.stat{background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:14px;text-align:center;cursor:pointer}
+.stat .v{font:800 28px "Plus Jakarta Sans",sans-serif;color:var(--green)}
+.stat.red .v{color:var(--red)}.stat.amber .v{color:#D97706}
+.stat .l{font-size:12px;color:var(--muted)}
+.stat.on{outline:2px solid var(--green)}
+.alert{display:flex;gap:12px;align-items:flex-start;background:#fff;border:1px solid var(--border);border-left:4px solid var(--muted);border-radius:10px;padding:10px 12px;margin-bottom:8px}
+.alert.red{border-left-color:var(--red)}.alert.amber{border-left-color:var(--amber)}.alert.info{border-left-color:#9AA5A5}
+.alert .body{flex:1;min-width:0}
+.alert .t{font-weight:600}
+.alert .acts{display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end}
+.sec-h{font:800 13px "Plus Jakarta Sans",sans-serif;text-transform:none;color:var(--muted);margin:18px 0 8px;display:flex;align-items:center;gap:8px}
+table{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+th{background:var(--green);color:#fff;text-align:left;font-weight:600;padding:8px 10px;font-size:12.5px;white-space:nowrap}
+td{padding:8px 10px;border-top:1px solid var(--border);vertical-align:top}
+tr:nth-child(even) td{background:var(--bg)}
+.tablewrap{overflow-x:auto;border-radius:var(--r)}
+.detail-h{display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap;margin-bottom:12px}
+.detail-h h2{font-size:22px;flex:1;min-width:240px}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--border);margin:6px 0 14px;overflow-x:auto}
+.tabs button{background:none;border:0;padding:9px 12px;border-bottom:3px solid transparent;color:var(--muted);font-weight:500;white-space:nowrap}
+.tabs button.on{color:var(--green);border-bottom-color:var(--green)}
+.kv{display:grid;grid-template-columns:180px 1fr;gap:6px 14px}
+.kv dt{color:var(--muted);font-size:12.5px}
+.kv dd{margin:0;white-space:pre-wrap}
+@media (max-width:640px){.kv{grid-template-columns:1fr}.kv dt{margin-top:6px}}
+.prop{border:1px solid var(--border);border-radius:10px;background:#fff;margin-bottom:8px}
+.prop summary{padding:10px 12px;cursor:pointer;display:flex;gap:8px;align-items:center;flex-wrap:wrap;list-style:none}
+.prop summary::-webkit-details-marker{display:none}
+.prop .pb{padding:0 12px 12px}
+.ct{display:flex;flex-wrap:wrap;gap:4px 14px;padding:6px 0;border-top:1px dashed var(--border)}
+.ct:first-child{border-top:0}
+.tl{border-left:2px solid var(--tint);margin-left:6px;padding-left:14px}
+.tl .it{position:relative;margin-bottom:12px}
+.tl .it:before{content:"";position:absolute;left:-21px;top:4px;width:10px;height:10px;border-radius:50%;background:var(--green)}
+.tl .it.coi:before{background:var(--amber)}
+.empty{padding:30px;text-align:center;color:var(--muted);background:#fff;border:1px dashed var(--border);border-radius:var(--r)}
+.modal-bg{position:fixed;inset:0;background:rgba(15,31,23,.45);display:flex;align-items:flex-start;justify-content:center;padding:30px 12px;overflow:auto;z-index:50}
+.modal{background:#fff;border-radius:14px;max-width:640px;width:100%;padding:18px;box-shadow:0 20px 60px rgba(0,0,0,.25)}
+.modal h3{font-size:17px;margin-bottom:12px}
+.f{margin-bottom:10px}
+.f label{display:block;font-size:12px;color:var(--muted);margin-bottom:3px;font-weight:500}
+.f input,.f select{width:100%}
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.crow{display:grid;grid-template-columns:1.2fr 1fr 1fr 1.4fr auto;gap:6px;margin-bottom:6px}
+@media (max-width:640px){.crow{grid-template-columns:1fr 1fr}.frow{grid-template-columns:1fr}}
+.mfoot{display:flex;gap:8px;justify-content:flex-end;margin-top:14px;flex-wrap:wrap}
+.mfoot .left{margin-right:auto}
+.inl{border:1px solid transparent;background:transparent;padding:5px 6px;border-radius:8px;width:100%;min-width:110px}
+.inl:hover,.inl:focus{border-color:var(--border);background:#fff}
+select.inl{border-color:var(--border);background:#fff}
+input.inl{border-bottom:1px dashed #B8C4BF;border-radius:0}
+input.inl.od{color:#B91C1C;font-weight:600}
+tr.rowedit{cursor:pointer}
+tr.rowedit:hover td{background:var(--tint)}
+.tap{font-size:11px;opacity:.7}
+.alert .body{cursor:pointer}
+@media (max-width:700px){
+ table.resp,table.resp tbody,table.resp tr,table.resp td{display:block;width:100%}
+ table.resp{border:0;background:transparent}
+ table.resp tr:first-child{display:none}
+ table.resp tr{background:#fff;border:1px solid var(--border);border-radius:12px;margin-bottom:10px;padding:6px 4px;box-shadow:var(--shadow)}
+ table.resp td{border:0;padding:4px 10px;background:transparent!important}
+ table.resp td .inl{max-width:100%}
+}
+.bigh{font-size:17px;margin:22px 0 4px;display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+.lbl{display:none;font-size:11px;color:var(--muted)}
+.clamp{display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden;max-width:520px}
+@media (max-width:700px){ .lbl{display:block} }
+.scanlog{font-size:12px;color:var(--muted);max-height:120px;overflow:auto;background:var(--bg);border-radius:8px;padding:8px;margin:8px 0;white-space:pre-wrap}
+.prop-up{border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:8px;background:#fff}
+.prop-up.sus{border-color:#F8B4B4;background:#FFF7F7}
+.prop-up ul{margin:6px 0 0 18px;padding:0}
+.prop-up label.hd{display:flex;gap:8px;align-items:flex-start;font-weight:600;cursor:pointer}
+.cocard{margin-bottom:12px;border-left:4px solid var(--border)}
+.cocard.bl-red{border-left-color:var(--red)}.cocard.bl-amber{border-left-color:var(--amber)}
+.cohead{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.cohead h3{margin:0 6px 0 0}.cohead h3 a{color:var(--text);text-decoration:none}
+.item{display:flex;gap:10px;align-items:center;flex-wrap:wrap;border-top:1px solid var(--border);padding:8px 0}
+.item:first-of-type{border-top:0}
+.item.od .it-main b{color:#B91C1C}
+.it-main{flex:1;min-width:220px;cursor:pointer}
+.it-ctl{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.it-ctl select.inl{width:auto;min-width:96px}.it-ctl input.inl{width:170px;min-width:0}.it-ctl input[type=date].inl{width:140px}
+.kv.sm{grid-template-columns:110px 1fr;font-size:12.5px;margin-top:8px}
+nav a{font-size:13.5px}
+.toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--forest);color:#fff;padding:10px 16px;border-radius:10px;z-index:60;font-size:13px}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{border:1px solid var(--border);background:#fff;border-radius:999px;padding:4px 10px;font-size:12px}
+.chip.on{background:var(--green);color:#fff;border-color:var(--green)}
+.dot{width:9px;height:9px;border-radius:50%;display:inline-block;margin-right:6px;vertical-align:middle}
+.dot.red{background:var(--red)}.dot.amber{background:var(--amber)}.dot.ok{background:var(--green)}
+footer{color:var(--muted);font-size:12px;text-align:center;padding:10px}
+</style>
+</head>
+<body>
+<header>
+  <div class="hrow">
+    <h1>Multifamily Compliance and Pipeline Tracker<span class="sub">Adapt Pest Pros · property managers, locations, compliance and vendor portals</span></h1>
+    
+    <button class="bell" id="scanBtn" title="Scan info@adaptpestpros.com for updates">📧 Scan email</button>
+<b id="bellN" hidden></b>
+  </div>
+  <nav id="nav">
+    <a href="#action" data-v="action">Non-compliant / needs action<span class="n" id="navN" hidden></span></a>
+    <a href="#expiring" data-v="expiring">Upcoming expirations<span class="n" id="navE" hidden></span></a>
+    <a href="#compliant" data-v="compliant">Compliant</a>
+    <a href="#companies" data-v="companies">Property management companies</a>
+    <a href="#locations" data-v="locations">Locations</a>
+    <a href="#contacts" data-v="contacts">Contacts</a>
+  </nav>
+</header>
+<main id="main"><div class="empty">Loading the board…</div></main>
+<footer>Changes save instantly and show for everyone at Adapt in Orbit. <a href="#" id="settingsLink">Alert settings</a></footer>
+<div id="modalRoot"></div>
+
+<script>
+/*__ORBIT__*/
+// Orbit's stand-in for the storage the screens were written against. Same calls, but the
+// data lives in Orbit's database and every change goes through Orbit's permission checks.
+(() => {
+  const api = ORBIT.api + "/data";
+  let data = null, loading = null, busy = 0;
+  const colSubs = {}, docSubs = {};
+  const split = p => { const i = p.indexOf("/"); return [p.slice(0, i), p.slice(i + 1)]; };
+  const fail = (code, message) => Object.assign(new Error(message), { code });
+  const snapCol = c => ({ docs: Object.entries(data[c] || {}).map(([id, d]) => ({ id, data: () => d })), metadata: { fromCache: false } });
+  const snapDoc = (c, id) => { const d = (data[c] || {})[id]; return { exists: d !== undefined, data: () => d }; };
+  const emit = only => {
+    for (const c in colSubs) if (!only || only === c) colSubs[c].forEach(s => s.ok(snapCol(c)));
+    for (const p in docSubs) { const [c, id] = split(p); if (!only || only === c) docSubs[p].forEach(s => s.ok(snapDoc(c, id))); }
+  };
+  async function load() {
+    const r = await fetch(api, { cache: "no-store" });
+    if (!r.ok) throw fail(r.status === 403 ? "permission_denied" : "unavailable", "Orbit couldn't load the tracker (" + r.status + ").");
+    return r.json();
+  }
+  const ready = () => loading || (loading = load().then(d => { data = d; }));
+  async function refresh() {
+    if (busy || document.hidden || !data) return;
+    try { const d = await load(); if (!busy && JSON.stringify(d) !== JSON.stringify(data)) { data = d; emit(); } } catch (e) {}
+  }
+  setInterval(refresh, 15000);
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) refresh(); });
+  async function write(path, op, body) {
+    const [collection, id] = split(path);
+    busy++;
+    try {
+      const r = await fetch(api, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ collection, id, op, data: body }) });
+      if (!r.ok) { const j = await r.json().catch(() => ({})); throw fail(r.status === 403 ? "permission_denied" : "failed", j.error || "Orbit couldn't save that (" + r.status + ")."); }
+      data[collection] = data[collection] || {};
+      if (op === "delete") delete data[collection][id];
+      else if (op === "set") data[collection][id] = body;
+      else data[collection][id] = { ...(data[collection][id] || {}), ...body };
+      emit(collection);
+    } finally { busy--; }
+  }
+  const sub = (map, key, ok, err, snap) => {
+    const s = { ok, err }; (map[key] = map[key] || []).push(s);
+    ready().then(() => ok(snap()), e => { loading = null; err && err(e); });
+    return () => { map[key] = map[key].filter(x => x !== s); };
+  };
+  const newId = () => { const a = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789", b = crypto.getRandomValues(new Uint8Array(20)); return Array.from(b, x => a[x % a.length]).join(""); };
+  const db = {
+    collection: c => ({ onSnapshot: (ok, err) => sub(colSubs, c, ok, err, () => snapCol(c)), doc: () => ({ id: newId() }) }),
+    doc: p => ({
+      set: d => write(p, "set", d), update: d => write(p, "update", d), delete: () => write(p, "delete"),
+      onSnapshot: (ok, err) => { const [c, id] = split(p); return sub(docSubs, p, ok, err, () => snapDoc(c, id)); },
+    }),
+  };
+  window.claude = { use: async cap => (cap === "db" ? db : null) };
+})();
+</script>
+<script>
+(() => {
+"use strict";
+// ---------- state ----------
+const S = { companies:{}, tasks:{}, comms:{}, insurance:{policies:[],agents:[]}, settings:{}, loaded:{}, db:null, user:null, canWrite:true, readOnly:false, uid:null, names:{} };
+const DEF = {waitAmberDays:7,waitRedDays:14,dueSoonDays:3,policyRedDays:30,policyAmberDays:60,renewalAmberDays:60,quietActiveDays:45,quietProspectDays:21};
+const UI = { view:"alerts", co:null, coTab:"overview", alertFilter:"all", ownerFilter:"", coSearch:"", coStage:"", coComp:"", taskShowDone:false, taskOwner:"", commsCo:"", commsType:"", propSearch:"" };
+const STAGES = ["Active customer","Approved","Onboarding","Invited","Prospect","Past","Not pursuing"];
+const COMPLIANCE = ["Compliant","Compliant (inferred)","Compliant (WC exemption out of date)","Pending","Flagged","Non-compliant","Requirements not met","Not started","No requirements found","Unknown"];
+const KINDS = ["compliance","onboarding","billing","follow-up","decision","other"];
+const CTYPES = ["Call","Text","Email","In person","Voicemail","COI request","Portal update","Other"];
+const $ = s => document.querySelector(s);
+const esc = v => String(v ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const set = () => ({...DEF, ...(S.settings||{})});
+const DEF_TEAM=["Andrew","Alex","Vee (office)","Jose"];
+const team=()=> (Array.isArray(S.settings&&S.settings.team)&&S.settings.team.length)?S.settings.team:DEF_TEAM;
+function partyList(){ const s=new Set(); (S.insurance.agents||[]).forEach(a=>{ if(a.name && !/former/i.test(a.use||"")) s.add(`${a.name} (${a.company})`); }); Object.values(S.tasks).forEach(t=>t.waitingOn&&s.add(t.waitingOn)); Object.values(S.companies).forEach(c=>c.name&&s.add(c.name)); return [...s].sort(); }
+const teamOpts=v=>[...new Set([...team(),...(v&&!team().includes(v)?[v]:[])])].map(o=>`<option ${o===v?"selected":""}>${esc(o)}</option>`).join("");
+
+// ---------- dates ----------
+const todayISO = () => { const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; };
+const toDate = iso => { const [y,m,d]=iso.split("-").map(Number); return new Date(y,m-1,d); };
+const days = (a,b) => Math.round((toDate(b)-toDate(a))/86400000); // b - a
+const addDays = (iso,n) => { const d=toDate(iso); d.setDate(d.getDate()+n); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; };
+const fmt = iso => { if(!iso) return ""; const d=toDate(iso); return d.toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}); };
+const rel = iso => { if(!iso) return ""; const n=days(todayISO(),iso); if(n===0) return "today"; if(n===1) return "tomorrow"; if(n===-1) return "yesterday"; return n<0?`${-n} days ago`:`in ${n} days`; };
+const validISO = s => /^\d{4}-\d{2}-\d{2}$/.test(s||"");
+
+// ---------- helpers ----------
+const coName = id => S.companies[id]?.name || "(unknown company)";
+const openTasks = () => Object.entries(S.tasks).filter(([,t]) => t.status!=="done");
+const tasksFor = id => Object.entries(S.tasks).filter(([,t]) => t.companyId===id);
+const commsFor = id => Object.entries(S.comms).filter(([,m]) => m.companyId===id).sort((a,b)=>(b[1].date||"").localeCompare(a[1].date||""));
+const lastContact = id => { const c=commsFor(id)[0]; const a=S.companies[id]?.lastActivity||""; const b=c?c[1].date:""; return a>b?a:b; };
+function compClass(c){ c=(c||"").toLowerCase(); if(/non-compliant|requirements not met|flagged/.test(c)) return "b-red"; if(/out of date|pending|not started|unknown/.test(c)) return "b-amber"; if(/compliant|no requirements/.test(c)) return "b-green"; return ""; }
+function stageClass(s){ return s==="Active customer"?"b-dark":s==="Approved"?"b-green":""; }
+function portalKey(p){ const s=(p||"").toLowerCase(); if(s.includes("netvendor")) return "NetVendor"; if(s.includes("vendorshield")||s.includes("vendorcafe")||s.includes("rentcafe")) return "Yardi VendorCafe / VendorShield"; if(s.includes("opsmerchant")) return "RealPage OpsMerchant"; if(s.includes("realpage")) return "RealPage Vendor Credentialing"; if(s.includes("appfolio")) return "AppFolio"; if(s.startsWith("none")) return "None / paper packet"; return p||"Other"; }
+function toast(msg){ const t=document.createElement("div"); t.className="toast"; t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(),2600); }
+
+// ---------- alerts engine ----------
+function computeAlerts(){
+  const st=set(), today=todayISO(), out=[];
+  for(const [id,t] of openTasks()){
+    const reasons=[]; let sev="";
+    if(validISO(t.dueDate)){
+      const n=days(today,t.dueDate);
+      if(n<0){ sev="red"; reasons.push(`${-n} day${n===-1?"":"s"} overdue (due ${fmt(t.dueDate)})`); }
+      else if(n<=st.dueSoonDays){ sev="amber"; reasons.push(`due ${rel(t.dueDate)}`); }
+    }
+    if(t.status==="waiting" && validISO(t.waitingSince)){
+      const w=days(t.waitingSince,today);
+      if(w>=st.waitRedDays){ sev="red"; reasons.push(`waiting on ${t.waitingOn||"someone"} for ${w} days`); }
+      else if(w>=st.waitAmberDays){ if(sev!=="red") sev="amber"; reasons.push(`waiting on ${t.waitingOn||"someone"} for ${w} days`); }
+    }
+    if(sev) out.push({sev,kind:t.status==="waiting"?"waiting":"task",title:t.title,co:t.companyId,lead:t.assignee||"",party:t.status==="waiting"?(t.waitingOn||""):"",why:reasons.join(" · "),taskId:id,sort:t.dueDate||""});
+  }
+  for(const [id,c] of Object.entries(S.companies)){
+    const comp=(c.compliance||"");
+    if(/non-compliant|requirements not met|flagged/i.test(comp)) out.push({sev:"red",kind:"compliance",title:`${c.name}: ${comp}`,co:id,lead:c.accountLead||"",why:c.nextAction||"",sort:""});
+    else if(/out of date/i.test(comp)) out.push({sev:"amber",kind:"compliance",title:`${c.name}: ${comp}`,co:id,lead:c.accountLead||"",why:c.nextAction||"",sort:""});
+    for(const p of (c.portals||[])){
+      if(!validISO(p.renewal)) continue;
+      const n=days(today,p.renewal);
+      if(n<0) out.push({sev:"red",kind:"renewal",title:`${portalKey(p.portal)} fee lapsed for ${c.name}`,co:id,lead:c.accountLead||"Andrew",why:`Renewal was ${fmt(p.renewal)}`,sort:p.renewal});
+      else if(n<=st.renewalAmberDays) out.push({sev:"amber",kind:"renewal",title:`${portalKey(p.portal)} renewal for ${c.name}`,co:id,lead:c.accountLead||"Andrew",why:`Renews ${fmt(p.renewal)} (${rel(p.renewal)})`,sort:p.renewal});
+    }
+    const lc=lastContact(id);
+    if(lc){
+      const q=days(lc,today), hasOpen=tasksFor(id).some(([,t])=>t.status!=="done");
+      if(c.stage==="Active customer" && q>=st.quietActiveDays) out.push({sev:"amber",kind:"quiet",title:`No logged contact with ${c.name} in ${q} days`,co:id,lead:c.accountLead||"",why:`Last activity ${fmt(lc)}`,sort:lc});
+      else if(["Prospect","Onboarding","Invited","Approved"].includes(c.stage) && !hasOpen && q>=st.quietProspectDays) out.push({sev:"info",kind:"quiet",title:`${c.name} has gone quiet (${q} days)`,co:id,lead:c.accountLead||"",why:`Last activity ${fmt(lc)}; no open follow-up`,sort:lc});
+    }
+  }
+  for(const [i,p] of (S.insurance.policies||[]).entries()){
+    if(!validISO(p.expires)) continue;
+    const n=days(today,p.expires);
+    if(n<0) out.push({sev:"red",kind:"policy",title:`${p.coverage} policy expired`,co:"",lead:"Andrew",party:p.agent,why:`Expired ${fmt(p.expires)}`,sort:p.expires,policy:i});
+    else if(n<=st.policyRedDays) out.push({sev:"red",kind:"policy",title:`${p.coverage} expires ${rel(p.expires)}`,co:"",lead:"Andrew",party:p.agent,why:`${fmt(p.expires)} · ${p.notes||""}`,sort:p.expires,policy:i});
+    else if(n<=st.policyAmberDays) out.push({sev:"amber",kind:"policy",title:`${p.coverage} expires ${rel(p.expires)}`,co:"",lead:"Andrew",party:p.agent,why:`${fmt(p.expires)}`,sort:p.expires,policy:i});
+  }
+  const rank={red:0,amber:1,info:2};
+  out.sort((a,b)=>rank[a.sev]-rank[b.sev] || (a.sort||"9").localeCompare(b.sort||"9"));
+  return out;
+}
+function updateBadges(){
+  const a=computeAlerts(), n=a.filter(x=>x.sev!=="info").length, r=a.filter(x=>x.sev==="red").length;
+  $("#bellN").hidden=!n; $("#bellN").textContent=n;
+  const act=Object.values(S.companies).filter(c=>compClass(c.compliance)==="b-red").length+openTasks().filter(([,t])=>validISO(t.dueDate)&&t.dueDate<todayISO()).length; $("#navN").hidden=!act; $("#navN").textContent=act;
+  const ex=(typeof expirationRows==="function"?expirationRows():[]).filter(x=>x.n!=null&&x.n<=set().policyRedDays).length; $("#navE").hidden=!ex; $("#navE").textContent=ex;
+  document.title = (r?`(${r}) `:"")+"Adapt Multifamily Compliance and Pipeline Tracker";
+  return a;
+}
+
+// ---------- writes (one at a time per doc) ----------
+const queues={};
+function q(path, fn){ const p=(queues[path]||Promise.resolve()).then(fn,fn); queues[path]=p.catch(()=>{}); return p; }
+async function w(path, op, data){
+  if(!S.db){ toast("Not connected — changes can't be saved."); throw new Error("no db"); }
+  if(S.readOnly){ toast("You have view-only access."); throw new Error("ro"); }
+  return q(path, async () => {
+    try{
+      const ref=S.db.doc(path);
+      if(op==="set") await ref.set(data); else if(op==="update") await ref.update(data); else await ref.delete();
+    }catch(e){
+      if(e&&e.code==="invalid_argument"&&op!=="delete"){ S.readOnly=true; renderWho(); }
+      toast(e&&e.code==="quota_exceeded"?"Storage is full — delete old entries.":"Couldn't save: "+(e&&e.message||e)); throw e;
+    }
+  });
+}
+const newId = col => S.db.collection(col).doc().id;
+async function patchCompany(id, data){ await w(`companies/${id}`,"update",data); }
+function bumpActivity(coId, iso){ const c=S.companies[coId]; if(c && iso && (!c.lastActivity || iso>c.lastActivity)) patchCompany(coId,{lastActivity:iso}).catch(()=>{}); }
+
+// ---------- modal / forms ----------
+function modal(html, onMount){
+  const root=$("#modalRoot"); root.innerHTML=`<div class="modal-bg"><div class="modal">${html}</div></div>`;
+  const bg=root.firstElementChild; bg.addEventListener("click",e=>{ if(e.target===bg) close(); });
+  const close=()=>{ root.innerHTML=""; document.removeEventListener("keydown",onKey); };
+  const onKey=e=>{ if(e.key==="Escape") close(); }; document.addEventListener("keydown",onKey);
+  onMount && onMount(bg.firstElementChild, close); return close;
+}
+function confirmBox(text, yes="Delete"){ return new Promise(res=>{ modal(`<h3>Are you sure?</h3><p>${esc(text)}</p><div class="mfoot"><button class="btn sec" data-a="no">Cancel</button><button class="btn danger" data-a="yes">${esc(yes)}</button></div>`,(m,close)=>{ m.querySelector('[data-a=no]').onclick=()=>{close();res(false)}; m.querySelector('[data-a=yes]').onclick=()=>{close();res(true)}; }); }); }
+function contactRows(list){ return (list||[]).map(c=>`<div class="crow"><input placeholder="Name" data-k="name" value="${esc(c.name)}"><input placeholder="Title / role" data-k="title" value="${esc(c.title)}"><input placeholder="Phone" data-k="phone" value="${esc(c.phone)}"><input placeholder="Email" data-k="email" value="${esc(c.email)}"><button class="btn ghost" data-rm title="Remove">✕</button></div>`).join(""); }
+/** fields: [{k,label,type,options,full,value}] → Promise<values|null> */
+function form(title, fields, {del, saveLabel="Save"}={}){
+  return new Promise(res=>{
+    const f=fields.map(x=>{
+      const v=x.value??"";
+      let input;
+      if(x.type==="textarea") input=`<textarea data-k="${x.k}">${esc(v)}</textarea>`;
+      else if(x.type==="select") input=`<select data-k="${x.k}">${(x.options||[]).map(o=>{const [ov,ol]=Array.isArray(o)?o:[o,o];return `<option value="${esc(ov)}" ${ov===v?"selected":""}>${esc(ol)}</option>`}).join("")}${x.options.some(o=>(Array.isArray(o)?o[0]:o)===v)||!v?"":`<option selected value="${esc(v)}">${esc(v)}</option>`}</select>`;
+      else if(x.type==="contacts") input=`<div data-k="${x.k}" data-contacts>${contactRows(v)}</div><button class="btn sec sm" data-addc>+ Add contact</button>`;
+      else input=`<input type="${x.type||"text"}" data-k="${x.k}" value="${esc(v)}" ${x.list?`list="dl-${x.k}"`:""}>${x.list?`<datalist id="dl-${x.k}">${x.list.map(o=>`<option value="${esc(o)}">`).join("")}</datalist>`:""}`;
+      return `<div class="f ${x.half?"half":""}"><label>${esc(x.label)}</label>${input}${x.hint?`<div class="small muted">${esc(x.hint)}</div>`:""}</div>`;
+    }).join("");
+    modal(`<h3>${esc(title)}</h3><form>${f}<div class="mfoot">${del?`<button type="button" class="btn danger left" data-a="del">Delete</button>`:""}<button type="button" class="btn sec" data-a="cancel">Cancel</button><button class="btn" type="submit">${esc(saveLabel)}</button></div></form>`,(m,close)=>{
+      m.querySelectorAll("[data-addc]").forEach(b=>b.onclick=e=>{ e.preventDefault(); const box=b.previousElementSibling; box.insertAdjacentHTML("beforeend",contactRows([{}])); });
+      m.addEventListener("click",e=>{ if(e.target.matches("[data-rm]")){ e.preventDefault(); e.target.closest(".crow").remove(); } });
+      m.querySelector("[data-a=cancel]").onclick=()=>{close();res(null)};
+      const d=m.querySelector("[data-a=del]"); if(d) d.onclick=()=>{close();res({__delete:true})};
+      m.querySelector("form").onsubmit=e=>{ e.preventDefault(); const out={};
+        m.querySelectorAll("[data-k]").forEach(el=>{ if(el.closest("[data-contacts]") && !el.hasAttribute("data-contacts")) return;
+          if(el.hasAttribute("data-contacts")){ out[el.dataset.k]=[...el.querySelectorAll(".crow")].map(r=>{const o={notes:""}; r.querySelectorAll("[data-k]").forEach(i=>o[i.dataset.k]=i.value.trim()); return o;}).filter(o=>o.name||o.email||o.phone); }
+          else out[el.dataset.k]=el.value.trim(); });
+        close(); res(out); };
+      const first=m.querySelector("input,textarea,select"); first&&first.focus();
+    });
+  });
+}
+
+// ---------- editors ----------
+async function editCompany(id){
+  const c=id?S.companies[id]:{stage:"Prospect",compliance:"Unknown"};
+  const v=await form(id?`Edit ${c.name}`:"Add property management company",[
+    {k:"name",label:"Company name",value:c.name},
+    {k:"stage",label:"Pipeline stage",type:"select",options:STAGES,value:c.stage},
+    {k:"relationship",label:"Relationship detail",value:c.relationship,hint:"e.g. Active customer (one-off jobs)"},
+    {k:"compliance",label:"Compliance status",type:"select",options:COMPLIANCE,value:c.compliance},
+    {k:"nextAction",label:"What's missing / next action",type:"textarea",value:c.nextAction},
+    {k:"lastActivity",label:"Last activity",type:"date",value:c.lastActivity},
+    {k:"source",label:"Source (email, date)",value:c.source},
+    {k:"notes",label:"Notes",type:"textarea",value:c.notes},
+  ],{del:!!id});
+  if(!v) return;
+  if(v.__delete){ if(await confirmBox(`Delete ${c.name} and all its locations and contacts? Its tasks and communications stay in the log.`)){ await w(`companies/${id}`,"delete"); location.hash="#companies"; toast("Company deleted"); } return; }
+  if(!v.name){ toast("Company name is required"); return; }
+  if(id){ await patchCompany(id,v); toast("Saved"); }
+  else { const nid=newId("companies"); await w(`companies/${nid}`,"set",{...v,contacts:[],portals:[],properties:[],requirements:{coverages:"",endorsements:"",holder:"",otherDocs:""}}); location.hash="#co-"+nid; toast("Company added"); }
+}
+async function editRequirements(id){
+  const r=S.companies[id].requirements||{};
+  const v=await form("Compliance requirements",[
+    {k:"coverages",label:"Required coverages and limits",type:"textarea",value:r.coverages},
+    {k:"endorsements",label:"Endorsements required",type:"textarea",value:r.endorsements},
+    {k:"holder",label:"Certificate holder wording",type:"textarea",value:r.holder},
+    {k:"otherDocs",label:"Other docs and fees",type:"textarea",value:r.otherDocs},
+  ]); if(v){ await patchCompany(id,{requirements:v}); toast("Saved"); }
+}
+async function editContact(id, idx){
+  const list=[...(S.companies[id].contacts||[])], c=idx==null?{}:list[idx];
+  const v=await form(idx==null?"Add company contact":"Edit company contact",[
+    {k:"name",label:"Name",value:c.name},{k:"title",label:"Title / role",value:c.title,hint:"e.g. Regional manager, Accounting, Vendor compliance"},
+    {k:"phone",label:"Phone",value:c.phone},{k:"email",label:"Email",value:c.email},{k:"notes",label:"Notes",type:"textarea",value:c.notes},
+  ],{del:idx!=null});
+  if(!v) return;
+  if(v.__delete) list.splice(idx,1); else if(idx==null) list.push(v); else list[idx]=v;
+  await patchCompany(id,{contacts:list}); toast("Saved");
+}
+async function editProperty(id, idx){
+  const list=[...(S.companies[id].properties||[])], p=idx==null?{contacts:[]}:list[idx];
+  const v=await form(idx==null?"Add location":`Edit ${p.name}`,[
+    {k:"name",label:"Property name",value:p.name},{k:"address",label:"Address",value:p.address},
+    {k:"status",label:"Status",value:p.status,list:["Active","Prospect","Quoted","Set up, no jobs yet","One-off","Past (one-off)","Onboarding","Lead"]},
+    {k:"contacts",label:"Site contacts",type:"contacts",value:p.contacts},
+    {k:"notes",label:"Notes (gate codes, access, treatment notes)",type:"textarea",value:p.notes},
+  ],{del:idx!=null});
+  if(!v) return;
+  if(v.__delete){ if(!(await confirmBox(`Remove ${p.name}?`,"Remove"))) return; list.splice(idx,1); }
+  else { if(!v.name){ toast("Property name is required"); return; } if(idx==null) list.push(v); else list[idx]=v; }
+  await patchCompany(id,{properties:list}); toast("Saved");
+}
+const coOptions=()=>Object.entries(S.companies).sort((a,b)=>a[1].name.localeCompare(b[1].name)).map(([i,c])=>[i,c.name]);
+async function addLocation(){ const v=await form("Add location — pick the company",[{k:"cid",label:"Property management company",type:"select",options:coOptions(),value:UI.locCoId||""}],{saveLabel:"Next"}); if(v&&v.cid) return editProperty(v.cid,null); }
+async function addContactAny(){ const v=await form("Add contact",[{k:"kind",label:"What kind of contact?",type:"select",options:[["company","Company contact (corporate / regional / accounting)"],["site","Site contact (at a location)"],["agent","Insurance agent"]],value:"company"},{k:"cid",label:"Company (for company or site contacts)",type:"select",options:coOptions(),value:""}],{saveLabel:"Next"});
+  if(!v) return; if(v.kind==="agent") return editAgent(null); if(v.kind==="company") return editContact(v.cid,null);
+  const props=(S.companies[v.cid].properties||[]); if(!props.length){ toast("Add a location to this company first"); return editProperty(v.cid,null); }
+  const p=await form("Which location?",[{k:"i",label:"Location",type:"select",options:props.map((x,i)=>[String(i),x.name]),value:"0"}],{saveLabel:"Next"}); if(p) return editProperty(v.cid,+p.i); }
+async function editPortal(id, idx){
+  const list=[...(S.companies[id].portals||[])], p=idx==null?{}:list[idx];
+  const v=await form(idx==null?"Add vendor portal":"Edit vendor portal",[
+    {k:"portal",label:"Portal",value:p.portal,list:["NetVendor","Yardi VendorCafe / VendorShield","RealPage Vendor Credentialing","RealPage OpsMerchant","AppFolio Vendor Portal","AvidPay","Bill Box","Compliance Depot"]},
+    {k:"vendorId",label:"Vendor ID",value:p.vendorId},{k:"login",label:"Login email (no passwords here)",value:p.login},
+    {k:"fee",label:"Fee",value:p.fee},{k:"renewal",label:"Renewal date",type:"date",value:p.renewal,hint:"Alerts fire before this date"},
+    {k:"notes",label:"Notes",type:"textarea",value:p.notes},
+  ],{del:idx!=null});
+  if(!v) return;
+  if(v.__delete) list.splice(idx,1); else if(idx==null) list.push(v); else list[idx]=v;
+  await patchCompany(id,{portals:list}); toast("Saved");
+}
+function ownerList(){ return team(); }
+async function editTask(tid, preset={}){
+  const t=tid?S.tasks[tid]:{status:"open",kind:"compliance",dueDate:addDays(todayISO(),7),...preset};
+  const v=await form(tid?"Edit item":"Add to-do / waiting item",[
+    {k:"companyId",label:"Property management company",type:"select",options:[["","(none)"],...Object.entries(S.companies).sort((a,b)=>a[1].name.localeCompare(b[1].name)).map(([i,c])=>[i,c.name])],value:t.companyId||""},
+    {k:"title",label:"What needs to happen",value:t.title},
+    {k:"status",label:"Status",type:"select",options:[["open","To-do (we owe it)"],["waiting","Waiting on someone else"],["done","Done"]],value:t.status},
+    {k:"waitingOn",label:"Waiting on (outside party)",value:t.waitingOn,list:partyList(),hint:"Insurance agent, property manager or portal — only for waiting items."},
+    {k:"waitingSince",label:"Waiting since",type:"date",value:t.waitingSince||(t.status==="waiting"?todayISO():"")},
+    {k:"dueDate",label:"Due / follow-up date",type:"date",value:t.dueDate},
+    {k:"kind",label:"Type",type:"select",options:KINDS,value:t.kind},
+    {k:"notes",label:"Notes",type:"textarea",value:t.notes},
+  ],{del:!!tid});
+  if(!v) return;
+  if(v.__delete){ if(await confirmBox("Delete this item?")){ await w(`tasks/${tid}`,"delete"); toast("Deleted"); } return; }
+  if(!v.title){ toast("Describe what needs to happen"); return; }
+  if(v.status==="waiting" && !v.waitingSince) v.waitingSince=todayISO();
+  if(v.status!=="waiting") v.waitingSince=v.status==="done"?(v.waitingSince||""):"";
+  v.doneAt = v.status==="done" ? (t.doneAt||todayISO()) : "";
+  if(tid) await w(`tasks/${tid}`,"update",v); else await w(`tasks/${newId("tasks")}`,"set",{...v,createdAt:todayISO()});
+  toast("Saved");
+}
+async function setTask(tid, data, msg){ await w(`tasks/${tid}`,"update",data); toast(msg); }
+async function editComm(mid, preset={}){
+  const m=mid?S.comms[mid]:{date:todayISO(),type:"Call",...preset};
+  const props=m.companyId?(S.companies[m.companyId]?.properties||[]).map(p=>p.name):[];
+  const v=await form(mid?"Edit communication":"Log a communication",[
+    {k:"companyId",label:"Company",type:"select",options:[["","(none)"],...Object.entries(S.companies).sort((a,b)=>a[1].name.localeCompare(b[1].name)).map(([i,c])=>[i,c.name])],value:m.companyId||""},
+    {k:"property",label:"Location (optional)",value:m.property,list:props},
+    {k:"date",label:"Date",type:"date",value:m.date},
+    {k:"type",label:"Type",type:"select",options:CTYPES,value:m.type},
+    {k:"who",label:"Who we spoke with",value:m.who},
+    {k:"summary",label:"What was said",type:"textarea",value:m.summary},
+    ...(mid?[]:[{k:"followUp",label:"Follow-up date (optional — creates a follow-up item)",type:"date",value:""}]),
+  ],{del:!!mid});
+  if(!v) return;
+  if(v.__delete){ if(await confirmBox("Delete this log entry?")){ await w(`comms/${mid}`,"delete"); toast("Deleted"); } return; }
+  if(!v.summary && !v.who){ toast("Add who you spoke with or what was said"); return; }
+  const fu=v.followUp; delete v.followUp;
+  if(mid) await w(`comms/${mid}`,"update",v);
+  else await w(`comms/${newId("comms")}`,"set",{...v,loggedBy:S.uid||"",loggedAt:todayISO()});
+  if(v.companyId) bumpActivity(v.companyId,v.date);
+  if(fu && v.companyId) await w(`tasks/${newId("tasks")}`,"set",{companyId:v.companyId,title:`Follow up with ${v.who||coName(v.companyId)}${v.property?` (${v.property})`:""}`,waitingOn:"",status:"open",kind:"follow-up",dueDate:fu,waitingSince:"",notes:v.summary||"",createdAt:todayISO(),doneAt:""});
+  toast(fu?"Logged + follow-up set":"Logged");
+}
+async function editPolicy(idx){
+  const list=[...(S.insurance.policies||[])], p=idx==null?{}:list[idx];
+  const v=await form(idx==null?"Add policy":`Edit ${p.coverage}`,[
+    {k:"coverage",label:"Coverage",value:p.coverage},{k:"carrier",label:"Carrier",value:p.carrier},{k:"policy",label:"Policy number",value:p.policy},
+    {k:"agent",label:"Agent",value:p.agent},{k:"effective",label:"Effective",type:"date",value:p.effective},{k:"expires",label:"Expires",type:"date",value:p.expires,hint:"Alerts fire 60 and 30 days out"},
+    {k:"limits",label:"Limits",value:p.limits},{k:"notes",label:"Notes",type:"textarea",value:p.notes},
+  ],{del:idx!=null});
+  if(!v) return;
+  if(v.__delete) list.splice(idx,1); else if(idx==null) list.push(v); else list[idx]=v;
+  await w("config/insurance","set",{...S.insurance,policies:list}); toast("Saved");
+}
+async function editAgent(idx){
+  const list=[...(S.insurance.agents||[])], a=idx==null?{}:list[idx];
+  const v=await form(idx==null?"Add insurance contact":`Edit ${a.name}`,[
+    {k:"use",label:"Use for",value:a.use},{k:"name",label:"Name",value:a.name},{k:"company",label:"Company",value:a.company},{k:"title",label:"Title",value:a.title},
+    {k:"email",label:"Email",value:a.email},{k:"phone",label:"Phone",value:a.phone},{k:"notes",label:"Notes",type:"textarea",value:a.notes},
+  ],{del:idx!=null});
+  if(!v) return;
+  if(v.__delete) list.splice(idx,1); else if(idx==null) list.push(v); else list[idx]=v;
+  await w("config/insurance","set",{...S.insurance,agents:list}); toast("Saved");
+}
+async function editSettings(){
+  const s=set();
+  const v=await form("Alert settings",[
+    {k:"dueSoonDays",label:"Warn when an item is due within (days)",type:"number",value:s.dueSoonDays},
+    {k:"waitAmberDays",label:"Waiting on someone: amber after (days)",type:"number",value:s.waitAmberDays},
+    {k:"waitRedDays",label:"Waiting on someone: red after (days)",type:"number",value:s.waitRedDays},
+    {k:"policyAmberDays",label:"Insurance policy expiring: amber within (days)",type:"number",value:s.policyAmberDays},
+    {k:"policyRedDays",label:"Insurance policy expiring: red within (days)",type:"number",value:s.policyRedDays},
+    {k:"renewalAmberDays",label:"Vendor portal renewal: warn within (days)",type:"number",value:s.renewalAmberDays},
+    {k:"quietActiveDays",label:"Active customer with no logged contact: warn after (days)",type:"number",value:s.quietActiveDays},
+    {k:"quietProspectDays",label:"Prospect with no follow-up set: note after (days)",type:"number",value:s.quietProspectDays},
+  ]);
+  if(!v) return; const o={}; for(const k in v){ if(k==="team"){ o.team=v.team.split(",").map(x=>x.trim()).filter(Boolean); continue; } const n=parseInt(v[k],10); o[k]=isNaN(n)?DEF[k]:n; }
+  await w("config/settings","set",o); toast("Alert settings saved");
+}
+
+// ---------- shared bits ----------
+function alertRow(a){
+  const co=a.co?`<a href="#co-${esc(a.co)}">${esc(coName(a.co))}</a>`:"Insurance";
+  return `<div class="alert ${a.sev}"><div class="body" ${a.taskId?`data-etaskb="${a.taskId}"`:a.co?`data-gotoco="${esc(a.co)}"`:a.policy!=null?`data-epolb="${a.policy}"`:""}><div class="t">${esc(a.title)}</div><div class="small muted">${co}${a.party?` · ⏳ waiting on ${esc(a.party)}`:""}</div>${a.why?`<div class="small" style="margin-top:3px">${esc(a.why)}</div>`:""}</div></div>`;
+}
+let _alertCache=null; function computeAlertsFor(id){ if(!_alertCache) _alertCache=computeAlerts(); return _alertCache.filter(a=>a.co===id); }
+function contactLine(c){ return `<div class="ct"><b>${esc(c.name||"(no name)")}</b>${c.title?`<span class="muted">${esc(c.title)}</span>`:""}${c.phone?`<span>📞 <a href="tel:${esc(c.phone.replace(/[^\d+]/g,""))}">${esc(c.phone)}</a></span>`:""}${c.email?c.email.split(/;\s*/).map(e=>`<span>✉️ <a href="mailto:${esc(e)}">${esc(e)}</a></span>`).join(""):""}${c.notes?`<span class="muted small">${esc(c.notes)}</span>`:""}</div>`; }
+function itemLine(id,t){
+  const today=todayISO(), od=t.status!=="done"&&validISO(t.dueDate)&&t.dueDate<today, wd=t.status==="waiting"&&validISO(t.waitingSince)?days(t.waitingSince,today):null;
+  return `<div class="item ${od?"od":""}"><div class="it-main" data-etaskb="${id}"><b>${esc(t.title)}</b>${t.notes?`<div class="small muted">${esc(t.notes)}</div>`:""}</div>
+  <div class="it-ctl"><select class="inl" data-tf="status" data-tid="${id}"><option value="open" ${t.status==="open"?"selected":""}>To-do</option><option value="waiting" ${t.status==="waiting"?"selected":""}>Waiting${wd!=null?` · ${wd}d`:""}</option><option value="done" ${t.status==="done"?"selected":""}>Done</option></select>
+  <input class="inl" data-tf="waitingOn" data-tid="${id}" value="${esc(t.waitingOn)}" list="dl-parties" placeholder="${t.status==="waiting"?"Waiting on who?":"Waiting on —"}">
+  <input class="inl ${od?"od":""}" type="date" data-tf="dueDate" data-tid="${id}" value="${esc(t.dueDate)}" title="${t.dueDate?(od?"Overdue":rel(t.dueDate)):"No due date"}">
+  ${t.status!=="done"?`<button class="btn sm" data-done="${id}">Done</button>`:`<button class="btn sec sm" data-reopen="${id}">Reopen</button>`}</div></div>`;
+}
+const partiesDL=()=>`<datalist id="dl-parties">${partyList().map(o=>`<option value="${esc(o)}">`).join("")}</datalist>`;
+function commsList(rows, showCo){
+  if(!rows.length) return `<div class="empty">No communications logged yet.</div>`;
+  return `<div class="tl">${rows.map(([id,m])=>`<div class="it ${m.type==="COI request"?"coi":""}"><div><b>${fmt(m.date)}</b> · <span class="badge">${esc(m.type)}</span> ${esc(m.who)}${m.property?` · <span class="muted">${esc(m.property)}</span>`:""}${showCo&&m.companyId?` · <a href="#co-${esc(m.companyId)}">${esc(coName(m.companyId))}</a>`:""} <button class="btn ghost sm" data-ecomm="${id}">Edit</button></div><div style="white-space:pre-wrap">${esc(m.summary)}</div>${m.emailUrl?`<a class="small" href="${esc(m.emailUrl)}" target="_blank" rel="noopener">Open email</a>`:""}</div>`).join("")}</div>`;
+}
+const isRed=c=>compClass(c.compliance)==="b-red", isAmber=c=>compClass(c.compliance)==="b-amber", isGreen=c=>compClass(c.compliance)==="b-green";
+const openFor=id=>tasksFor(id).filter(([,t])=>t.status!=="done").sort((a,b)=>(a[1].dueDate||"9").localeCompare(b[1].dueDate||"9"));
+
+// ---------- tab 1: non-compliant / needs action ----------
+function renderAction(){
+  const today=todayISO();
+  const cos=Object.entries(S.companies).filter(([id,c])=>!isGreen(c)||openFor(id).length).filter(([id,c])=>isRed(c)||isAmber(c)||openFor(id).length);
+  const overdue=id=>openFor(id).filter(([,t])=>validISO(t.dueDate)&&t.dueDate<today).length;
+  const score=([id,c])=>(isRed(c)?0:overdue(id)?1:isAmber(c)?2:3);
+  cos.sort((a,b)=>score(a)-score(b)||(openFor(a[0])[0]?.[1].dueDate||"9").localeCompare(openFor(b[0])[0]?.[1].dueDate||"9"));
+  const nRed=Object.values(S.companies).filter(isRed).length, nAmb=Object.values(S.companies).filter(isAmber).length;
+  const allOpen=openTasks(), nOd=allOpen.filter(([,t])=>validISO(t.dueDate)&&t.dueDate<today).length, nWait=allOpen.filter(([,t])=>t.status==="waiting").length;
+  const f=UI.actFilter||"all";
+  let list=cos;
+  if(f==="red") list=cos.filter(([,c])=>isRed(c)); if(f==="amber") list=cos.filter(([,c])=>isAmber(c)); if(f==="overdue") list=cos.filter(([id])=>overdue(id));
+  const st=(k,v,l,c)=>`<div class="stat ${c} ${f===k?"on":""}" data-actf="${k}"><div class="v">${v}</div><div class="l">${l}</div></div>`;
+  let body;
+  if(f==="waiting"){
+    const byP={}; allOpen.filter(([,t])=>t.status==="waiting").forEach(r=>{ const k=r[1].waitingOn||"(not specified)"; (byP[k]=byP[k]||[]).push(r); });
+    body=Object.entries(byP).sort((a,b)=>b[1].length-a[1].length).map(([k,xs])=>`<div class="card cocard"><div class="cohead"><h3>⏳ ${esc(k)}</h3><span class="badge">${xs.length} item${xs.length===1?"":"s"}</span><span style="flex:1"></span><button class="btn sec sm" data-copyparty="${esc(k)}">Copy follow-up list</button></div>${xs.map(([id,t])=>`<div class="small muted" style="margin-top:6px">${t.companyId?`<a href="#co-${esc(t.companyId)}">${esc(coName(t.companyId))}</a>`:""}</div>${itemLine(id,t)}`).join("")}</div>`).join("")||`<div class="empty">Not waiting on anyone.</div>`;
+  } else {
+    body=list.map(([id,c])=>{ const items=openFor(id);
+      return `<div class="card cocard ${isRed(c)?"bl-red":isAmber(c)?"bl-amber":""}"><div class="cohead"><h3><a href="#co-${esc(id)}">${esc(c.name)}</a></h3><span class="badge ${compClass(c.compliance)}">${esc(c.compliance)}</span><span class="badge ${stageClass(c.stage)}">${esc(c.stage)}</span><span style="flex:1"></span><button class="btn ghost sm" data-addtaskfor="${esc(id)}">+ Item</button><button class="btn ghost sm" data-logfor="${esc(id)}">Log contact</button><button class="btn ghost sm" data-eco="${esc(id)}">Edit</button></div>
+      ${c.nextAction?`<div class="small" style="margin:6px 0"><span class="muted">What's missing:</span> ${esc(c.nextAction)}</div>`:""}
+      ${(c.portals||[]).length?`<div class="small muted">Portal: ${(c.portals||[]).map(p=>esc(p.portal)+(p.vendorId?` (${esc(p.vendorId)})`:"")).join(" · ")}</div>`:""}
+      ${items.length?items.map(([tid,t])=>itemLine(tid,t)).join(""):`<div class="small muted" style="margin-top:6px">No open items. <button class="btn ghost sm" data-addtaskfor="${esc(id)}">Add one</button></div>`}</div>`; }).join("")||`<div class="empty">Nothing needs action. 🎉</div>`;
+  }
+  return `<div class="toolbar"><h2>Non-compliant / needs action</h2><button class="btn sec" id="copyAlerts">Copy summary</button><button class="btn" data-newtask>+ Add item</button></div>
+  <div class="stats">${st("red",nRed,"Non-compliant / flagged","red")}${st("amber",nAmb,"Pending / out of date","amber")}${st("overdue",nOd,"Overdue items","red")}${st("waiting",nWait,"Waiting on others","")}</div>
+  ${f!=="all"?`<div style="margin-bottom:10px"><button class="chip" data-actf="all">✕ Show everything</button></div>`:""}${body}${partiesDL()}`;
+}
+
+// ---------- tab 2: upcoming expirations ----------
+function expirationRows(){
+  const out=[], today=todayISO();
+  (S.insurance.policies||[]).forEach((p,i)=>out.push({date:p.expires,what:`${p.coverage}`,kind:"Insurance policy",detail:[p.carrier,p.policy,p.limits].filter(Boolean).join(" · "),who:p.agent,notes:p.notes,edit:`data-epol="${i}"`}));
+  for(const [id,c] of Object.entries(S.companies)) (c.portals||[]).forEach((p,i)=>{ if(p.renewal||/fee|paid/i.test(p.fee||"")) out.push({date:p.renewal,what:`${portalKey(p.portal)} fee — ${c.name}`,kind:"Vendor portal",detail:[p.vendorId,p.fee].filter(Boolean).join(" · "),who:"",co:id,notes:p.notes,edit:`data-eportal="${esc(id)}|${i}"`}); });
+  return out.map(r=>({...r,n:validISO(r.date)?days(today,r.date):null}));
+}
+function renderExpiring(){
+  const st=set(), rows=expirationRows();
+  const dated=rows.filter(r=>r.n!=null).sort((a,b)=>a.n-b.n), undated=rows.filter(r=>r.n==null);
+  const grp=[["Expired",r=>r.n<0,"b-red"],[`Next ${st.policyRedDays} days`,r=>r.n>=0&&r.n<=st.policyRedDays,"b-red"],[`${st.policyRedDays+1}–90 days`,r=>r.n>st.policyRedDays&&r.n<=90,"b-amber"],["Later",r=>r.n>90,"b-green"]];
+  const row=r=>`<tr class="rowedit" ${r.edit.replace("data-","data-row-")}><td><span class="badge ${r.n==null?"":r.n<0||r.n<=st.policyRedDays?"b-red":r.n<=90?"b-amber":"b-green"}">${r.date?fmt(r.date):"No date"}</span><div class="small muted">${r.n==null?"add the date":r.n<0?`${-r.n} days ago`:r.n===0?"today":`in ${r.n} days`}</div></td><td><b>${esc(r.what)}</b><div class="small muted">${esc(r.kind)}</div></td><td class="small">${esc(r.detail)}${r.notes?`<div class="muted">${esc(r.notes)}</div>`:""}</td><td class="small">${r.co?`<a href="#co-${esc(r.co)}">${esc(coName(r.co))}</a>`:esc(r.who)}</td><td><button class="btn ghost sm" ${r.edit}>Edit</button></td></tr>`;
+  const table=xs=>`<div class="tablewrap"><table class="resp"><tr><th>Expires</th><th>What</th><th>Details</th><th>Company / agent</th><th></th></tr>${xs.map(row).join("")}</table></div>`;
+  return `<div class="toolbar"><h2>Upcoming expirations</h2><button class="btn sec" data-addpol>+ Policy</button></div>
+  <div class="small muted" style="margin-bottom:10px">Insurance policies and vendor-portal fees. Red = within ${st.policyRedDays} days, amber = within 90 days.</div>
+  ${grp.map(([l,fn])=>{ const xs=dated.filter(fn); return xs.length?`<div class="sec-h">${l} · ${xs.length}</div>${table(xs)}`:""; }).join("")}
+  ${undated.length?`<div class="sec-h">⚠️ Missing an expiration date · ${undated.length}</div>${table(undated)}`:""}`;
+}
+
+// ---------- tab 3: compliant ----------
+function renderCompliant(){
+  const cos=Object.entries(S.companies).filter(([,c])=>isGreen(c)).sort((a,b)=>a[1].name.localeCompare(b[1].name));
+  return `<div class="toolbar"><h2>Compliant <span class="small muted">${cos.length} companies</span></h2></div>
+  <div class="grid">${cos.map(([id,c])=>{ const r=c.requirements||{}, ot=openFor(id).length, ren=(c.portals||[]).filter(p=>validISO(p.renewal)).map(p=>p.renewal).sort()[0];
+    return `<div class="card click" data-gotoco="${esc(id)}"><h3><span class="dot ok"></span>${esc(c.name)}</h3><div><span class="badge b-green">${esc(c.compliance)}</span><span class="badge ${stageClass(c.stage)}">${esc(c.stage)}</span></div>
+    <dl class="kv sm"><dt>Portal</dt><dd>${(c.portals||[]).map(p=>`${esc(p.portal)}${p.vendorId?` · ${esc(p.vendorId)}`:""}`).join("<br>")||"None"}</dd>
+    <dt>Next renewal</dt><dd>${ren?`${fmt(ren)} (${rel(ren)})`:"—"}</dd>
+    <dt>On file</dt><dd>${esc(r.otherDocs)||"—"}</dd>
+    <dt>Certificate holder</dt><dd>${esc(r.holder)||"—"}</dd>
+    <dt>Locations</dt><dd>${(c.properties||[]).length}</dd>
+    <dt>Last contact</dt><dd>${lastContact(id)?fmt(lastContact(id)):"—"}</dd>
+    ${ot?`<dt>Open items</dt><dd>${ot}</dd>`:""}</dl></div>`; }).join("")||`<div class="empty">No companies marked compliant yet.</div>`}</div>`;
+}
+
+// ---------- tab 4: property management companies ----------
+function coRow(id,c){
+  const al=computeAlertsFor(id), dot=al.some(a=>a.sev==="red")?"red":al.some(a=>a.sev==="amber")?"amber":"ok", ot=openFor(id).length, lc=lastContact(id);
+  return `<tr class="rowedit" data-gotoco="${esc(id)}"><td><span class="dot ${dot}"></span><b>${esc(c.name)}</b>${c.relationship?`<div class="small muted">${esc(c.relationship)}</div>`:""}</td>
+  <td><span class="badge ${compClass(c.compliance)}">${esc(c.compliance||"—")}</span></td>
+  <td class="small">${(c.portals||[]).map(p=>esc(portalKey(p.portal))).join(", ")||"—"}</td>
+  <td>${(c.properties||[]).length}</td><td>${(c.contacts||[]).length}</td><td>${ot||""}</td><td class="small">${lc?fmt(lc):"—"}</td></tr>`;
+}
+function renderCompanies(){
+  const s=UI.coSearch.toLowerCase();
+  let list=Object.entries(S.companies).filter(([id,c])=>{
+    if(UI.coStage && c.stage!==UI.coStage) return false;
+    if(!s) return true;
+    return [c.name,c.relationship,c.nextAction,...(c.contacts||[]).flatMap(x=>[x.name,x.email,x.phone]),...(c.properties||[]).flatMap(p=>[p.name,p.address]),...(c.portals||[]).map(p=>p.portal+" "+p.vendorId)].join(" ").toLowerCase().includes(s);
+  });
+  const order=Object.fromEntries(STAGES.map((x,i)=>[x,i]));
+  list.sort((a,b)=>(order[a[1].stage]??9)-(order[b[1].stage]??9)||a[1].name.localeCompare(b[1].name));
+  const groups={}; for(const e of list){ (groups[e[1].stage||"Other"]=groups[e[1].stage||"Other"]||[]).push(e); }
+  return `<div class="toolbar"><h2>Property management companies <span class="small muted">${Object.keys(S.companies).length}</span></h2>
+  <input id="coSearch" placeholder="Search name, contact, portal, vendor ID…" value="${esc(UI.coSearch)}" style="min-width:220px;flex:1;max-width:360px">
+  <select id="coStage"><option value="">All stages</option>${STAGES.map(x=>`<option ${UI.coStage===x?"selected":""}>${x}</option>`).join("")}</select>
+  <button class="btn" id="addCo">+ Company</button></div>
+  ${list.length?Object.entries(groups).map(([g,es])=>`<div class="sec-h">${esc(g)} · ${es.length}</div><div class="tablewrap"><table class="resp"><tr><th>Company</th><th>Compliance</th><th>Portals</th><th>Locations</th><th>Contacts</th><th>Open items</th><th>Last contact</th></tr>${es.map(([i,c])=>coRow(i,c)).join("")}</table></div>`).join(""):`<div class="empty">No companies match.</div>`}`;
+}
+function renderCompany(id){
+  const c=S.companies[id];
+  if(!c) return `<div class="empty">That company isn't on the board (it may have been deleted). <a href="#companies">Back to companies</a></div>`;
+  const r=c.requirements||{}, items=openFor(id), done=tasksFor(id).filter(([,t])=>t.status==="done");
+  const tabs=[["overview","Overview"],["compliance","Compliance & portals"],["locations",`Locations (${(c.properties||[]).length})`],["contacts",`Contacts (${(c.contacts||[]).length})`],["activity",`Communications (${commsFor(id).length})`]];
+  let body="";
+  if(UI.coTab==="overview"){
+    body=`<div class="card"><dl class="kv"><dt>Stage</dt><dd>${esc(c.stage)}</dd><dt>Relationship</dt><dd>${esc(c.relationship)||"—"}</dd><dt>Compliance</dt><dd><span class="badge ${compClass(c.compliance)}">${esc(c.compliance)}</span></dd><dt>What's missing / next action</dt><dd>${esc(c.nextAction)||"—"}</dd><dt>Last activity</dt><dd>${lastContact(id)?`${fmt(lastContact(id))} (${rel(lastContact(id))})`:"—"}</dd><dt>Source</dt><dd class="small muted">${esc(c.source)||"—"}</dd>${c.notes?`<dt>Notes</dt><dd>${esc(c.notes)}</dd>`:""}</dl></div>
+    <div class="sec-h">Open items · ${items.length} <button class="btn ghost sm" data-addtaskfor="${esc(id)}">+ Add item</button></div><div class="card">${items.length?items.map(([tid,t])=>itemLine(tid,t)).join(""):`<div class="small muted">No open items.</div>`}</div>
+    <div class="sec-h">Latest communication <button class="btn ghost sm" data-logfor="${esc(id)}">+ Log</button></div>${commsList(commsFor(id).slice(0,3),false)}${partiesDL()}`;
+  } else if(UI.coTab==="compliance"){
+    body=`<div class="card"><div style="display:flex;align-items:center;margin-bottom:8px"><span class="badge ${compClass(c.compliance)}" style="font-size:13px">${esc(c.compliance)}</span><span style="flex:1"></span><button class="btn ghost sm" data-ereq="${esc(id)}">Edit requirements</button></div>
+    <dl class="kv"><dt>Required coverages and limits</dt><dd>${esc(r.coverages)||"—"}</dd><dt>Endorsements required</dt><dd>${esc(r.endorsements)||"—"}</dd><dt>Certificate holder wording</dt><dd>${esc(r.holder)||"—"}</dd><dt>Other docs and fees</dt><dd>${esc(r.otherDocs)||"—"}</dd></dl></div>
+    <div class="sec-h">Vendor portals <button class="btn ghost sm" data-addportal="${esc(id)}">+ Portal</button></div>
+    ${(c.portals||[]).length?`<div class="tablewrap"><table class="resp"><tr><th>Portal</th><th>Vendor ID</th><th>Login</th><th>Fee</th><th>Renewal</th></tr>${c.portals.map((p,i)=>`<tr class="rowedit" data-rowportal="${esc(id)}|${i}"><td><b>${esc(p.portal)}</b>${p.notes?`<div class="small muted">${esc(p.notes)}</div>`:""}</td><td>${esc(p.vendorId)}</td><td>${esc(p.login)}</td><td>${esc(p.fee)}</td><td>${p.renewal?`${fmt(p.renewal)}<div class="small muted">${rel(p.renewal)}</div>`:""}</td></tr>`).join("")}</table></div>`:`<div class="empty">No vendor portal on file.</div>`}
+    <div class="sec-h">COI requests</div>${commsList(commsFor(id).filter(([,m])=>m.type==="COI request"),false)}`;
+  } else if(UI.coTab==="locations"){
+    body=`<div class="toolbar"><span style="margin-right:auto"></span><button class="btn" data-addprop="${esc(id)}">+ Location</button></div>${locTable((c.properties||[]).map((p,i)=>({cid:id,c,p,i})),false)}`;
+  } else if(UI.coTab==="contacts"){
+    body=`<div class="toolbar"><span class="muted small" style="margin-right:auto">Corporate, regional and accounting contacts. Site contacts are on each location.</span><button class="btn" data-addcontact="${esc(id)}">+ Contact</button></div>
+    ${(c.contacts||[]).length?`<div class="card">${(c.contacts||[]).map((x,i)=>`<div style="display:flex;gap:8px;align-items:center">${contactLine(x).replace('class="ct"','class="ct" style="flex:1"')}<button class="btn ghost sm" data-econtact="${esc(id)}|${i}">Edit</button></div>`).join("")}</div>`:`<div class="empty">No company contacts yet.</div>`}`;
+  } else {
+    body=`<div class="toolbar"><span style="margin-right:auto"></span><button class="btn" data-logfor="${esc(id)}">+ Log communication</button></div>${commsList(commsFor(id),false)}
+    ${done.length?`<div class="sec-h">Completed items · ${done.length}</div><div class="card">${done.map(([tid,t])=>itemLine(tid,t)).join("")}</div>${partiesDL()}`:""}`;
+  }
+  return `<div style="margin-bottom:8px"><a href="#companies">← All property management companies</a></div>
+  <div class="detail-h"><h2>${esc(c.name)}</h2><div><span class="badge ${stageClass(c.stage)}">${esc(c.stage)}</span><span class="badge ${compClass(c.compliance)}">${esc(c.compliance)}</span></div><button class="btn sec" data-eco="${esc(id)}">✏️ Edit company</button></div>
+  <div class="tabs">${tabs.map(([k,l])=>`<button class="${UI.coTab===k?"on":""}" data-cotab="${k}">${l}</button>`).join("")}</div>${body}`;
+}
+
+// ---------- tab 5: locations ----------
+function allLocations(){ const out=[]; for(const [cid,c] of Object.entries(S.companies)) (c.properties||[]).forEach((p,i)=>out.push({cid,c,p,i})); return out; }
+const cityOf=a=>{ const m=(a||"").match(/,\s*([A-Za-z .]+),\s*(OR|WA)\b/); return m?m[1].trim():""; };
+const statusGroup=s=>/active/i.test(s)?"Active":/quot/i.test(s)?"Quoted":/prospect|lead/i.test(s)?"Prospect":/past|one-off/i.test(s)?"One-off / past":"Other";
+function locTable(rows, showCo){
+  if(!rows.length) return `<div class="empty">No locations.</div>`;
+  return `<div class="tablewrap"><table class="resp"><tr><th>Location</th>${showCo?"<th>Company</th>":""}<th>Address</th><th>Status</th><th>Site contact</th><th>Last logged</th></tr>${rows.map(({cid,c,p,i})=>{ const lc=commsFor(cid).find(([,m])=>m.property===p.name); const k=(p.contacts||[])[0]||{};
+    return `<tr class="rowedit" data-rowprop="${esc(cid)}|${i}"><td><b>${esc(p.name)}</b>${p.notes?`<div class="small muted">${esc(p.notes)}</div>`:""}</td>${showCo?`<td class="small"><a href="#co-${esc(cid)}">${esc(c.name)}</a><div><span class="badge ${compClass(c.compliance)}">${esc(c.compliance)}</span></div></td>`:""}
+    <td class="small">${esc(p.address)||"—"}</td><td><span class="badge ${/active/i.test(p.status)?"b-dark":/quot/i.test(p.status)?"b-amber":""}">${esc(p.status||"—")}</span></td>
+    <td class="small">${k.name?`<b>${esc(k.name)}</b><br>`:""}${k.phone?`<a href="tel:${esc(k.phone.replace(/[^\d+]/g,""))}">${esc(k.phone)}</a><br>`:""}${k.email?esc(k.email):""}${(p.contacts||[]).length>1?`<div class="muted">+${p.contacts.length-1} more</div>`:""}</td>
+    <td class="small">${lc?`${fmt(lc[1].date)}<div class="muted">${esc(lc[1].who)}</div>`:"—"}<div><button class="btn ghost sm" data-logprop="${esc(cid)}|${esc(p.name)}">Log</button></div></td></tr>`; }).join("")}</table></div>`;
+}
+function renderLocations(){
+  const s=(UI.locSearch||"").toLowerCase();
+  let rows=allLocations().filter(({cid,p})=>(!UI.locCoId||UI.locCoId===cid)&&(!UI.locStatus||statusGroup(p.status)===UI.locStatus)&&(!UI.locCity||cityOf(p.address)===UI.locCity)&&(!s||[p.name,p.address,p.status,p.notes,...(p.contacts||[]).flatMap(x=>[x.name,x.email,x.phone])].join(" ").toLowerCase().includes(s)));
+  rows.sort((a,b)=>a.c.name.localeCompare(b.c.name)||a.p.name.localeCompare(b.p.name));
+  const cities=[...new Set(allLocations().map(x=>cityOf(x.p.address)).filter(Boolean))].sort();
+  const counts={}; allLocations().forEach(x=>{ const g=statusGroup(x.p.status); counts[g]=(counts[g]||0)+1; });
+  return `<div class="toolbar"><h2>Locations <span class="small muted">${allLocations().length} total · ${counts.Active||0} active</span></h2>
+  <input id="locSearch" placeholder="Search property, address, site contact…" value="${esc(UI.locSearch||"")}" style="min-width:220px;flex:1;max-width:340px">
+  <select id="locCoId"><option value="">All companies</option>${Object.entries(S.companies).sort((a,b)=>a[1].name.localeCompare(b[1].name)).map(([i,c])=>`<option value="${esc(i)}" ${UI.locCoId===i?"selected":""}>${esc(c.name)}</option>`).join("")}</select>
+  <select id="locStatus"><option value="">All statuses</option>${["Active","Quoted","Prospect","One-off / past","Other"].map(x=>`<option value="${x}" ${UI.locStatus===x?"selected":""}>${x} (${counts[x]||0})</option>`).join("")}</select>
+  <select id="locCity"><option value="">All cities</option>${cities.map(x=>`<option ${UI.locCity===x?"selected":""}>${esc(x)}</option>`).join("")}</select>
+  <button class="btn" data-addloc>+ Location</button></div>
+  <div class="small muted" style="margin-bottom:8px">Showing ${rows.length}. Tap a row to edit it.</div>${locTable(rows,true)}`;
+}
+
+// ---------- tab 6: contacts ----------
+function allContacts(){
+  const out=[];
+  for(const [cid,c] of Object.entries(S.companies)){
+    (c.contacts||[]).forEach((x,i)=>out.push({type:"Company",name:x.name,title:x.title,phone:x.phone,email:x.email,notes:x.notes,cid,co:c.name,where:"Company office",edit:`data-econtact="${esc(cid)}|${i}"`}));
+    const site={}; (c.properties||[]).forEach((p,pi)=>(p.contacts||[]).forEach(x=>{ const key=((x.email||"")+"|"+(x.name||"")).toLowerCase(); if(!site[key]) site[key]={type:"Site",name:x.name,title:x.title,phone:x.phone,email:x.email,notes:x.notes,cid,co:c.name,locs:[],edit:`data-eprop="${esc(cid)}|${pi}"`}; site[key].locs.push(p.name); }));
+    Object.values(site).forEach(x=>out.push({...x,where:x.locs.length>3?`${x.locs.length} locations`:x.locs.join(", ")}));
+  }
+  (S.insurance.agents||[]).forEach((a,i)=>out.push({type:"Insurance",name:a.name,title:[a.title,a.use].filter(Boolean).join(" — "),phone:a.phone,email:a.email,notes:a.notes,co:a.company,where:"",edit:`data-eagent="${i}"`}));
+  return out;
+}
+function renderContacts(){
+  const s=(UI.ctSearch||"").toLowerCase(), all=allContacts();
+  let rows=all.filter(x=>(!UI.ctType||x.type===UI.ctType)&&(!s||[x.name,x.title,x.phone,x.email,x.co,x.where,x.notes].join(" ").toLowerCase().includes(s)));
+  rows.sort((a,b)=>(a.co||"").localeCompare(b.co||"")||(a.name||"~").localeCompare(b.name||"~"));
+  const n=t=>all.filter(x=>x.type===t).length;
+  return `<div class="toolbar"><h2>Contacts <span class="small muted">${all.length}</span></h2>
+  <input id="ctSearch" placeholder="Search name, company, phone, email…" value="${esc(UI.ctSearch||"")}" style="min-width:220px;flex:1;max-width:340px">
+  <div class="chips">${[["","All"],["Company",`Company (${n("Company")})`],["Site",`Site / property (${n("Site")})`],["Insurance",`Insurance agents (${n("Insurance")})`]].map(([k,l])=>`<button class="chip ${(UI.ctType||"")===k?"on":""}" data-ctt="${k}">${l}</button>`).join("")}</div>
+  <button class="btn" data-addct>+ Contact</button></div>
+  <div class="tablewrap"><table class="resp"><tr><th>Name</th><th>Type</th><th>Company</th><th>Where</th><th>Phone</th><th>Email</th></tr>${rows.map(x=>`<tr class="rowedit" data-rowct='${x.edit.replace(/^data-(\w+)="(.*)"$/,"$1|$2")}'><td><b>${esc(x.name||"(no name)")}</b>${x.title?`<div class="small muted">${esc(x.title)}</div>`:""}${x.notes?`<div class="small muted">${esc(x.notes)}</div>`:""}</td><td><span class="badge ${x.type==="Company"?"b-dark":x.type==="Insurance"?"b-amber":""}">${x.type}</span></td><td class="small">${x.cid?`<a href="#co-${esc(x.cid)}">${esc(x.co)}</a>`:esc(x.co)}</td><td class="small">${esc(x.where)}</td><td class="small">${x.phone?`<a href="tel:${esc(x.phone.replace(/[^\d+]/g,""))}">${esc(x.phone)}</a>`:""}</td><td class="small">${(x.email||"").split(/;\s*/).filter(Boolean).map(e=>`<a href="mailto:${esc(e)}">${esc(e)}</a>`).join("<br>")}</td></tr>`).join("")}</table></div>`;
+}
+
+// ---------- email scan ----------
+const FREE_MAIL=/^(gmail|yahoo|hotmail|outlook|icloud|aol|comcast|msn|live)\./i;
+function domainMap(){ const m={}; for(const [id,c] of Object.entries(S.companies)){ const em=[...(c.contacts||[]).map(x=>x.email),...(c.properties||[]).flatMap(p=>(p.contacts||[]).map(x=>x.email))].join(";"); (em.match(/@([\w.-]+\.[a-z]{2,})/gi)||[]).forEach(a=>{ const d=a.slice(1).toLowerCase(); if(!FREE_MAIL.test(d)) (m[d]=m[d]||new Set()).add(id); }); } return m; }
+function cleanBody(b){ b=String(b||""); const cut=b.search(/\n(On .{5,120} wrote:|From: .{3,200}\n(Sent|Date):|-{2,}\s*Original Message|_{8,}|-{5,} Forwarded message)/i); if(cut>200) b=b.slice(0,cut); b=b.replace(/\(https?:\/\/[^)]*\)/g,"").replace(/https?:\/\/\S+/g,"[link]").replace(/[ \t‌͏ ]+/g," ").replace(/\n\s*\n+/g,"\n"); return b.slice(0,2500); }
+let scanning=false;
+async function scanEmail(){
+  if(scanning) return; if(!S.db){ toast("Not connected — reload the page"); return; } if(S.readOnly){ toast("You have view-only access."); return; }
+  scanning=true;
+  let M=null, closeFn=null;
+  modal(`<h3>📧 Scan info@adaptpestpros.com for updates</h3><div class="small muted">Reads compliance notices, portal emails, insurance agent replies and property manager emails since the last scan, then proposes updates for you to approve.</div><div class="scanlog" id="scanlog">Starting…</div><div id="scanres"></div>`,(m,c)=>{M=m;closeFn=c;});
+  const log=t=>{ const el=M.querySelector("#scanlog"); if(el){ el.textContent+="\n"+t; el.scrollTop=1e6; } };
+  const res=html=>{ const el=M.querySelector("#scanres"); if(el) el.innerHTML=html; };
+  try{
+    const scan=S.scan||{}, seen={...(scan.seen||{})};
+    log("Reading the inbox… this can take a minute or two.");
+    let R; try{ const r=await fetch(ORBIT.api+"/scan",{method:"POST"}); R=await r.json().catch(()=>({})); if(!r.ok) R={error:R.error||"The scan failed. Try again."}; }catch(e){ R={error:"Couldn't reach Orbit. Check your connection and try again."}; }
+    (R.log||[]).forEach(log);
+    if(R.error){ log("✖ "+R.error); return; }
+    const threads=(R.threadIds||[]).map(id=>({id})), items=R.items||[], proposals=R.proposals||[];
+    if(!items.length){ await w("config/scan","set",{lastScan:new Date().toISOString(),seen:trimSeen(seen,threads)}); res(`<div class="empty">No new compliance or property manager emails since the last scan.</div><div class="mfoot"><button class="btn" data-a="x">Close</button></div>`); M.querySelector("[data-a=x]").onclick=closeFn; return; }
+    const byId=Object.fromEntries(items.map(b=>[b.threadId,b]));
+    const props=proposals.filter(u=>byId[u.threadId]).map(u=>{ u.companyId=S.companies[u.companyId]?u.companyId:null; u.setCompliance=COMPLIANCE.includes(u.setCompliance)?u.setCompliance:""; u.closeTaskIds=(u.closeTaskIds||[]).filter(id=>S.tasks[id]&&S.tasks[id].status!=="done"); u.newTasks=(u.newTasks||[]).filter(x=>x&&x.title).map(x=>({...x,status:x.status==="waiting"?"waiting":"open",dueDate:validISO(x.dueDate)?x.dueDate:addDays(todayISO(),7)})); if(u.log&&!validISO(u.log.date)) u.log.date=todayISO(); return u; });
+    const rel=props.filter(u=>u.relevant!==false), skip=props.filter(u=>u.relevant===false);
+    log(`Done. ${rel.length} email${rel.length===1?"":"s"} with updates, ${skip.length} with nothing to change.`);
+    const coOpts=(u)=>`<option value="">— Skip this email —</option>${u.newCompanyName?`<option value="__new" ${!u.companyId?"selected":""}>➕ Add new company: ${esc(u.newCompanyName)}</option>`:""}${Object.entries(S.companies).sort((a,b)=>a[1].name.localeCompare(b[1].name)).map(([i,c])=>`<option value="${esc(i)}" ${u.companyId===i?"selected":""}>${esc(c.name)}</option>`).join("")}`;
+    res(`${rel.map((u,k)=>`<div class="prop-up ${u.suspicious?"sus":""}"><label class="hd"><input type="checkbox" data-pk="${k}" ${u.suspicious||(!u.companyId&&!u.newCompanyName)?"":"checked"}> <span>${esc(u.headline||byId[u.threadId].subject)}</span></label>
+      ${u.suspicious?`<div class="note err" style="margin:6px 0">⚠️ Looks suspicious: ${esc(u.suspiciousWhy)} — not applied unless you tick it. Don't act on what this email asks.</div>`:""}
+      <div class="small" style="margin:6px 0"><select data-pco="${k}" style="max-width:100%">${coOpts(u)}</select></div>
+      <ul class="small">${u.log?`<li>Log: ${esc(u.log.type)} from ${esc(u.log.who)} (${fmt(u.log.date)}) — ${esc(u.log.summary)}</li>`:""}${u.setCompliance?`<li>Compliance → <b>${esc(u.setCompliance)}</b></li>`:""}${u.nextAction?`<li>Next action → ${esc(u.nextAction)}</li>`:""}${u.closeTaskIds.map(id=>`<li>Mark done: ${esc(S.tasks[id].title)}</li>`).join("")}${u.newTasks.map(x=>`<li>New ${x.status==="waiting"?"waiting item":"to-do"}: ${esc(x.title)} ${x.waitingOn?` · ⏳ ${esc(x.waitingOn)}`:""} · due ${fmt(x.dueDate)}</li>`).join("")}</ul>
+      ${byId[u.threadId].url?`<a class="small" href="${esc(byId[u.threadId].url)}" target="_blank" rel="noopener">Open email</a>`:""}</div>`).join("")||`<div class="empty">Nothing in the new emails changes the board.</div>`}
+      ${skip.length?`<details class="small muted"><summary>${skip.length} email${skip.length===1?"":"s"} had nothing to update</summary>${skip.map(u=>`<div>• ${esc(byId[u.threadId].subject)}</div>`).join("")}</details>`:""}
+      <div class="mfoot"><button class="btn sec" data-a="x">Close without saving</button><button class="btn" data-a="apply">${rel.length?"Apply ticked updates":"Mark emails reviewed"}</button></div>`);
+    M.querySelector("[data-a=x]").onclick=closeFn;
+    M.querySelector("[data-a=apply]").onclick=async ev=>{
+      ev.target.disabled=true; ev.target.textContent="Saving…"; let n=0;
+      try{
+        for(const [k,u] of rel.entries()){
+          if(!M.querySelector(`[data-pk="${k}"]`).checked) continue;
+          let cid=M.querySelector(`[data-pco="${k}"]`).value; if(!cid) continue;
+          if(cid==="__new"){ cid=newId("companies"); await w(`companies/${cid}`,"set",{name:u.newCompanyName,stage:"Prospect",relationship:"Found by email scan",compliance:"Unknown",nextAction:u.nextAction||"",contacts:[],portals:[],properties:[],requirements:{coverages:"",endorsements:"",holder:"",otherDocs:""},lastActivity:u.log?u.log.date:todayISO(),source:"Email scan "+todayISO(),notes:""}); }
+          if(u.log) await w(`comms/${newId("comms")}`,"set",{companyId:cid,date:u.log.date,type:u.log.type||"Email",who:u.log.who||"",property:"",summary:u.log.summary||"",loggedBy:S.uid||"",loggedAt:todayISO(),source:"email scan",emailUrl:byId[u.threadId].url||""});
+          const c=S.companies[cid], up={};
+          if(c){ if(u.setCompliance) up.compliance=u.setCompliance; if(u.nextAction) up.nextAction=u.nextAction; if(u.log&&(!c.lastActivity||u.log.date>c.lastActivity)) up.lastActivity=u.log.date; if(Object.keys(up).length) await patchCompany(cid,up); }
+          for(const tid of u.closeTaskIds) await w(`tasks/${tid}`,"update",{status:"done",doneAt:todayISO()});
+          for(const x of u.newTasks) await w(`tasks/${newId("tasks")}`,"set",{companyId:cid,title:x.title,status:x.status,waitingOn:x.waitingOn||"",waitingSince:x.status==="waiting"?todayISO():"",dueDate:x.dueDate,kind:"compliance",notes:"From email scan",createdAt:todayISO(),doneAt:""});
+          n++;
+        }
+        items.forEach(b=>seen[b.threadId]=b.lastId);
+        await w("config/scan","set",{lastScan:new Date().toISOString(),seen:trimSeen(seen,threads)});
+        closeFn(); toast(n?`Applied ${n} email update${n===1?"":"s"}`:"Emails marked reviewed");
+      }catch(err){ ev.target.disabled=false; ev.target.textContent="Try again"; }
+    };
+  } finally { scanning=false; }
+}
+function trimSeen(seen,threads){ const keep={}; const ids=new Set(threads.map(t=>t.id)); Object.entries(seen).forEach(([k,v])=>{ if(ids.has(k)) keep[k]=v; }); threads.forEach(t=>{ if(seen[t.id]) keep[t.id]=seen[t.id]; }); return keep; }
+
+// ---------- router ----------
+function route(){
+  const h=(location.hash||"#action").slice(1);
+  if(h.startsWith("co-")){ const id=h.slice(3); if(UI.co!==id){ UI.coTab="overview"; UI.propSearch=""; } UI.view="company"; UI.co=id; }
+  else { UI.view=["action","expiring","compliant","companies","locations","contacts"].includes(h)?h:"action"; UI.co=null; }
+  render();
+}
+function render(){
+  _alertCache=null;
+  document.querySelectorAll("#nav a").forEach(a=>a.classList.toggle("on",a.dataset.v===(UI.view==="company"?"companies":UI.view)));
+  const ready=S.loaded.companies;
+  let notes="";
+  if(!S.db && S.dbChecked) notes+=`<div class="note err">This board can't reach its saved data right now (you may be signed out of Orbit). Nothing you enter here would be saved. Reload the page to try again.</div>`;
+  if(S.slow && !ready) notes+=`<div class="note">Still loading — the saved data can't be reached yet.</div>`;
+  if(S.readOnly) notes+=`<div class="note">You have view-only access in Orbit, so changes can't be saved. An owner or admin can change your access level.</div>`;
+  if(!ready){ $("#main").innerHTML=notes+`<div class="empty">Loading the board…</div>`; return; }
+  if(!Object.keys(S.companies).length){ $("#main").innerHTML=notes+`<div class="empty">No companies on the board yet. <button class="btn" id="addCo">+ Add the first company</button></div>`; updateBadges(); return; }
+  const v={action:renderAction,expiring:renderExpiring,compliant:renderCompliant,companies:renderCompanies,locations:renderLocations,contacts:renderContacts}[UI.view];
+  const focusId=document.activeElement&&document.activeElement.id, caret=document.activeElement&&document.activeElement.selectionStart;
+  $("#main").innerHTML=notes+(UI.view==="company"?renderCompany(UI.co):v());
+  updateBadges();
+  if(focusId){ const el=document.getElementById(focusId); if(el&&el.tagName==="INPUT"){ el.focus(); try{el.setSelectionRange(caret,caret)}catch(e){} } }
+}
+function renderScanStamp(){ const b=$("#scanBtn"); if(b) b.title=S.scan&&S.scan.lastScan?`Last scan: ${new Date(S.scan.lastScan).toLocaleString()}`:"Never scanned"; }
+function renderWho(){}
+
+// ---------- events ----------
+document.addEventListener("click", async e=>{
+  if(!e.target.closest("input,select,button,a,textarea")){
+    const r=e.target.closest("[data-rowtask],[data-etaskb],[data-gotoco],[data-epolb],[data-rowportal],[data-rowpol],[data-row-epol],[data-row-eportal],[data-rowprop],[data-rowct]");
+    if(r){ const d=r.dataset; try{
+      if(d.rowtask) return await editTask(d.rowtask);
+      if(d.etaskb) return await editTask(d.etaskb);
+      if(d.gotoco){ location.hash="#co-"+d.gotoco; return; }
+      if(d.epolb!==undefined) return await editPolicy(+d.epolb);
+      if(d.rowpol!==undefined) return await editPolicy(+d.rowpol);
+      if(d.rowportal){ const [i,n]=d.rowportal.split("|"); return await editPortal(i,+n); }
+      if(d.rowEpol!==undefined) return await editPolicy(+d.rowEpol);
+      if(d.rowEportal){ const [i,n]=d.rowEportal.split("|"); return await editPortal(i,+n); }
+      if(d.rowprop){ const [i,n]=d.rowprop.split("|"); return await editProperty(i,+n); }
+      if(d.rowct){ const [k,...rest]=d.rowct.split("|"); const v=rest.join("|"); if(k==="eagent") return await editAgent(+v); const [i,n]=v.split("|"); if(k==="econtact") return await editContact(i,+n); if(k==="eprop") return await editProperty(i,+n); }
+    }catch(err){} return; }
+  }
+  const t=e.target.closest("button,[data-co],[data-actf],[data-ctt],[data-goto],a#settingsLink"); if(!t) return;
+  const d=t.dataset;
+  try{
+    if(t.id==="settingsLink"){ e.preventDefault(); return editSettings(); }
+    if(t.id==="bell"){ location.hash="#action"; UI.actFilter="all"; return route(); }
+    if(t.id==="addCo") return editCompany(null);
+    if(t.id==="scanBtn") return scanEmail();
+    if(d.goto){ location.hash="#"+d.goto; return; }
+    if(d.copyparty!==undefined){ const xs=openTasks().filter(([,x])=>x.status==="waiting"&&(x.waitingOn||"(not specified)")===d.copyparty); const txt=`Hi — following up on the items below:\n\n`+xs.map(([,x])=>`• ${x.companyId?coName(x.companyId)+": ":""}${x.title}${x.waitingSince?` (requested ${fmt(x.waitingSince)})`:""}`).join("\n"); try{ await navigator.clipboard.writeText(txt); toast("Copied — paste into your email"); }catch(err){ modal(`<h3>Copy this</h3><textarea style="min-height:220px">${esc(txt)}</textarea><div class="mfoot"><button class="btn" data-a="x">Close</button></div>`,(m,close)=>{m.querySelector("[data-a=x]").onclick=close;}); } return; }
+    if(t.id==="copyAlerts"){ const a=computeAlerts().filter(x=>x.sev!=="info"); const txt=`Adapt multifamily alerts — ${fmt(todayISO())}\n\n`+a.map(x=>`${x.sev==="red"?"🔴":"🟠"} ${x.title}${x.co?` — ${coName(x.co)}`:""}${x.party?` — waiting on ${x.party}`:""}${x.why?`\n   ${x.why}`:""}`).join("\n"); try{ await navigator.clipboard.writeText(txt); toast("Copied — paste it into an email or text"); }catch(err){ modal(`<h3>Copy this</h3><textarea style="min-height:300px">${esc(txt)}</textarea><div class="mfoot"><button class="btn" data-a="x">Close</button></div>`,(m,close)=>{ m.querySelector("[data-a=x]").onclick=close; m.querySelector("textarea").select(); }); } return; }
+    if(d.actf!==undefined){ UI.actFilter=(UI.actFilter===d.actf?"all":d.actf); return render(); }
+    if(d.ctt!==undefined){ UI.ctType=d.ctt; return render(); }
+    if(t.hasAttribute("data-addloc")) return addLocation();
+    if(t.hasAttribute("data-addct")) return addContactAny();
+    if(d.of!==undefined){ UI.ownerFilter=d.of; return render(); }
+    if(d.co!==undefined && t.classList.contains("card")){ location.hash="#co-"+d.co; return; }
+    if(d.cotab){ UI.coTab=d.cotab; return render(); }
+    if(d.eco) return editCompany(d.eco);
+    if(d.ereq) return editRequirements(d.ereq);
+    if(d.addcontact) return editContact(d.addcontact,null);
+    if(d.econtact){ const [i,n]=d.econtact.split("|"); return editContact(i,+n); }
+    if(d.addprop) return editProperty(d.addprop,null);
+    if(d.eprop){ const [i,n]=d.eprop.split("|"); return editProperty(i,+n); }
+    if(d.addportal) return editPortal(d.addportal,null);
+    if(d.eportal){ const [i,n]=d.eportal.split("|"); return editPortal(i,+n); }
+    if(d.newtask!==undefined) return editTask(null, UI.view==="company"?{companyId:UI.co}:{});
+    if(d.addtaskfor!==undefined) return editTask(null,{companyId:d.addtaskfor});
+    if(d.etask) return editTask(d.etask);
+    if(d.done) return setTask(d.done,{status:"done",doneAt:todayISO()},"Marked done");
+    if(d.reopen) return setTask(d.reopen,{status:"open",doneAt:""},"Reopened");
+    if(d.snooze){ const tk=S.tasks[d.snooze]; const base=validISO(tk.dueDate)&&tk.dueDate>todayISO()?tk.dueDate:todayISO(); return setTask(d.snooze,{dueDate:addDays(base,3)},"Pushed out 3 days"); }
+    if(d.logfor!==undefined) return editComm(null,{companyId:d.logfor||(UI.view==="company"?UI.co:"")});
+    if(d.logprop){ const [i,p]=d.logprop.split("|"); return editComm(null,{companyId:i,property:p}); }
+    if(d.ecomm) return editComm(d.ecomm);
+    if(d.epol!==undefined) return editPolicy(+d.epol);
+    if(t.hasAttribute("data-addpol")) return editPolicy(null);
+    if(d.eagent!==undefined) return editAgent(+d.eagent);
+    if(t.hasAttribute("data-addagent")) return editAgent(null);
+  }catch(err){ /* toast already shown */ }
+});
+document.addEventListener("input", e=>{
+  const id=e.target.id;
+  if(id==="coSearch"){ UI.coSearch=e.target.value; render(); }
+  if(id==="locSearch"){ UI.locSearch=e.target.value; render(); }
+  if(id==="ctSearch"){ UI.ctSearch=e.target.value; render(); }
+});
+document.addEventListener("change", async e=>{
+  const el=e.target;
+  if(el.dataset && el.dataset.tf){ const tid=el.dataset.tid, f=el.dataset.tf, v=el.value.trim(), tk=S.tasks[tid]; if(!tk||tk[f]===v) return;
+    const data={[f]:v};
+    if(f==="status"){ if(v==="waiting"&&!tk.waitingSince) data.waitingSince=todayISO(); data.doneAt=v==="done"?todayISO():""; }
+    try{ await setTask(tid,data,"Saved"); }catch(err){} return; }
+  const id=el.id;
+  if(id==="coStage"){ UI.coStage=e.target.value; render(); }
+  if(id==="coComp"){ UI.coComp=e.target.value; render(); }
+  if(id==="locCoId"){ UI.locCoId=e.target.value; render(); }
+  if(id==="locStatus"){ UI.locStatus=e.target.value; render(); }
+  if(id==="locCity"){ UI.locCity=e.target.value; render(); }
+  if(id==="showDone"){ UI.taskShowDone=e.target.checked; render(); }
+  if(id==="commsCo"){ UI.commsCo=e.target.value; render(); }
+  if(id==="commsType"){ UI.commsType=e.target.value; render(); }
+});
+window.addEventListener("hashchange", route);
+
+// ---------- boot ----------
+let rT=null; const scheduleRender=()=>{ clearTimeout(rT); rT=setTimeout(()=>{ const a=document.activeElement; if(a&&a.classList&&a.classList.contains("inl")){ a.addEventListener("blur",()=>scheduleRender(),{once:true}); return; } if(!document.querySelector(".modal-bg")) render(); else S.pending=true; },60); };
+new MutationObserver(()=>{ if(S.pending && !document.querySelector(".modal-bg")){ S.pending=false; render(); } }).observe($("#modalRoot"),{childList:true});
+route();
+(async()=>{
+  const timer=setTimeout(()=>{ S.slow=true; render(); },10000);
+  let db=null;
+  try{ db=window.claude&&window.claude.use?await window.claude.use("db"):null; }catch(e){}
+  S.db=db; S.dbChecked=true; S.readOnly=!ORBIT.canWrite; S.uid=ORBIT.user||"";
+  renderWho();
+  if(!db){ clearTimeout(timer); S.loaded.companies=true; render(); return; }
+  const sub=(col,key)=>db.collection(col).onSnapshot(snap=>{ const o={}; snap.docs.forEach(d=>o[d.id]=d.data()); S[key]=o; if(!snap.metadata.fromCache){ S.loaded[key]=true; if(key==="companies"){ clearTimeout(timer); S.slow=false; } } else if(Object.keys(o).length) S.loaded[key]=true; scheduleRender(); }, err=>{ clearTimeout(timer); S.loaded[key]=true; S.err=err; scheduleRender(); });
+  sub("companies","companies"); sub("tasks","tasks"); sub("comms","comms");
+  db.doc("config/insurance").onSnapshot(s=>{ S.insurance=s.exists?s.data():{policies:[],agents:[]}; scheduleRender(); },()=>{});
+  db.doc("config/scan").onSnapshot(s=>{ S.scan=s.exists?s.data():{}; renderScanStamp(); },()=>{});
+  db.doc("config/settings").onSnapshot(s=>{ S.settings=s.exists?s.data():{}; scheduleRender(); },()=>{});
+})();
+})();
+</script>
+</body>
+</html>
