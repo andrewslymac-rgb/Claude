@@ -310,38 +310,6 @@ function WidgetBody({ w, slug, stats, isAdmin, googleCalendar }: { w: WidgetData
         </div>
       );
 
-    case "tools": {
-      const links = w.config.links ?? [];
-      if (!links.length) return <Empty>No tools yet. Customize → ✏️ to add Jobber, QuickBooks, Slack…</Empty>;
-      return (
-        <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8">
-          {links.map((l, i) => (
-            <AppLink key={i} link={l} className="group flex flex-col items-center gap-1.5 rounded-xl border border-line bg-side px-2 py-3 text-center transition hover:-translate-y-0.5 hover:border-ink-faint hover:bg-hover">
-              <span className="flex h-11 w-11 items-center justify-center rounded-xl text-2xl" style={{ background: `${l.color ?? "#6366f1"}33`, boxShadow: `inset 0 0 0 1px ${l.color ?? "#6366f1"}66` }}>
-                {l.emoji ?? "🔗"}
-              </span>
-              <span className="w-full truncate text-xs font-medium">{l.label}</span>
-            </AppLink>
-          ))}
-        </div>
-      );
-    }
-
-    case "links": {
-      const links = w.config.links ?? [];
-      if (!links.length) return <Empty>No links yet. Customize → ✏️ to add some.</Empty>;
-      return (
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-          {links.map((l, i) => (
-            <AppLink key={i} link={l} className="flex items-center gap-2 rounded-lg border border-line px-3 py-2.5 text-sm font-medium hover:border-ink-faint hover:bg-side">
-              <span className="text-lg">{l.emoji ?? "🔗"}</span>
-              <span className="truncate">{l.label}</span>
-            </AppLink>
-          ))}
-        </div>
-      );
-    }
-
     case "tracker":
       return w.tracker ? <Tracker mode="dashboard" slug={slug} tasks={w.tracker.tasks} members={w.tracker.members} roles={w.tracker.roles} myRoleIds={w.tracker.myRoleIds} pages={w.tracker.pages} categories={w.tracker.categories} me={w.tracker.me} canEdit={w.tracker.canEdit} /> : null;
 
@@ -551,37 +519,6 @@ const Empty = ({ children, cta }: { children: React.ReactNode; cta?: { href: str
   </div>
 );
 
-const isPhone = () => typeof navigator !== "undefined" && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-const isStandalone = () => typeof window !== "undefined" && (window.matchMedia("(display-mode: standalone)").matches || (navigator as unknown as { standalone?: boolean }).standalone === true);
-const VERIFIED_SCHEMES = ["slack:", "googlegmail:", "googlecalendar:", "googledrive:", "openphone:"];
-
-/** On a phone, try the installed app first and fall back to the web page. On desktop it's a plain link. */
-function AppLink({ link, className, children }: { link: LinkItem; className: string; children: React.ReactNode }) {
-  const appUrl = link.appUrl?.trim();
-  return (
-    <a
-      href={link.url}
-      target="_blank"
-      rel="noreferrer"
-      className={className}
-      onClick={(e) => {
-        if (!appUrl || !isPhone()) return;
-        const scheme = appUrl.slice(0, appUrl.indexOf(":") + 1).toLowerCase();
-        if (!VERIFIED_SCHEMES.includes(scheme) && !isStandalone()) return;
-        e.preventDefault();
-        const started = Date.now();
-        const fallback = setTimeout(() => {
-          if (document.visibilityState === "visible" && Date.now() - started < 2500) window.location.href = link.url;
-        }, 1200);
-        document.addEventListener("visibilitychange", () => document.visibilityState === "hidden" && clearTimeout(fallback), { once: true });
-        window.location.href = appUrl;
-      }}
-    >
-      {children}
-    </a>
-  );
-}
-
 // ------------------------------------------------------------------ gallery
 
 function WidgetGallery({ catalog, isAdmin, present, onClose, onAdd }: { catalog: Catalog; isAdmin: boolean; present: WidgetType[]; onClose: () => void; onAdd: (t: WidgetType) => void }) {
@@ -591,7 +528,7 @@ function WidgetGallery({ catalog, isAdmin, present, onClose, onAdd }: { catalog:
   const entries = useMemo(
     () =>
       (Object.entries(catalog) as [WidgetType, CatalogEntry][])
-        .filter(([, e]) => !e.adminOnly || isAdmin)
+        .filter(([, e]) => !e.retired && (!e.adminOnly || isAdmin))
         .filter(([, e]) => cat === "all" || e.category === cat)
         .filter(([t, e]) => !q.trim() || `${t} ${e.title} ${e.description}`.toLowerCase().includes(q.toLowerCase())),
     [catalog, isAdmin, cat, q],

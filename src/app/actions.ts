@@ -149,6 +149,7 @@ export async function addWidgetAction(slug: string, type: WidgetType): Promise<R
   return wrap(async () => {
     const { user, workspace, abilities } = await personalScope(slug);
     const t = z.enum(WIDGET_TYPES).parse(type);
+    if (dash.WIDGET_CATALOG[t].retired) throw new Error("That widget has been retired. Links live in the menu now.");
     if (dash.WIDGET_CATALOG[t].adminOnly && !can(abilities, "manage_members")) throw new ForbiddenError("That widget is for admins.");
     await dash.addWidget(workspace.id, user.id, t);
     revalidatePath(`/w/${slug}`);

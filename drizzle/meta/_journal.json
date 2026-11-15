@@ -204,6 +204,13 @@
       "when": 1794733300551,
       "tag": "0028_living_monster_badoon",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1794770262501,
+      "tag": "0029_retire_app_launcher_tiles",
+      "breakpoints": true
     }
   ]
 }
