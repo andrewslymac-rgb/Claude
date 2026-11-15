@@ -4,7 +4,7 @@ import { useAct } from "@/components/ui/Toast";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
-import { ChevronDown, ChevronRight, Home, LogOut, MoreHorizontal, Plus, Search, Settings, Trash2, CheckSquare, BookOpen, Library, Flag, Bot, FolderOpen, AlertTriangle, MessageSquareHeart, Users, UserRound, Briefcase, LayoutDashboard, Receipt, Wrench, ExternalLink, Lock } from "lucide-react";
+import { ChevronDown, ChevronRight, Home, LogOut, MoreHorizontal, Plus, Search, Settings, Trash2, CheckSquare, BookOpen, Library, Flag, Bot, FolderOpen, AlertTriangle, MessageSquareHeart, Users, UserRound, Briefcase, LayoutDashboard, Receipt, Wrench, ExternalLink, Lock, CalendarDays } from "lucide-react";
 import { NamePrompt } from "@/components/NamePrompt";
 import { createPortal } from "react-dom";
 import { NewTaskButton } from "@/components/tasks/NewTaskButton";
@@ -115,7 +115,8 @@ export function Sidebar(props: { workspace: Ws; workspaces: Ws[]; tree: Node[]; 
           <span className="text-ink-faint"><Search size={16} /></span> Search
           <kbd className="kbd ml-auto hidden md:inline">⌘K</kbd>
         </button>
-        <NavItem href={`${base}/tasks`} icon={<CheckSquare size={16} />} label="Tracker" active={pathname.startsWith(`${base}/tasks`)} badge={props.attention || undefined} />
+        <NavItem href={`${base}/tasks`} icon={<CheckSquare size={16} />} label="Tracker" active={pathname.startsWith(`${base}/tasks`) && !pathname.startsWith(`${base}/tasks/calendar`)} badge={props.attention || undefined} />
+        <NavItem href={`${base}/tasks/calendar`} icon={<CalendarDays size={16} />} label="Task calendar" active={pathname.startsWith(`${base}/tasks/calendar`)} />
         <NavItem href={props.canManageTasks ? `${base}/team` : `${base}/team/${props.me}`} icon={<Users size={16} />} label={props.canManageTasks ? "Team" : "My progress"} active={pathname.startsWith(`${base}/team`)} />
         <button onClick={() => setOverdueOpen(true)} className={`nav-item w-full ${props.overdue.length ? "text-danger hover:bg-danger-soft hover:text-danger" : ""}`}>
           <span className={props.overdue.length ? "text-danger" : "text-ink-faint"}><AlertTriangle size={16} /></span> <span className="flex-1 text-left">Past due</span>

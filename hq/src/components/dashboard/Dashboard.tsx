@@ -3,10 +3,10 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, useTransition } from "react";
-import { DndContext, closestCenter, PointerSensor, KeyboardSensor, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
+import { DndContext, closestCenter, MouseSensor, TouchSensor, KeyboardSensor, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
 import { SortableContext, arrayMove, rectSortingStrategy, useSortable, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { GripVertical, Pencil, Plus, Trash2, LayoutDashboard, AlertCircle, RotateCcw, Upload, Search, Check, ChevronDown, Settings2, Lock, Minus } from "lucide-react";
+import { GripVertical, Pencil, Plus, Trash2, LayoutDashboard, AlertCircle, RotateCcw, Upload, Search, Check, ChevronDown, Settings2, Lock, Minus, ArrowUp, ArrowDown } from "lucide-react";
 import { addWidgetAction, publishDashboardAction, removeWidgetAction, reorderWidgetsAction, resetDashboardAction, setupCommandCenterAction, updateWidgetAction } from "@/app/actions";
 import type { FieldTool, LinkItem, WidgetConfig, WidgetType } from "@/db/schema";
 import type { CatalogEntry, WidgetCategory } from "@/lib/services/dashboard";
@@ -40,7 +40,8 @@ export function Dashboard({ slug, widgets: initial, stats, personal, canPublish,
   const [, start] = useTransition();
   useEffect(() => setWidgets(initial), [initial]);
 
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
+  // Mouse: drag after a small move. Phone: press and hold the handle, so normal scrolling still works.
+  const sensors = useSensors(useSensor(MouseSensor, { activationConstraint: { distance: 5 } }), useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } }), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
   const run = (fn: () => Promise<{ ok: boolean; message?: string; error?: string }>, okText?: string) =>
     start(async () => {
       const r = await fn();
@@ -52,6 +53,15 @@ export function Dashboard({ slug, widgets: initial, stats, personal, canPublish,
     if (!e.over || e.active.id === e.over.id) return;
     const from = widgets.findIndex((w) => w.id === e.active.id);
     const to = widgets.findIndex((w) => w.id === e.over!.id);
+    const next = arrayMove(widgets, from, to);
+    setWidgets(next);
+    run(() => reorderWidgetsAction(slug, next.map((w) => w.id)));
+  };
+  /** Tap-friendly alternative to dragging: shift a tile one place earlier or later. */
+  const nudge = (id: string, by: -1 | 1) => {
+    const from = widgets.findIndex((w) => w.id === id);
+    const to = from + by;
+    if (from < 0 || to < 0 || to >= widgets.length) return;
     const next = arrayMove(widgets, from, to);
     setWidgets(next);
     run(() => reorderWidgetsAction(slug, next.map((w) => w.id)));
@@ -106,7 +116,7 @@ export function Dashboard({ slug, widgets: initial, stats, personal, canPublish,
           )}
         </button>
       </div>
-      {editing && <p className="mb-3 text-xs text-ink-soft">Drag tiles by the ⋮⋮ handle. Set each tile&apos;s width, how many rows it shows, and its settings. Everything saves as you go.</p>}
+      {editing && <p className="mb-3 text-xs text-ink-soft">Move tiles with the arrows, or drag the ⋮⋮ handle (press and hold on a phone). Tiles fill left to right, top to bottom. Set each tile&apos;s width, how many rows it shows, and its settings. Everything saves as you go.</p>}
 
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
         <SortableContext items={widgets.map((w) => w.id)} strategy={rectSortingStrategy}>
@@ -126,6 +136,9 @@ export function Dashboard({ slug, widgets: initial, stats, personal, canPublish,
                 onWidth={(width) => patch(w, { width })}
                 onLimit={(limit) => patch(w, { config: { limit } })}
                 onRetry={() => router.refresh()}
+                isFirst={i === 0}
+                isLast={i === widgets.length - 1}
+                onMove={(by) => nudge(w.id, by)}
                 onRemove={() => {
                   if (!confirm(`Remove "${w.title}" from your dashboard?`)) return;
                   setWidgets((ws) => ws.filter((x) => x.id !== w.id));
@@ -180,7 +193,7 @@ export function Dashboard({ slug, widgets: initial, stats, personal, canPublish,
 
 const SPAN: Record<number, string> = { 1: "", 2: "md:col-span-2", 3: "md:col-span-2 lg:col-span-3" };
 
-function Tile({ w, index, slug, stats, isAdmin, googleCalendar, catalog, editing, onConfigure, onWidth, onLimit, onRetry, onRemove }: { w: WidgetData; index: number; slug: string; stats: Stat[]; isAdmin: boolean; googleCalendar: boolean; catalog: CatalogEntry; editing: boolean; onConfigure: () => void; onWidth: (n: number) => void; onLimit: (n: number) => void; onRetry: () => void; onRemove: () => void }) {
+function Tile({ w, index, slug, stats, isAdmin, googleCalendar, catalog, editing, onConfigure, onWidth, onLimit, onRetry, onRemove, onMove, isFirst, isLast }: { w: WidgetData; index: number; slug: string; stats: Stat[]; isAdmin: boolean; googleCalendar: boolean; catalog: CatalogEntry; editing: boolean; onConfigure: () => void; onWidth: (n: number) => void; onLimit: (n: number) => void; onRetry: () => void; onRemove: () => void; onMove: (by: -1 | 1) => void; isFirst: boolean; isLast: boolean }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: w.id, disabled: !editing });
   const limit = w.config.limit ?? 6;
   return (
@@ -192,7 +205,7 @@ function Tile({ w, index, slug, stats, isAdmin, googleCalendar, catalog, editing
     >
       <header className="mb-3 flex items-center gap-2">
         {editing && (
-          <button {...attributes} {...listeners} className="cursor-grab rounded-md p-1 text-ink-faint hover:bg-hover hover:text-ink active:cursor-grabbing" aria-label="Drag to move">
+          <button {...attributes} {...listeners} className="tap-icon cursor-grab touch-none rounded-md p-1 text-ink-faint hover:bg-hover hover:text-ink active:cursor-grabbing" aria-label="Drag to move (press and hold on a phone)">
             <GripVertical size={16} />
           </button>
         )}
@@ -203,6 +216,14 @@ function Tile({ w, index, slug, stats, isAdmin, googleCalendar, catalog, editing
         </h2>
         {editing && (
           <div className="flex items-center gap-1 text-ink-faint">
+            <span className="flex items-center overflow-hidden rounded-lg border border-line">
+              <button onClick={() => onMove(-1)} disabled={isFirst} className="tap-icon p-1 hover:bg-hover hover:text-ink disabled:opacity-30" title="Move earlier" aria-label="Move earlier">
+                <ArrowUp size={14} className="md:-rotate-90" />
+              </button>
+              <button onClick={() => onMove(1)} disabled={isLast} className="tap-icon border-l border-line p-1 hover:bg-hover hover:text-ink disabled:opacity-30" title="Move later" aria-label="Move later">
+                <ArrowDown size={14} className="md:-rotate-90" />
+              </button>
+            </span>
             {catalog.listy && (
               <span className="mr-1 flex items-center gap-0.5 rounded-lg border border-line px-1" title="Rows shown">
                 <button onClick={() => onLimit(Math.max(3, limit - 3))} className="rounded p-0.5 hover:bg-hover hover:text-ink" aria-label="Fewer rows">
