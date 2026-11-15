@@ -7,7 +7,7 @@ import { serviceAccount } from "@/lib/drive/client";
  * It works once a Google Workspace admin lets that service account act for the domain
  * (Admin console > Security > API controls > Domain-wide delegation) with the scopes below.
  *
- * This file only reads mail. Drafts come with the COI builder. Nothing here sends, on purpose.
+ * This file reads mail and saves drafts. It has no function that sends, on purpose.
  */
 export const GMAIL_READ = "https://www.googleapis.com/auth/gmail.readonly";
 export const GMAIL_COMPOSE = "https://www.googleapis.com/auth/gmail.compose";
@@ -109,4 +109,49 @@ export async function getThreadHeaders(mailbox: string, id: string): Promise<Mai
 export async function getThread(mailbox: string, id: string): Promise<MailThread> {
   const j = await api(mailbox, GMAIL_READ, `/threads/${id}`, { format: "full" });
   return { id, url: threadUrl(mailbox, id), messages: ((j.messages ?? []) as RawMessage[]).map(toMessage) };
+}
+
+/* ---------- Drafts ---------- */
+
+const EMAIL = /^[^\s@<>,;"]+@[^\s@<>,;"]+\.[^\s@<>,;"]+$/;
+const encWord = (s: string) => (/^[\x20-\x7e]*$/.test(s) ? s : `=?UTF-8?B?${Buffer.from(s, "utf8").toString("base64")}?=`);
+const wrap76 = (b64: string) => b64.replace(/.{1,76}/g, "$&\r\n").trimEnd();
+const b64 = (s: string) => wrap76(Buffer.from(s, "utf8").toString("base64"));
+
+export type DraftInput = { to: string[]; cc: string[]; subject: string; text: string; html: string; attachments?: { filename: string; mimeType: string; content: Buffer }[] };
+
+/** Builds the raw message for a draft. Addresses are checked so nothing can smuggle in extra headers. */
+export function buildMime(from: string, d: DraftInput) {
+  for (const a of [...d.to, ...d.cc]) if (!EMAIL.test(a)) throw new GmailError(`"${a.slice(0, 60)}" isn't a valid email address.`, 400);
+  if (!d.to.length) throw new GmailError("Add at least one address in To.", 400);
+  const subject = d.subject.replace(/[\r\n]+/g, " ").slice(0, 300);
+  const bnd = (p: string) => `${p}_${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`;
+  const alt = bnd("alt");
+  const body = [`--${alt}`, "Content-Type: text/plain; charset=UTF-8", "Content-Transfer-Encoding: base64", "", b64(d.text), `--${alt}`, "Content-Type: text/html; charset=UTF-8", "Content-Transfer-Encoding: base64", "", b64(d.html), `--${alt}--`].join("\r\n");
+  const head = [`From: ${from}`, `To: ${d.to.join(", ")}`, ...(d.cc.length ? [`Cc: ${d.cc.join(", ")}`] : []), `Subject: ${encWord(subject)}`, "MIME-Version: 1.0"];
+  if (!d.attachments?.length) return [...head, `Content-Type: multipart/alternative; boundary="${alt}"`, "", body].join("\r\n");
+  const mix = bnd("mix");
+  const parts = d.attachments.map((a) => {
+    const name = encWord(a.filename.replace(/[\r\n"\\/]+/g, " ").slice(0, 150));
+    const type = /^[\w.+-]+\/[\w.+-]+$/.test(a.mimeType) ? a.mimeType : "application/octet-stream";
+    return [`--${mix}`, `Content-Type: ${type}; name="${name}"`, `Content-Disposition: attachment; filename="${name}"`, "Content-Transfer-Encoding: base64", "", wrap76(a.content.toString("base64"))].join("\r\n");
+  });
+  return [...head, `Content-Type: multipart/mixed; boundary="${mix}"`, "", `--${mix}`, `Content-Type: multipart/alternative; boundary="${alt}"`, "", body, ...parts, `--${mix}--`].join("\r\n");
+}
+
+/** Saves a draft in the mailbox's Drafts folder. It is not sent; only a person in Gmail can send it. */
+export async function createDraft(mailbox: string, d: DraftInput): Promise<{ id: string; viewUrl: string }> {
+  const raw = Buffer.from(buildMime(mailbox, d), "utf8").toString("base64url");
+  const res = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/drafts", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${await token(mailbox, GMAIL_COMPOSE)}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ message: { raw } }),
+  });
+  if (!res.ok) {
+    const body = (await res.text()).slice(0, 300);
+    if (res.status === 403 && /has not been used|disabled/i.test(body)) throw new GmailError("The Gmail API is switched off in Orbit's Google Cloud project. Turn it on there, then try again.", 403);
+    throw new GmailError(`Gmail didn't confirm the draft (${res.status}). Check the Drafts folder before trying again so you don't get a duplicate.`, res.status);
+  }
+  const j = (await res.json()) as { id: string; message?: { threadId?: string } };
+  return { id: j.id, viewUrl: j.message?.threadId ? threadUrl(mailbox, j.message.threadId) : `https://mail.google.com/mail/?authuser=${encodeURIComponent(mailbox)}#drafts` };
 }

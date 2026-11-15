@@ -1,7 +1,7 @@
 import "server-only";
 import Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
-import { loadTracker } from "./store";
+import { loadDocs } from "@/lib/tools/store";
 import { searchThreadIds, getThreadHeaders, getThread, type MailThread } from "@/lib/tools/gmail";
 
 /**
@@ -128,7 +128,7 @@ export async function runScan(workspaceId: string, mailbox: string): Promise<Sca
   const out: ScanResult = { log, threadIds: [], items: [], proposals: [] };
   if (!process.env.ANTHROPIC_API_KEY && !process.env.ANTHROPIC_AUTH_TOKEN) return { ...out, error: "Email scanning needs the AI key (ANTHROPIC_API_KEY) in Railway." };
 
-  const data = await loadTracker(workspaceId);
+  const data = await loadDocs("tracker", workspaceId);
   const scan = data.config.scan ?? {};
   const seen = (scan.seen && typeof scan.seen === "object" ? scan.seen : {}) as Record<string, string>;
   const last = str(scan.lastScan);
