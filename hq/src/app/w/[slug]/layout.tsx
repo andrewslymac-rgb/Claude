@@ -12,7 +12,7 @@ import { countPending } from "@/lib/services/ai-proposals";
 import { collectionCounts, listCollections } from "@/lib/drive/sync";
 import { workspaceThemeVars } from "@/lib/theme/workspace-theme";
 import { listFeedback } from "@/lib/services/feedback";
-import { listLinks } from "@/lib/tool-links";
+import { listLinks, listStars, withStars } from "@/lib/tool-links";
 
 export default async function WorkspaceLayout({ children, params }: { children: React.ReactNode; params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -21,9 +21,10 @@ export default async function WorkspaceLayout({ children, params }: { children: 
   const attention = tasks.filter((t) => t.state === "overdue" || t.state === "today").length;
   const openFlags = flags.filter((f) => f.status === "open").length;
   // Tools links: owners and admins only.
-  const toolLinks = can(abilities, "view_dashboards") ? await listLinks(workspace.id, "tools") : null;
+  const stars = await listStars(user.id, workspace.id);
+  const toolLinks = can(abilities, "view_dashboards") ? withStars(await listLinks(workspace.id, "tools"), stars) : null;
   // Links: everyone in the company sees them; owners and admins add and remove.
-  const links = await listLinks(workspace.id, "links");
+  const links = withStars(await listLinks(workspace.id, "links"), stars);
 
   return (
     // The company's color becomes the accent for everything inside it: buttons, active

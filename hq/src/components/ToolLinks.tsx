@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { ExternalLink, Plus, Trash2 } from "lucide-react";
-import { addLinkAction, removeLinkAction } from "@/app/tool-actions";
+import { ExternalLink, Plus, Star, Trash2 } from "lucide-react";
+import { addLinkAction, removeLinkAction, toggleLinkStarAction } from "@/app/tool-actions";
 import { useToast } from "@/components/ui/Toast";
 
-type Link = { id: string; label: string; url: string };
+type Link = { id: string; label: string; url: string; starred?: boolean };
 
 const WORDS = {
   tools: { section: "Tools and reports", placeholder: "Name, e.g. Schedule Planner", addMore: "Add another tool link", addFirst: "Add a tool link (e.g. the Schedule Planner)" },
@@ -27,17 +27,32 @@ export function ToolLinks({ slug, links, kind = "tools", canManage = true }: { s
       return u;
     }
   };
+  const nStarred = links.filter((l) => l.starred).length;
+  const groupHead = (text: string) => <div className="eyebrow bg-side/40 px-4 py-2">{text}</div>;
   return (
     <div className="card divide-y divide-line">
-      {links.map((l) => (
-        <div key={l.id} className="flex min-h-14 items-center gap-1 pr-2">
+      {links.map((l, i) => (
+        <div key={l.id}>
+        {nStarred > 0 && i === 0 && groupHead("Starred")}
+        {nStarred > 0 && i === nStarred && groupHead("All others")}
+        <div className="flex min-h-14 items-center gap-1 pr-2">
           <a href={l.url} target="_blank" rel="noopener noreferrer" className="flex min-w-0 flex-1 items-center gap-3 px-4 py-3 hover:bg-hover">
-            <ExternalLink size={16} className="shrink-0 text-accent" />
+            {l.starred ? <Star size={16} className="shrink-0 fill-current text-amber-400" /> : <ExternalLink size={16} className="shrink-0 text-accent" />}
             <span className="min-w-0">
               <span className="block truncate font-medium">{l.label}</span>
               <span className="block truncate text-xs text-ink-soft">Opens {host(l.url)}</span>
             </span>
           </a>
+          <button
+            onClick={() => start(async () => { const r = await toggleLinkStarAction(slug, l.id); if (!r.ok) toast(r.error, false); })}
+            disabled={busy}
+            className={`tap-icon rounded-lg p-2 hover:bg-hover ${l.starred ? "text-amber-400" : "text-ink-faint hover:text-amber-400"}`}
+            aria-label={l.starred ? `Unstar ${l.label}` : `Star ${l.label}`}
+            aria-pressed={Boolean(l.starred)}
+            title={l.starred ? "Unstar" : "Star to keep it at the top"}
+          >
+            <Star size={16} className={l.starred ? "fill-current" : ""} />
+          </button>
           {canManage && (
           <button
             onClick={() => confirm(`Remove "${l.label}" from ${w.section}?`) && start(async () => { const r = await removeLinkAction(slug, kind, l.id); if (!r.ok) toast(r.error, false); })}
@@ -48,6 +63,7 @@ export function ToolLinks({ slug, links, kind = "tools", canManage = true }: { s
             <Trash2 size={16} />
           </button>
           )}
+        </div>
         </div>
       ))}
       {!canManage ? (

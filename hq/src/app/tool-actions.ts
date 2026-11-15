@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireAccess } from "@/lib/access";
 import { can, ForbiddenError } from "@/lib/permissions";
-import { addLink, removeLink, LINK_KINDS, type LinkKind } from "@/lib/tool-links";
+import { addLink, removeLink, toggleStar, LINK_KINDS, type LinkKind } from "@/lib/tool-links";
 
 type Result = { ok: true } | { ok: false; error: string };
 
@@ -34,5 +34,17 @@ export async function removeLinkAction(slug: string, kind: LinkKind, id: string)
     return { ok: true };
   } catch (e) {
     return { ok: false, error: (e as Error).message };
+  }
+}
+
+/** Anyone who can see a link can star it for themselves. */
+export async function toggleLinkStarAction(slug: string, linkId: string): Promise<Result> {
+  try {
+    const { workspace, user } = await requireAccess(slug);
+    await toggleStar(user.id, workspace.id, z.string().uuid().parse(linkId));
+    revalidatePath(`/w/${slug}`, "layout");
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof z.ZodError ? "That link no longer exists." : (e as Error).message };
   }
 }
