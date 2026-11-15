@@ -12,7 +12,7 @@ import { countPending } from "@/lib/services/ai-proposals";
 import { collectionCounts, listCollections } from "@/lib/drive/sync";
 import { workspaceThemeVars } from "@/lib/theme/workspace-theme";
 import { listFeedback } from "@/lib/services/feedback";
-import { listToolLinks } from "@/lib/tool-links";
+import { listLinks } from "@/lib/tool-links";
 
 export default async function WorkspaceLayout({ children, params }: { children: React.ReactNode; params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -21,7 +21,9 @@ export default async function WorkspaceLayout({ children, params }: { children: 
   const attention = tasks.filter((t) => t.state === "overdue" || t.state === "today").length;
   const openFlags = flags.filter((f) => f.status === "open").length;
   // Tools links: owners and admins only.
-  const toolLinks = can(abilities, "view_dashboards") ? await listToolLinks(workspace.id) : null;
+  const toolLinks = can(abilities, "view_dashboards") ? await listLinks(workspace.id, "tools") : null;
+  // Links: everyone in the company sees them; owners and admins add and remove.
+  const links = await listLinks(workspace.id, "links");
 
   return (
     // The company's color becomes the accent for everything inside it: buttons, active
@@ -45,6 +47,8 @@ export default async function WorkspaceLayout({ children, params }: { children: 
         pendingAi={pendingAi}
         canManageTasks={can(abilities, "manage_tasks")}
         toolLinks={toolLinks}
+        links={links}
+        canManageLinks={can(abilities, "view_dashboards")}
       />
       }>
         {children}

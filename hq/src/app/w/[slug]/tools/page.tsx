@@ -17,7 +17,7 @@ export default async function ToolsPage({ params }: { params: Promise<{ slug: st
   return (
     <div className="mx-auto max-w-3xl space-y-6 px-4 py-6 md:px-8 md:py-10">
       <PageHeader eyebrow={workspace.name} title="Tools and reports" icon={<Wrench size={22} className="text-accent" />} subtitle="Links to outside tools and reports, like the Schedule Planner. They open in a new tab and also appear in the menu." />
-      <ToolLinks slug={slug} links={tools} />
+      <ToolLinks slug={slug} links={tools} kind="tools" />
     </div>
   );
 }
