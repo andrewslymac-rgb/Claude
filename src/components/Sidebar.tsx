@@ -18,7 +18,7 @@ import { PopMenu, MenuItem } from "@/components/ui/Menu";
 
 type Ws = { slug: string; name: string; icon: string; color: string };
 type Node = { id: string; parentId: string | null; title: string; icon: string | null; position: number; isSop: boolean; source: string };
-/** The owner-and-admin area. Tool URLs arrive only once it's unlocked on this device. */
+/** The owner-and-admin area: dashboards (locked behind an emailed code) and tool links (not locked). */
 export type DashNav = { screens: { id: string; label: string }[]; tools: { id: string; label: string; url: string }[]; unlocked: boolean };
 export type CollectionNav = { id: string; label: string; icon: string; count: number; rootPageId: string | null };
 
@@ -146,7 +146,7 @@ export function Sidebar(props: { workspace: Ws; workspaces: Ws[]; tree: Node[]; 
                 <span className="text-ink-faint"><ExternalLink size={16} /></span> <span className="min-w-0 flex-1 truncate">{t.label}</span>
               </a>
             ))}
-            <NavItem href={`${base}/dash`} icon={<Wrench size={16} />} label={props.dash.unlocked ? "Manage tools" : "Tools (locked)"} active={pathname === `${base}/dash`} />
+            <NavItem href={`${base}/tools`} icon={<Wrench size={16} />} label={props.dash.tools.length ? "Manage tools" : "Add a tool"} active={pathname === `${base}/tools`} />
           </nav>
         </>
       )}
