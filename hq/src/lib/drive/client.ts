@@ -116,6 +116,12 @@ export async function exportDocHtml(id: string): Promise<string> {
   return res.text();
 }
 
+/** Google Doc → Markdown (headings, bullets and bold kept). Used to read meeting notes. */
+export async function exportDocMarkdown(id: string): Promise<string> {
+  const res = (await get(`/files/${id}/export`, { mimeType: "text/markdown" }, true)) as Response;
+  return res.text();
+}
+
 /** Any binary file (e.g. .docx) → bytes. */
 export async function download(id: string): Promise<Buffer> {
   const res = (await get(`/files/${id}`, { alt: "media" }, true)) as Response;

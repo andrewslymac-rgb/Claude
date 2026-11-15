@@ -15,6 +15,7 @@ export const WIDGET_CATALOG: Record<WidgetType, CatalogEntry> = {
   stats: { title: "At a glance", description: "Live numbers: overdue tasks, due today, flags, reviews due, AI approvals.", emoji: "📊", width: 3, category: "work" },
   tracker: { title: "Tracker", description: "Daily, weekly, monthly, quarterly and annual work by person. Tick it off here.", emoji: "☑️", width: 3, category: "work" },
   tasks: { title: "My tasks", description: "Your overdue, due-today and this-week tasks.", emoji: "✅", width: 1, category: "work", listy: true },
+  meetings: { title: "Meetings", description: "Latest meeting notes from Google Meet: summaries, decisions and open next steps.", emoji: "🗒️", width: 2, category: "work", listy: true },
   followups: { title: "Follow-ups", description: "Tasks with a follow-up date that has arrived.", emoji: "🔔", width: 1, category: "work", listy: true },
   jobber: { title: "Today in the field", description: "Today's schedule, new requests, quotes waiting, overdue invoices from Jobber or GorillaDesk.", emoji: "🗓️", width: 2, category: "work" },
   calendar: { title: "My calendar", description: "Your own Google Calendar or any calendar feed. Only you see it.", emoji: "📆", width: 2, category: "personal", personal: true, configurable: true },

@@ -986,3 +986,64 @@ export async function deleteFeedbackAction(slug: string, id: string): Promise<Re
     return "Deleted.";
   });
 }
+
+// ---------------------------------------------------------------- meetings
+
+/** Owners and admins manage meeting sources and see every meeting. */
+async function meetingAdmin(slug: string) {
+  const a = await requireAbility(slug, "read");
+  if (!can(a.abilities, "view_dashboards")) throw new ForbiddenError("Only owners and admins can do that.");
+  return a;
+}
+
+export async function addMeetingSourceAction(slug: string, link: string, label: string): Promise<Result> {
+  return wrap(async () => {
+    const { workspace } = await meetingAdmin(slug);
+    const m = await import("@/lib/meetings/service");
+    await m.addSource(workspace.id, z.string().trim().min(5).max(500).parse(link), z.string().trim().max(80).parse(label ?? ""));
+    const r = await m.syncMeetings(workspace.id);
+    revalidatePath(`/w/${slug}`, "layout");
+    return `Folder connected. ${r.added} meeting${r.added === 1 ? "" : "s"} found.${r.unreadable ? ` ${r.unreadable} couldn't be read (shortcuts to another person's Drive).` : ""}`;
+  });
+}
+
+export async function removeMeetingSourceAction(slug: string, id: string): Promise<Result> {
+  return wrap(async () => {
+    const { workspace } = await meetingAdmin(slug);
+    const m = await import("@/lib/meetings/service");
+    await m.removeSource(workspace.id, uuid.parse(id));
+    revalidatePath(`/w/${slug}`, "layout");
+  });
+}
+
+export async function syncMeetingsAction(slug: string): Promise<Result> {
+  return wrap(async () => {
+    const { workspace } = await meetingAdmin(slug);
+    const m = await import("@/lib/meetings/service");
+    const r = await m.syncMeetings(workspace.id);
+    revalidatePath(`/w/${slug}`, "layout");
+    if (r.errors.length && !r.added && !r.updated) throw new Error(r.errors[0]);
+    return `Synced: ${r.added} new, ${r.updated} updated${r.removed ? `, ${r.removed} removed` : ""}.${r.unreadable ? ` ${r.unreadable} couldn't be read.` : ""}`;
+  });
+}
+
+export async function setMeetingSeriesSharedAction(slug: string, series: string, shared: boolean): Promise<Result> {
+  return wrap(async () => {
+    const { workspace } = await meetingAdmin(slug);
+    const m = await import("@/lib/meetings/service");
+    await m.setSeriesShared(workspace.id, z.string().min(1).max(120).parse(series), shared);
+    revalidatePath(`/w/${slug}`, "layout");
+  });
+}
+
+/** Anyone who can see the meeting and manage tasks can turn a next step into a task. */
+export async function meetingStepToTaskAction(slug: string, meetingId: string, index: number): Promise<Result> {
+  return wrap(async () => {
+    const { user, workspace, abilities } = await requireAbility(slug, "manage_tasks");
+    const m = await import("@/lib/meetings/service");
+    if (!(await m.getMeeting(workspace.id, uuid.parse(meetingId), can(abilities, "view_dashboards")))) throw new ForbiddenError();
+    const id = await m.nextStepToTask(workspace.id, meetingId, z.number().int().min(0).max(200).parse(index), user.id);
+    revalidatePath(`/w/${slug}`, "layout");
+    return id;
+  });
+}

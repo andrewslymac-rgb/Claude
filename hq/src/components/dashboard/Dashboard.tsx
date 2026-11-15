@@ -27,7 +27,7 @@ export type Stat = { key: string; label: string; value: number; href: string; to
 type Catalog = Record<WidgetType, CatalogEntry>;
 type PageOpt = { id: string; title: string; icon: string | null };
 
-const SINGLETON: WidgetType[] = ["stats", "tracker", "jobber", "calendar", "collections", "tasks", "followups", "flags", "reviews", "recent", "sops", "team", "changelog", "feedback", "ai", "tools"];
+const SINGLETON: WidgetType[] = ["meetings", "stats", "tracker", "jobber", "calendar", "collections", "tasks", "followups", "flags", "reviews", "recent", "sops", "team", "changelog", "feedback", "ai", "tools"];
 
 export function Dashboard({ slug, widgets: initial, stats, personal, canPublish, isAdmin, catalog, allPages, googleCalendar }: { slug: string; widgets: WidgetData[]; stats: Stat[]; personal: boolean; canPublish: boolean; isAdmin: boolean; catalog: Catalog; allPages: PageOpt[]; googleCalendar: boolean }) {
   const router = useRouter();
@@ -394,6 +394,25 @@ function WidgetBody({ w, slug, stats, isAdmin, googleCalendar }: { w: WidgetData
             <Row key={t.id} href={`/w/${slug}/tasks/${t.id}`} title={t.title} sub={t.nextDueOn ? fmtDay(t.nextDueOn) : undefined} badge={<Badge cls={tone[t.state ?? ""] ?? ""}>{label[t.state ?? ""] ?? ""}</Badge>} />
           ))}
           <More href={`/w/${slug}/tasks`}>All tasks</More>
+        </List>
+      );
+    }
+
+    case "meetings": {
+      if (!w.items.length)
+        return <Empty cta={{ href: `/w/${slug}/meetings`, label: "Set up meetings" }}>No meeting notes yet. An owner connects the Google Meet notes folder once.</Empty>;
+      return (
+        <List>
+          {w.items.map((m) => (
+            <Row
+              key={m.id}
+              href={`/w/${slug}/meetings/${m.id}`}
+              title={m.title}
+              sub={[m.updatedAt ? new Date(m.updatedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "America/Los_Angeles" }) : null, m.subtitle].filter(Boolean).join(" · ")}
+              badge={m.count ? <Badge cls="bg-accent-soft text-accent">{m.count} open</Badge> : undefined}
+            />
+          ))}
+          <More href={`/w/${slug}/meetings`}>All meetings</More>
         </List>
       );
     }

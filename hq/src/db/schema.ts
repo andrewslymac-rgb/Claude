@@ -244,6 +244,7 @@ export const widgetTypeEnum = pgEnum("widget_type", [
   "notes", // a private scratchpad for the signed-in person
   "feedback", // new bug reports and ideas (admins)
   "ai", // AI proposals awaiting approval
+  "meetings", // recent meeting notes, open next steps
 ]);
 
 /** appUrl: a phone "deep link" such as slack://open; used on mobile, with url as the fallback. */
@@ -835,3 +836,47 @@ export const dashUnlocks = pgTable(
   },
   (t) => [primaryKey({ columns: [t.sessionId, t.workspaceId] })],
 );
+
+/** A Google Drive folder Orbit reads meeting notes from (e.g. someone's "Meet Recordings"). */
+export const meetingSources = pgTable("meeting_sources", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  workspaceId: uuid("workspace_id")
+    .notNull()
+    .references(() => workspaces.id, { onDelete: "cascade" }),
+  folderId: text("folder_id").notNull(),
+  label: text("label").notNull(),
+  lastSyncedAt: timestamp("last_synced_at", { withTimezone: true }),
+  lastError: text("last_error"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export type MeetingNextStep = { owner: string | null; title: string; text: string; taskId?: string | null };
+export type MeetingPart = { title: string; text: string };
+
+/** One meeting, read from its Google Meet "Notes by Gemini" doc. The doc stays the source of truth. */
+export const meetings = pgTable(
+  "meetings",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    sourceId: uuid("source_id").references(() => meetingSources.id, { onDelete: "set null" }),
+    driveFileId: text("drive_file_id").notNull(),
+    docUrl: text("doc_url").notNull(),
+    fileName: text("file_name").notNull(),
+    series: text("series").notNull(),
+    occurredAt: timestamp("occurred_at", { withTimezone: true }).notNull(),
+    attendees: jsonb("attendees").$type<string[]>().notNull().default([]),
+    summary: text("summary").notNull().default(""),
+    summaryPoints: jsonb("summary_points").$type<MeetingPart[]>().notNull().default([]),
+    decisions: jsonb("decisions").$type<MeetingPart[]>().notNull().default([]),
+    nextSteps: jsonb("next_steps").$type<MeetingNextStep[]>().notNull().default([]),
+    topics: jsonb("topics").$type<MeetingPart[]>().notNull().default([]),
+    recognised: boolean("recognised").notNull().default(true),
+    driveModifiedAt: timestamp("drive_modified_at", { withTimezone: true }),
+    syncedAt: timestamp("synced_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("meetings_ws_file_idx").on(t.workspaceId, t.driveFileId), index("meetings_ws_time_idx").on(t.workspaceId, t.occurredAt)],
+);
+export type Meeting = typeof meetings.$inferSelect;
