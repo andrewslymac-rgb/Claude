@@ -4,8 +4,9 @@ import { useAct } from "@/components/ui/Toast";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
-import { ChevronDown, ChevronRight, Home, LogOut, MoreHorizontal, Plus, Search, Settings, Trash2, CheckSquare, BookOpen, Library, Flag, Bot, FolderOpen, AlertTriangle, MessageSquareHeart, Users, UserRound, Briefcase, Wrench, ExternalLink, Link2, Star, FileText, BarChart3, CalendarDays, MessagesSquare } from "lucide-react";
+import { ChevronDown, ChevronRight, Home, LogOut, MoreHorizontal, Plus, Search, Settings, Trash2, CheckSquare, BookOpen, Library, Flag, Bot, FolderOpen, AlertTriangle, MessageSquareHeart, Users, UserRound, Briefcase, Wrench, Link2, BarChart3, CalendarDays, MessagesSquare } from "lucide-react";
 import { NamePrompt } from "@/components/NamePrompt";
+import { MenuLinkSection } from "@/components/MenuLinkSection";
 import { createPortal } from "react-dom";
 import { NewTaskButton } from "@/components/tasks/NewTaskButton";
 import { OverduePanel, type OverdueItem } from "./tasks/OverduePanel";
@@ -126,63 +127,26 @@ export function Sidebar(props: { workspace: Ws; workspaces: Ws[]; tree: Node[]; 
         <NavItem href={`${base}/flags`} icon={<Flag size={16} />} label="Flags" active={pathname.startsWith(`${base}/flags`)} badge={props.openFlags || undefined} />
       </nav>
 
-      {/* Tools and Reports: owners and admins only. */}
+      {/* Tools and Reports (owners and admins) and Quick Links (everyone): fold-out sections; the name opens the full page. */}
       {props.toolLinks && (
-        <>
-          <div className="eyebrow flex items-center gap-1 px-4 pb-1 pt-3">
-            <Wrench size={11} /> Tools
-          </div>
-          <nav className="space-y-0.5 px-2 pb-1">
-            {props.toolLinks.map((t) => (
-              <a key={t.id} href={t.url} target="_blank" rel="noopener noreferrer" className="nav-item">
-                <span className={t.starred ? "text-amber-400" : "text-ink-faint"}>{t.starred ? <Star size={16} className="fill-current" /> : <ExternalLink size={16} />}</span> <span className="min-w-0 flex-1 truncate">{t.label}</span>
-              </a>
-            ))}
-            <NavItem href={`${base}/tools#tools`} icon={<Wrench size={16} />} label={props.toolLinks.length ? "Manage tools" : "Add a tool"} active={false} />
-          </nav>
-        </>
+        <MenuLinkSection id="tools" title="Tools" icon={<Wrench size={11} />} href={`${base}/tools`} active={pathname === `${base}/tools`} groups={[{ items: props.toolLinks }]} footer={{ label: props.toolLinks.length ? "See all with details" : "Add a tool", href: `${base}/tools` }} />
       )}
       {props.reportLinks && (
-        <>
-          <div className="eyebrow flex items-center gap-1 px-4 pb-1 pt-3">
-            <BarChart3 size={11} /> Reports
-          </div>
-          <nav className="space-y-0.5 px-2 pb-1">
-            {props.reportLinks.map((t) => (
-              <a key={t.id} href={t.url} target="_blank" rel="noopener noreferrer" className="nav-item">
-                <span className={t.starred ? "text-amber-400" : "text-ink-faint"}>{t.starred ? <Star size={16} className="fill-current" /> : <ExternalLink size={16} />}</span> <span className="min-w-0 flex-1 truncate">{t.label}</span>
-              </a>
-            ))}
-            <NavItem href={`${base}/tools#reports`} icon={<BarChart3 size={16} />} label={props.reportLinks.length ? "Manage reports" : "Add a report"} active={false} />
-          </nav>
-        </>
+        <MenuLinkSection id="reports" title="Reports" icon={<BarChart3 size={11} />} href={`${base}/reports`} active={pathname === `${base}/reports`} groups={[{ items: props.reportLinks }]} footer={{ label: props.reportLinks.length ? "See all with details" : "Add a report", href: `${base}/reports` }} />
       )}
-
-      {/* Links: websites and documents the team uses. Everyone sees them; owners and admins manage them. */}
       {((props.links?.length ?? 0) + (props.docLinks?.length ?? 0) > 0 || props.canManageLinks) && (
-        <>
-          <div className="eyebrow flex items-center gap-1 px-4 pb-1 pt-3">
-            <Link2 size={11} /> Quick Links
-          </div>
-          <nav className="space-y-0.5 px-2 pb-1">
-            {[
-              { label: "Documents", items: props.docLinks ?? [] },
-              { label: "Websites", items: props.links ?? [] },
-            ]
-              .filter((g) => g.items.length)
-              .map((g) => (
-                <div key={g.label} className="space-y-0.5">
-                  <div className="px-2.5 pb-0.5 pt-1.5 text-[11px] font-medium text-ink-faint">{g.label}</div>
-                  {g.items.map((t) => (
-                    <a key={t.id} href={t.url} target="_blank" rel="noopener noreferrer" className="nav-item">
-                      <span className={t.starred ? "text-amber-400" : "text-ink-faint"}>{t.starred ? <Star size={16} className="fill-current" /> : g.label === "Documents" ? <FileText size={16} /> : <ExternalLink size={16} />}</span> <span className="min-w-0 flex-1 truncate">{t.label}</span>
-                    </a>
-                  ))}
-                </div>
-              ))}
-            <NavItem href={`${base}/links`} icon={<Link2 size={16} />} label={props.canManageLinks ? ((props.links?.length ?? 0) + (props.docLinks?.length ?? 0) ? "Manage links" : "Add a link") : "Star links"} active={pathname === `${base}/links`} />
-          </nav>
-        </>
+        <MenuLinkSection
+          id="links"
+          title="Quick Links"
+          icon={<Link2 size={11} />}
+          href={`${base}/links`}
+          active={pathname === `${base}/links`}
+          groups={[
+            { label: "Documents", doc: true, items: props.docLinks ?? [] },
+            { label: "Websites", items: props.links ?? [] },
+          ]}
+          footer={{ label: (props.links?.length ?? 0) + (props.docLinks?.length ?? 0) ? "See all with details" : "Add a link", href: `${base}/links` }}
+        />
       )}
 
       <div className="eyebrow flex items-center gap-1 px-4 pb-1 pt-3">

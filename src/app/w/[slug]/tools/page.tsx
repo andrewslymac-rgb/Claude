@@ -8,24 +8,16 @@ import { ToolLinks } from "@/components/ToolLinks";
 
 export const dynamic = "force-dynamic";
 
-/** Owners' and admins' links to outside tools (e.g. the Schedule Planner) and reports. */
+/** Every tool link with its description. Owners and admins only. */
 export default async function ToolsPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const { workspace, abilities, user } = await requireWorkspacePage(slug);
   if (!can(abilities, "view_dashboards")) notFound();
-  const stars = await listStars(user.id, workspace.id);
-  const [tools, reports] = await Promise.all([listLinks(workspace.id, "tools"), listLinks(workspace.id, "reports")]);
+  const tools = withStars(await listLinks(workspace.id, "tools"), await listStars(user.id, workspace.id));
   return (
     <div className="mx-auto max-w-3xl space-y-6 px-4 py-6 md:px-8 md:py-10">
-      <PageHeader eyebrow={workspace.name} title="Tools and reports" icon={<Wrench size={22} className="text-accent" />} subtitle="Links to outside tools and reports. They open in a new tab and appear in the menu for owners and admins." />
-      <section id="tools" className="space-y-2">
-        <h2 className="section-title">Tools</h2>
-        <ToolLinks slug={slug} links={withStars(tools, stars)} kind="tools" />
-      </section>
-      <section id="reports" className="space-y-2">
-        <h2 className="section-title">Reports</h2>
-        <ToolLinks slug={slug} links={withStars(reports, stars)} kind="reports" />
-      </section>
+      <PageHeader eyebrow={workspace.name} title="Tools" icon={<Wrench size={22} className="text-accent" />} subtitle="Outside tools the business runs on. Star the ones you use most to keep them in your menu." />
+      <ToolLinks slug={slug} links={tools} kind="tools" />
     </div>
   );
 }

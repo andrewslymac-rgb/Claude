@@ -9,7 +9,7 @@ import { getSetting, setSetting } from "@/lib/services/app-settings";
  * - "links": websites the team uses. Everyone in the company sees them.
  * - "docs": documents the team uses (Google Docs, Sheets, PDFs…). Everyone sees them too.
  */
-export type ToolLink = { id: string; label: string; url: string };
+export type ToolLink = { id: string; label: string; url: string; description?: string };
 export type LinkKind = "tools" | "reports" | "links" | "docs";
 export const LINK_KINDS = ["tools", "reports", "links", "docs"] as const;
 /** Lists a link can be moved between: Websites ⇄ Documents, Tools ⇄ Reports. */
@@ -29,12 +29,31 @@ export async function listLinks(workspaceId: string, kind: LinkKind): Promise<To
 }
 export const listToolLinks = (workspaceId: string) => listLinks(workspaceId, "tools");
 
-export async function addLink(workspaceId: string, kind: LinkKind, label: string, url: string) {
-  const p = z.object({ label: z.string().trim().min(1, "Give the link a name.").max(60), url: z.string().trim().url("That doesn't look like a web address.").refine((u) => /^https?:\/\//i.test(u), "Use a link that starts with https://") }).safeParse({ label, url });
+const LinkFields = z.object({
+  label: z.string().trim().min(1, "Give the link a name.").max(60),
+  url: z.string().trim().url("That doesn't look like a web address.").refine((u) => /^https?:\/\//i.test(u), "Use a link that starts with https://"),
+  description: z.string().trim().max(500, "Keep the description under 500 characters.").optional().default(""),
+});
+export type LinkInput = { label: string; url: string; description?: string };
+const parseLink = (input: LinkInput) => {
+  const p = LinkFields.safeParse(input);
   if (!p.success) throw new Error(p.error.issues[0]?.message ?? "Check the name and link.");
+  return p.data;
+};
+
+export async function addLink(workspaceId: string, kind: LinkKind, input: LinkInput) {
+  const d = parseLink(input);
   const all = await listLinks(workspaceId, kind);
   if (all.length >= MAX[kind]) throw new Error(`That's ${MAX[kind]} links already. Remove one first.`);
-  await setSetting(key(workspaceId, kind), JSON.stringify([...all, { id: crypto.randomUUID(), label: p.data.label, url: p.data.url }]));
+  await setSetting(key(workspaceId, kind), JSON.stringify([...all, { id: crypto.randomUUID(), label: d.label, url: d.url, ...(d.description ? { description: d.description } : {}) }]));
+}
+
+/** Changes a link's name, address or description. Its id (and so everyone's stars) stays the same. */
+export async function updateLink(workspaceId: string, kind: LinkKind, id: string, input: LinkInput) {
+  const d = parseLink(input);
+  const all = await listLinks(workspaceId, kind);
+  if (!all.some((l) => l.id === id)) throw new Error("That link no longer exists.");
+  await setSetting(key(workspaceId, kind), JSON.stringify(all.map((l) => (l.id === id ? { id, label: d.label, url: d.url, ...(d.description ? { description: d.description } : {}) } : l))));
 }
 
 export async function removeLink(workspaceId: string, kind: LinkKind, id: string) {
