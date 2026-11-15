@@ -8,16 +8,24 @@ import { ToolLinks } from "@/components/ToolLinks";
 
 export const dynamic = "force-dynamic";
 
-/** Owners' and admins' tool links (e.g. the Schedule Planner). Not behind the dashboard code. */
+/** Owners' and admins' links to outside tools (e.g. the Schedule Planner) and reports. */
 export default async function ToolsPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const { workspace, abilities, user } = await requireWorkspacePage(slug);
   if (!can(abilities, "view_dashboards")) notFound();
-  const tools = withStars(await listLinks(workspace.id, "tools"), await listStars(user.id, workspace.id));
+  const stars = await listStars(user.id, workspace.id);
+  const [tools, reports] = await Promise.all([listLinks(workspace.id, "tools"), listLinks(workspace.id, "reports")]);
   return (
     <div className="mx-auto max-w-3xl space-y-6 px-4 py-6 md:px-8 md:py-10">
-      <PageHeader eyebrow={workspace.name} title="Tools and reports" icon={<Wrench size={22} className="text-accent" />} subtitle="Links to outside tools and reports, like the Schedule Planner. They open in a new tab and also appear in the menu." />
-      <ToolLinks slug={slug} links={tools} kind="tools" />
+      <PageHeader eyebrow={workspace.name} title="Tools and reports" icon={<Wrench size={22} className="text-accent" />} subtitle="Links to outside tools and reports. They open in a new tab and appear in the menu for owners and admins." />
+      <section id="tools" className="space-y-2">
+        <h2 className="section-title">Tools</h2>
+        <ToolLinks slug={slug} links={withStars(tools, stars)} kind="tools" />
+      </section>
+      <section id="reports" className="space-y-2">
+        <h2 className="section-title">Reports</h2>
+        <ToolLinks slug={slug} links={withStars(reports, stars)} kind="reports" />
+      </section>
     </div>
   );
 }
