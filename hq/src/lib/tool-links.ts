@@ -90,11 +90,11 @@ export async function toggleStar(userId: string, workspaceId: string, linkId: st
   await setSetting(starKey(userId, workspaceId), JSON.stringify(next.filter((s) => exists.has(s))));
 }
 
-/** Starred links first (in the order they were starred), then the rest in their usual order. */
+/** Starred links first, then the rest; both keep the list's own order (which owners and admins set). */
 export function withStars(links: ToolLink[], stars: string[]): StarredLink[] {
-  const rank = new Map(stars.map((s, i) => [s, i]));
-  const starred = links.filter((l) => rank.has(l.id)).sort((a, b) => rank.get(a.id)! - rank.get(b.id)!);
-  const rest = links.filter((l) => !rank.has(l.id));
+  const starredSet = new Set(stars);
+  const starred = links.filter((l) => starredSet.has(l.id));
+  const rest = links.filter((l) => !starredSet.has(l.id));
   return [...starred.map((l) => ({ ...l, starred: true })), ...rest.map((l) => ({ ...l, starred: false }))];
 }
 
@@ -107,4 +107,14 @@ export async function moveLink(workspaceId: string, from: LinkKind, to: LinkKind
   if (dst.length >= MAX[to]) throw new Error(`That's ${MAX[to]} links already. Remove one first.`);
   await setSetting(key(workspaceId, to), JSON.stringify([...dst, item]));
   await setSetting(key(workspaceId, from), JSON.stringify(src.filter((l) => l.id !== id)));
+}
+
+/** Swaps two links' places in a list, so a link moves up or down past the one next to it. */
+export async function swapLinks(workspaceId: string, kind: LinkKind, a: string, b: string) {
+  const all = await listLinks(workspaceId, kind);
+  const i = all.findIndex((l) => l.id === a);
+  const j = all.findIndex((l) => l.id === b);
+  if (i < 0 || j < 0) throw new Error("That link no longer exists.");
+  [all[i], all[j]] = [all[j], all[i]];
+  await setSetting(key(workspaceId, kind), JSON.stringify(all));
 }

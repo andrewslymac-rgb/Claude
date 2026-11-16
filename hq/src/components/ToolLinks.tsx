@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { ArrowLeftRight, ExternalLink, FileText, Pencil, Plus, Star, Trash2 } from "lucide-react";
-import { addLinkAction, moveLinkAction, removeLinkAction, toggleLinkStarAction, updateLinkAction } from "@/app/tool-actions";
+import { ArrowDown, ArrowLeftRight, ArrowUp, ExternalLink, FileText, Pencil, Plus, Star, Trash2 } from "lucide-react";
+import { addLinkAction, moveLinkAction, removeLinkAction, swapLinksAction, toggleLinkStarAction, updateLinkAction } from "@/app/tool-actions";
 import { useToast } from "@/components/ui/Toast";
 
 type Link = { id: string; label: string; url: string; description?: string; starred?: boolean };
@@ -102,6 +102,21 @@ export function ToolLinks({ slug, links, kind = "tools", canManage = true }: { s
                 </button>
                 {canManage && (
                   <>
+                    {(() => {
+                      // Neighbours on screen, within the same group (starred or not), so a move is always visible.
+                      const prev = i > 0 && Boolean(links[i - 1].starred) === Boolean(l.starred) ? links[i - 1] : null;
+                      const next = i < links.length - 1 && Boolean(links[i + 1].starred) === Boolean(l.starred) ? links[i + 1] : null;
+                      return (
+                        <span className="flex flex-col">
+                          <button onClick={() => prev && run(() => swapLinksAction(slug, kind, l.id, prev.id))} disabled={busy || !prev} className="rounded p-0.5 text-ink-faint hover:bg-hover hover:text-ink disabled:opacity-30" aria-label={`Move ${l.label} up`} title="Move up">
+                            <ArrowUp size={14} />
+                          </button>
+                          <button onClick={() => next && run(() => swapLinksAction(slug, kind, l.id, next.id))} disabled={busy || !next} className="rounded p-0.5 text-ink-faint hover:bg-hover hover:text-ink disabled:opacity-30" aria-label={`Move ${l.label} down`} title="Move down">
+                            <ArrowDown size={14} />
+                          </button>
+                        </span>
+                      );
+                    })()}
                     <button onClick={() => (setAdding(false), setEditing(l.id))} disabled={busy} className="tap-icon rounded-lg p-2 text-ink-faint hover:bg-hover hover:text-ink" aria-label={`Edit ${l.label}`} title="Edit name, address or description">
                       <Pencil size={16} />
                     </button>
