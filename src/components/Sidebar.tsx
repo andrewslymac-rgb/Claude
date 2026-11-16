@@ -127,11 +127,11 @@ export function Sidebar(props: { workspace: Ws; workspaces: Ws[]; tree: Node[]; 
         <NavItem href={`${base}/flags`} icon={<Flag size={16} />} label="Flags" active={pathname.startsWith(`${base}/flags`)} badge={props.openFlags || undefined} />
       </nav>
 
-      {/* Tools and Quick Links (everyone), Reports (owners and admins): fold-out sections; the name opens the full page. */}
+      {/* Tools, Reports and Quick Links (everyone): fold-out sections; the name opens the full page. */}
       {props.toolLinks && (props.toolLinks.length > 0 || props.canManageLinks) && (
         <MenuLinkSection id="tools" title="Tools" icon={<Wrench size={11} />} href={`${base}/tools`} active={pathname === `${base}/tools`} groups={[{ items: props.toolLinks }]} footer={{ label: props.toolLinks.length ? "See all with details" : "Add a tool", href: `${base}/tools` }} />
       )}
-      {props.reportLinks && (
+      {props.reportLinks && (props.reportLinks.length > 0 || props.canManageLinks) && (
         <MenuLinkSection id="reports" title="Reports" icon={<BarChart3 size={11} />} href={`${base}/reports`} active={pathname === `${base}/reports`} groups={[{ items: props.reportLinks }]} footer={{ label: props.reportLinks.length ? "See all with details" : "Add a report", href: `${base}/reports` }} />
       )}
       {((props.links?.length ?? 0) + (props.docLinks?.length ?? 0) + (props.customerDocLinks?.length ?? 0) > 0 || props.canManageLinks) && (
