@@ -260,6 +260,13 @@
       "when": 1794789544757,
       "tag": "0036_adapt_request_off_to_reports",
       "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1794790445982,
+      "tag": "0037_lnl_snapshot_drivetime_to_reports",
+      "breakpoints": true
     }
   ]
 }
