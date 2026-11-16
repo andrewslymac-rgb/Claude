@@ -109,12 +109,17 @@ export async function moveLink(workspaceId: string, from: LinkKind, to: LinkKind
   await setSetting(key(workspaceId, from), JSON.stringify(src.filter((l) => l.id !== id)));
 }
 
-/** Swaps two links' places in a list, so a link moves up or down past the one next to it. */
-export async function swapLinks(workspaceId: string, kind: LinkKind, a: string, b: string) {
+/**
+ * New order for some of a list's links (one group as shown on screen, e.g. the non-starred ones).
+ * They go back into the same slots they held, in the new order; every other link stays put.
+ */
+export async function reorderLinks(workspaceId: string, kind: LinkKind, ids: string[]) {
   const all = await listLinks(workspaceId, kind);
-  const i = all.findIndex((l) => l.id === a);
-  const j = all.findIndex((l) => l.id === b);
-  if (i < 0 || j < 0) throw new Error("That link no longer exists.");
-  [all[i], all[j]] = [all[j], all[i]];
-  await setSetting(key(workspaceId, kind), JSON.stringify(all));
+  const wanted = new Set(ids);
+  if (wanted.size !== ids.length || ids.some((id) => !all.some((l) => l.id === id))) throw new Error("The list changed. Reload the page and try again.");
+  const slots = all.map((l, i) => (wanted.has(l.id) ? i : -1)).filter((i) => i >= 0);
+  const byId = new Map(all.map((l) => [l.id, l]));
+  const next = [...all];
+  slots.forEach((slot, n) => (next[slot] = byId.get(ids[n])!));
+  await setSetting(key(workspaceId, kind), JSON.stringify(next));
 }
