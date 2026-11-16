@@ -62,8 +62,9 @@ export function Tracker({ slug, tasks, members, roles = [], pages, categories, m
     for (const [role, ts] of legacy) out.push({ key: `legacy:${role}`, name: role, memberId: null, tasks: ts });
     const unassigned = inTab.filter((t) => !t.assignees.length && !t.roleId && !t.ownerRole);
     if (unassigned.length || canEdit) out.push({ key: "none", name: "Anyone", memberId: null, tasks: unassigned });
-    return out.filter((g) => g.tasks.length || (mode === "full" && (g.memberId || g.roleId)));
-  }, [groupBy, inTab, members, roles, canEdit, mode]);
+    // Your own column always shows (even with nothing in this tab), so there is always a place to add a task for yourself.
+    return out.filter((g) => g.tasks.length || (canEdit && g.memberId === me) || (mode === "full" && (g.memberId || g.roleId)));
+  }, [groupBy, inTab, members, roles, canEdit, mode, me]);
 
   const visible = (ts: TaskRow[]) => (hideDone ? ts.filter((t) => !isDone(t)) : ts).sort((a, b) => Number(isDone(a)) - Number(isDone(b)) || rank(a) - rank(b) || a.title.localeCompare(b.title));
 
