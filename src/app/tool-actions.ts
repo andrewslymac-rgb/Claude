@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireAccess } from "@/lib/access";
 import { can, ForbiddenError } from "@/lib/permissions";
-import { addLink, updateLink, removeLink, moveLink, toggleStar, LINK_KINDS, type LinkKind, type LinkInput } from "@/lib/tool-links";
+import { addLink, updateLink, removeLink, moveLink, swapLinks, toggleStar, LINK_KINDS, type LinkKind, type LinkInput } from "@/lib/tool-links";
 
 type Result = { ok: true } | { ok: false; error: string };
 
@@ -64,6 +64,18 @@ export async function updateLinkAction(slug: string, kind: LinkKind, id: string,
   try {
     const { workspace } = await ownerOrAdmin(slug);
     await updateLink(workspace.id, z.enum(LINK_KINDS).parse(kind), z.string().uuid().parse(id), input);
+    revalidatePath(`/w/${slug}`, "layout");
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof z.ZodError ? "That link no longer exists." : (e as Error).message };
+  }
+}
+
+/** Moves a link up or down by swapping it with the one next to it on screen. */
+export async function swapLinksAction(slug: string, kind: LinkKind, a: string, b: string): Promise<Result> {
+  try {
+    const { workspace } = await ownerOrAdmin(slug);
+    await swapLinks(workspace.id, z.enum(LINK_KINDS).parse(kind), z.string().uuid().parse(a), z.string().uuid().parse(b));
     revalidatePath(`/w/${slug}`, "layout");
     return { ok: true };
   } catch (e) {
