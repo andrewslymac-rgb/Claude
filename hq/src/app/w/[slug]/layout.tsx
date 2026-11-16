@@ -10,7 +10,7 @@ import { listTasks } from "@/lib/services/tasks";
 import { listFlags } from "@/lib/services/flags";
 import { countPending } from "@/lib/services/ai-proposals";
 import { collectionCounts, listCollections } from "@/lib/drive/sync";
-import { workspaceThemeVars } from "@/lib/theme/workspace-theme";
+import { workspaceThemeVars, workspacePalette } from "@/lib/theme/workspace-theme";
 import { listFeedback } from "@/lib/services/feedback";
 import { listLinks, listStars, withStars } from "@/lib/tool-links";
 
@@ -31,7 +31,7 @@ export default async function WorkspaceLayout({ children, params }: { children: 
   return (
     // The company's color becomes the accent for everything inside it: buttons, active
     // links, badges, the icon tile. Lightened a touch so it reads well on the dark theme.
-    <div data-ws-theme className="bg-paper text-ink" style={workspaceThemeVars(workspace.color) as React.CSSProperties}>
+    <div data-ws-theme data-ws-palette={workspacePalette(workspace.slug)} className="bg-paper text-ink" style={workspaceThemeVars(workspace.color) as React.CSSProperties}>
       <ToastProvider>
       <MobileShell title={workspace.name} icon={workspace.icon} slug={workspace.slug} overdue={tasks.filter((t) => t.state === "overdue").length} attention={attention} sidebar={
       <Sidebar

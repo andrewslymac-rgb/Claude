@@ -12,3 +12,13 @@ export const BRAND_SWATCHES = ["#6366f1", "#8b5cf6", "#d946ef", "#ec4899", "#ef4
 
 export type ThemeChoice = "dark" | "light" | "system";
 export const THEME_COOKIE = "orbit_theme";
+
+/**
+ * Companies with their own fixed look. These replace the brand-color tint and look the same
+ * whether a person has Orbit in light or dark mode. Other companies keep the brand color.
+ */
+const PALETTES: Record<string, "lavender" | "forest"> = {
+  "lemon-and-lavender": "lavender",
+  "adapt-pest-pros": "forest",
+};
+export const workspacePalette = (slug: string) => PALETTES[slug];

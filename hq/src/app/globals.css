@@ -74,6 +74,58 @@ html[data-theme="light"] [data-ws-theme] {
   --color-line: color-mix(in oklab, #dde1ec 85%, var(--ws-accent, #6366f1) 15%);
 }
 
+/* --- Company palettes. A company with its own palette looks the same in light and dark mode.
+   ":root [data-ws-theme][data-ws-palette=…]" outranks both theme rules above. */
+
+/* Lemon and Lavender Cleaning Co.: bright, airy, lavender highlights (from the website's colors). */
+:root [data-ws-theme][data-ws-palette="lavender"] {
+  --color-ink: #1c1535; /* midnight purple */
+  --color-ink-soft: #5e5878; /* muted purple-gray */
+  --color-ink-faint: #8c86a6;
+  --color-paper: #fbf9fe;
+  --color-side: #f1ecf9; /* soft lavender */
+  --color-card: #ffffff;
+  --color-line: #e3dcf0;
+  --color-hover: #ebe4f6;
+  --color-accent: #6b5594; /* lavender purple */
+  --color-accent-soft: #6b559424;
+  --color-danger: #c53b5c;
+  --color-danger-soft: #e2557a1c;
+  --color-ok: #2f8a5b;
+  --color-ok-soft: #2f8a5b18;
+  --color-warn: #a2700f;
+  --color-warn-soft: #fcd23233; /* lemon */
+  --shadow-card: 0 1px 2px rgb(28 21 53 / 0.05), 0 10px 30px -22px rgb(28 21 53 / 0.22);
+  --shadow-pop: 0 1px 2px rgb(28 21 53 / 0.06), 0 24px 60px -24px rgb(28 21 53 / 0.32);
+  color-scheme: light;
+}
+:root [data-ws-theme][data-ws-palette="lavender"] .btn-primary { color: #fff; }
+:root [data-ws-theme][data-ws-palette="lavender"] .card { background: var(--color-card); }
+
+/* Adapt Pest Pros: shades of dark green (deep forest, hero green, primary green #268257). */
+:root [data-ws-theme][data-ws-palette="forest"] {
+  --color-ink: #eef6f1;
+  --color-ink-soft: #a7c3b3;
+  --color-ink-faint: #6f8e7c;
+  --color-paper: #0f1f17; /* deep forest */
+  --color-side: #0b1711;
+  --color-card: #15291f;
+  --color-line: #234030;
+  --color-hover: #1b3428;
+  --color-accent: #4cba86; /* primary green, lifted so it reads on dark */
+  --color-accent-soft: #26825740;
+  --color-danger: #ff8a8a;
+  --color-danger-soft: #ff6b6b22;
+  --color-ok: #7fd9a5;
+  --color-ok-soft: #3dd68c22;
+  --color-warn: #f7c66b;
+  --color-warn-soft: #f59e0b22;
+  --shadow-card: 0 1px 0 color-mix(in srgb, white 4%, transparent) inset, 0 10px 30px -22px rgb(0 0 0 / 0.8);
+  --shadow-pop: 0 1px 0 color-mix(in srgb, white 6%, transparent) inset, 0 24px 60px -24px rgb(0 0 0 / 0.9);
+  color-scheme: dark;
+}
+:root [data-ws-theme][data-ws-palette="forest"] .btn-primary { color: #0b1711; }
+
 /* iPhone notch / home indicator. The app draws edge to edge (viewport-fit=cover), so bars pad themselves. */
 .pt-safe { padding-top: env(safe-area-inset-top, 0px); }
 .pb-safe { padding-bottom: env(safe-area-inset-bottom, 0px); }
