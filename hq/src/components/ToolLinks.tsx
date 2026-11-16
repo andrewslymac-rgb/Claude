@@ -13,7 +13,7 @@ const WORDS: Record<Kind, { section: string; placeholder: string; describe: stri
   tools: { section: "Tools", placeholder: "Name, e.g. Schedule Planner", describe: "What it's for and when to use it (optional)", addMore: "Add another tool", addFirst: "Add a tool (e.g. the Schedule Planner)" },
   reports: { section: "Reports", placeholder: "Name, e.g. Weekly sales report", describe: "What it shows and how often to check it (optional)", addMore: "Add another report", addFirst: "Add a report link" },
   links: { section: "Websites", placeholder: "Name, e.g. Google Business Profile", describe: "What the team uses it for (optional)", addMore: "Add another website", addFirst: "Add a link to a website you use" },
-  docs: { section: "Documents", placeholder: "Name, e.g. Price sheet", describe: "What's in it and who it's for (optional)", addMore: "Add another document", addFirst: "Add a link to a document (Google Doc, Sheet, PDF…)" },
+  docs: { section: "Important Document Links", placeholder: "Name, e.g. Price sheet", describe: "What's in it and who it's for (optional)", addMore: "Add another document", addFirst: "Add a link to a document (Google Doc, Sheet, PDF…)" },
   customer_docs: { section: "Customer Facing Documents", placeholder: "Name, e.g. Flex House one-pager", describe: "What it is and when to send it to a customer (optional)", addMore: "Add another customer document", addFirst: "Add a document you share with customers" },
 };
 

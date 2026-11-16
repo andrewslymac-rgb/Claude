@@ -18,7 +18,7 @@ export default async function LinksPage({ params }: { params: Promise<{ slug: st
     <div className="mx-auto max-w-3xl space-y-6 px-4 py-6 md:px-8 md:py-10">
       <PageHeader eyebrow={workspace.name} title="Quick Links" icon={<Link2 size={22} className="text-accent" />} subtitle="Documents and websites the team uses. Star the ones you use most to keep them in your menu." />
       <section className="space-y-2">
-        <h2 className="section-title">Documents</h2>
+        <h2 className="section-title">Important Document Links</h2>
         <ToolLinks slug={slug} links={withStars(docs, stars)} kind="docs" canManage={canManage} />
       </section>
       <section className="space-y-2">
