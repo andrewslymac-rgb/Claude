@@ -12,7 +12,7 @@ export default async function LinksPage({ params }: { params: Promise<{ slug: st
   const { slug } = await params;
   const { workspace, abilities, user } = await requireWorkspacePage(slug);
   const stars = await listStars(user.id, workspace.id);
-  const [sites, docs] = await Promise.all([listLinks(workspace.id, "links"), listLinks(workspace.id, "docs")]);
+  const [sites, docs, customerDocs] = await Promise.all([listLinks(workspace.id, "links"), listLinks(workspace.id, "docs"), listLinks(workspace.id, "customer_docs")]);
   const canManage = can(abilities, "view_dashboards");
   return (
     <div className="mx-auto max-w-3xl space-y-6 px-4 py-6 md:px-8 md:py-10">
@@ -20,6 +20,10 @@ export default async function LinksPage({ params }: { params: Promise<{ slug: st
       <section className="space-y-2">
         <h2 className="section-title">Documents</h2>
         <ToolLinks slug={slug} links={withStars(docs, stars)} kind="docs" canManage={canManage} />
+      </section>
+      <section className="space-y-2">
+        <h2 className="section-title">Customer Facing Documents</h2>
+        <ToolLinks slug={slug} links={withStars(customerDocs, stars)} kind="customer_docs" canManage={canManage} />
       </section>
       <section className="space-y-2">
         <h2 className="section-title">Websites</h2>

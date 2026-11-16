@@ -49,10 +49,10 @@ export async function toggleLinkStarAction(slug: string, linkId: string): Promis
   }
 }
 
-export async function moveLinkAction(slug: string, from: LinkKind, id: string): Promise<Result> {
+export async function moveLinkAction(slug: string, from: LinkKind, to: LinkKind, id: string): Promise<Result> {
   try {
     const { workspace } = await ownerOrAdmin(slug);
-    await moveLink(workspace.id, z.enum(LINK_KINDS).parse(from), z.string().uuid().parse(id));
+    await moveLink(workspace.id, z.enum(LINK_KINDS).parse(from), z.enum(LINK_KINDS).parse(to), z.string().uuid().parse(id));
     revalidatePath(`/w/${slug}`, "layout");
     return { ok: true };
   } catch (e) {

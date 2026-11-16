@@ -6,13 +6,15 @@ import { addLinkAction, moveLinkAction, removeLinkAction, toggleLinkStarAction, 
 import { useToast } from "@/components/ui/Toast";
 
 type Link = { id: string; label: string; url: string; description?: string; starred?: boolean };
-type Kind = "tools" | "reports" | "links" | "docs";
+type Kind = "tools" | "reports" | "links" | "docs" | "customer_docs";
+const MOVE_TO: Record<Kind, Kind[]> = { tools: ["reports"], reports: ["tools"], docs: ["customer_docs", "links"], customer_docs: ["docs", "links"], links: ["docs", "customer_docs"] };
 
-const WORDS: Record<Kind, { section: string; other: string; placeholder: string; describe: string; addMore: string; addFirst: string }> = {
-  tools: { section: "Tools", other: "Reports", placeholder: "Name, e.g. Schedule Planner", describe: "What it's for and when to use it (optional)", addMore: "Add another tool", addFirst: "Add a tool (e.g. the Schedule Planner)" },
-  reports: { section: "Reports", other: "Tools", placeholder: "Name, e.g. Weekly sales report", describe: "What it shows and how often to check it (optional)", addMore: "Add another report", addFirst: "Add a report link" },
-  links: { section: "Websites", other: "Documents", placeholder: "Name, e.g. Google Business Profile", describe: "What the team uses it for (optional)", addMore: "Add another website", addFirst: "Add a link to a website you use" },
-  docs: { section: "Documents", other: "Websites", placeholder: "Name, e.g. Price sheet", describe: "What's in it and who it's for (optional)", addMore: "Add another document", addFirst: "Add a link to a document (Google Doc, Sheet, PDF…)" },
+const WORDS: Record<Kind, { section: string; placeholder: string; describe: string; addMore: string; addFirst: string }> = {
+  tools: { section: "Tools", placeholder: "Name, e.g. Schedule Planner", describe: "What it's for and when to use it (optional)", addMore: "Add another tool", addFirst: "Add a tool (e.g. the Schedule Planner)" },
+  reports: { section: "Reports", placeholder: "Name, e.g. Weekly sales report", describe: "What it shows and how often to check it (optional)", addMore: "Add another report", addFirst: "Add a report link" },
+  links: { section: "Websites", placeholder: "Name, e.g. Google Business Profile", describe: "What the team uses it for (optional)", addMore: "Add another website", addFirst: "Add a link to a website you use" },
+  docs: { section: "Documents", placeholder: "Name, e.g. Price sheet", describe: "What's in it and who it's for (optional)", addMore: "Add another document", addFirst: "Add a link to a document (Google Doc, Sheet, PDF…)" },
+  customer_docs: { section: "Customer Facing Documents", placeholder: "Name, e.g. Flex House one-pager", describe: "What it is and when to send it to a customer (optional)", addMore: "Add another customer document", addFirst: "Add a document you share with customers" },
 };
 
 const host = (u: string) => {
@@ -57,6 +59,7 @@ export function ToolLinks({ slug, links, kind = "tools", canManage = true }: { s
   const w = WORDS[kind];
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState<string | null>(null);
+  const [moving, setMoving] = useState<string | null>(null);
   const [busy, start] = useTransition();
   const toast = useToast();
   const run = (fn: () => Promise<{ ok: boolean; error?: string }>, after?: () => void) =>
@@ -67,7 +70,7 @@ export function ToolLinks({ slug, links, kind = "tools", canManage = true }: { s
     });
   const nStarred = links.filter((l) => l.starred).length;
   const groupHead = (text: string) => <div className="eyebrow bg-side/40 px-4 py-2">{text}</div>;
-  const Icon = kind === "docs" ? FileText : ExternalLink;
+  const Icon = kind === "docs" || kind === "customer_docs" ? FileText : ExternalLink;
   return (
     <div className="card divide-y divide-line">
       {links.map((l, i) => (
@@ -102,9 +105,15 @@ export function ToolLinks({ slug, links, kind = "tools", canManage = true }: { s
                     <button onClick={() => (setAdding(false), setEditing(l.id))} disabled={busy} className="tap-icon rounded-lg p-2 text-ink-faint hover:bg-hover hover:text-ink" aria-label={`Edit ${l.label}`} title="Edit name, address or description">
                       <Pencil size={16} />
                     </button>
-                    <button onClick={() => run(() => moveLinkAction(slug, kind, l.id))} disabled={busy} className="tap-icon rounded-lg p-2 text-ink-faint hover:bg-hover hover:text-ink" aria-label={`Move ${l.label} to ${w.other}`} title={`Move to ${w.other}`}>
-                      <ArrowLeftRight size={16} />
-                    </button>
+                    {MOVE_TO[kind].length === 1 ? (
+                      <button onClick={() => run(() => moveLinkAction(slug, kind, MOVE_TO[kind][0], l.id))} disabled={busy} className="tap-icon rounded-lg p-2 text-ink-faint hover:bg-hover hover:text-ink" aria-label={`Move ${l.label} to ${WORDS[MOVE_TO[kind][0]].section}`} title={`Move to ${WORDS[MOVE_TO[kind][0]].section}`}>
+                        <ArrowLeftRight size={16} />
+                      </button>
+                    ) : (
+                      <button onClick={() => setMoving(moving === l.id ? null : l.id)} disabled={busy} className={`tap-icon rounded-lg p-2 hover:bg-hover hover:text-ink ${moving === l.id ? "text-ink" : "text-ink-faint"}`} aria-label={`Move ${l.label}`} aria-expanded={moving === l.id} title="Move to another list">
+                        <ArrowLeftRight size={16} />
+                      </button>
+                    )}
                     <button
                       onClick={() => confirm(`Remove "${l.label}" from ${w.section}?`) && run(() => removeLinkAction(slug, kind, l.id))}
                       disabled={busy}
@@ -116,6 +125,17 @@ export function ToolLinks({ slug, links, kind = "tools", canManage = true }: { s
                   </>
                 )}
               </div>
+            </div>
+          )}
+          {moving === l.id && editing !== l.id && (
+            <div className="flex flex-wrap items-center gap-2 px-4 pb-3 text-sm">
+              <span className="text-ink-soft">Move to:</span>
+              {MOVE_TO[kind].map((to) => (
+                <button key={to} onClick={() => run(() => moveLinkAction(slug, kind, to, l.id), () => setMoving(null))} disabled={busy} className="btn btn-secondary btn-sm">
+                  {WORDS[to].section}
+                </button>
+              ))}
+              <button onClick={() => setMoving(null)} className="btn btn-ghost btn-sm">Cancel</button>
             </div>
           )}
         </div>
