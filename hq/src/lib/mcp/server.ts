@@ -184,16 +184,27 @@ export function buildServer(p: AiPrincipal) {
     return text(flags.map((f) => `- [${f.severity}] ${f.title} (${f.type.replace("_", " ")}${f.pageTitle ? `, about "${f.pageTitle}"` : ""})${f.whatWeFound ? `\n  ${f.whatWeFound}` : ""}`).join("\n"));
   });
 
-  server.registerTool("get_dashboard", { title: "Dashboard summary", description: "What the workspace home shows: tasks needing attention, documents due for review, open flags, and the company's Links.", inputSchema: {} }, async () => {
-    const [tasks, docs, flags, links] = await Promise.all([tasksSvc.listTasks(ws), pagesSvc.listLibrary(ws), flagsSvc.listFlags(ws), listLinks(ws, "links")]);
+  server.registerTool("get_dashboard", { title: "Dashboard summary", description: "What the workspace home shows: tasks needing attention, documents due for review, open flags, and the company's menu links (Tools, Quick Links, and Reports for owners and admins) with their descriptions.", inputSchema: {} }, async () => {
+    const isAdmin = Boolean(await workspaceForUser(p.userId, wsSlug, "admin"));
+    const [tasks, docs, flags, lists] = await Promise.all([
+      tasksSvc.listTasks(ws),
+      pagesSvc.listLibrary(ws),
+      flagsSvc.listFlags(ws),
+      Promise.all((["tools", ...(isAdmin ? (["reports"] as const) : []), "docs", "customer_docs", "links"] as const).map(async (k) => [k, await listLinks(ws, k)] as const)),
+    ]);
     const attention = tasks.filter((t) => t.state === "overdue" || t.state === "today");
+    const NAMES = { tools: "Tools", reports: "Reports", docs: "Quick Links / Important Document Links", customer_docs: "Quick Links / Customer Facing Documents", links: "Quick Links / Websites" } as const;
+    const menu = lists
+      .filter(([, l]) => l.length)
+      .map(([k, l]) => `${NAMES[k]}:\n${l.map((x) => `- ${x.label} (${x.url})${x.description ? ` — ${x.description}` : " — no description"}`).join("\n")}`)
+      .join("\n\n");
     return text(
       [
         `# ${wsName}`,
         `Tasks needing attention: ${attention.length}${attention.length ? "\n" + attention.map((t) => `- ${t.title} (${DUE_LABELS[t.state].label})`).join("\n") : ""}`,
         `Documents: ${docs.length} (${docs.filter((d) => d.docStatus === "needs_review").length} need review)`,
         `Open flags: ${flags.filter((f) => f.status === "open").length}`,
-        links.length ? `Links: ${links.map((l) => `${l.label} (${l.url})`).join(", ")}` : "",
+        menu ? `Menu links\n\n${menu}` : "",
       ].join("\n\n"),
     );
   });
