@@ -22,7 +22,8 @@ export default async function WorkspaceLayout({ children, params }: { children: 
   const openFlags = flags.filter((f) => f.status === "open").length;
   // Tools and Reports links: owners and admins only.
   const stars = await listStars(user.id, workspace.id);
-  const toolLinks = can(abilities, "view_dashboards") ? withStars(await listLinks(workspace.id, "tools"), stars) : null;
+  // Tools: everyone in the company. Reports: owners and admins only.
+  const toolLinks = withStars(await listLinks(workspace.id, "tools"), stars);
   const reportLinks = can(abilities, "view_dashboards") ? withStars(await listLinks(workspace.id, "reports"), stars) : null;
   // Links: everyone in the company sees them; owners and admins add and remove.
   const links = withStars(await listLinks(workspace.id, "links"), stars);
