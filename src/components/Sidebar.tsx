@@ -142,7 +142,7 @@ export function Sidebar(props: { workspace: Ws; workspaces: Ws[]; tree: Node[]; 
           href={`${base}/links`}
           active={pathname === `${base}/links`}
           groups={[
-            { label: "Documents", doc: true, items: props.docLinks ?? [] },
+            { label: "Important Document Links", doc: true, items: props.docLinks ?? [] },
             { label: "Customer Facing Documents", doc: true, items: props.customerDocLinks ?? [] },
             { label: "Websites", items: props.links ?? [] },
           ]}
