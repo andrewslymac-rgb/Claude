@@ -129,22 +129,24 @@ export function Sidebar(props: { workspace: Ws; workspaces: Ws[]; tree: Node[]; 
 
       {/* Tools, Reports and Quick Links (everyone): fold-out sections; the name opens the full page. */}
       {props.toolLinks && (props.toolLinks.length > 0 || props.canManageLinks) && (
-        <MenuLinkSection id="tools" title="Tools" icon={<Wrench size={11} />} href={`${base}/tools`} active={pathname === `${base}/tools`} groups={[{ items: props.toolLinks }]} footer={{ label: props.toolLinks.length ? "See all with details" : "Add a tool", href: `${base}/tools` }} />
+        <MenuLinkSection id="tools" slug={workspace.slug} canManage={props.canManageLinks} title="Tools" icon={<Wrench size={11} />} href={`${base}/tools`} active={pathname === `${base}/tools`} groups={[{ kind: "tools", items: props.toolLinks }]} footer={{ label: props.toolLinks.length ? "See all with details" : "Add a tool", href: `${base}/tools` }} />
       )}
       {props.reportLinks && (props.reportLinks.length > 0 || props.canManageLinks) && (
-        <MenuLinkSection id="reports" title="Reports" icon={<BarChart3 size={11} />} href={`${base}/reports`} active={pathname === `${base}/reports`} groups={[{ items: props.reportLinks }]} footer={{ label: props.reportLinks.length ? "See all with details" : "Add a report", href: `${base}/reports` }} />
+        <MenuLinkSection id="reports" slug={workspace.slug} canManage={props.canManageLinks} title="Reports" icon={<BarChart3 size={11} />} href={`${base}/reports`} active={pathname === `${base}/reports`} groups={[{ kind: "reports", items: props.reportLinks }]} footer={{ label: props.reportLinks.length ? "See all with details" : "Add a report", href: `${base}/reports` }} />
       )}
       {((props.links?.length ?? 0) + (props.docLinks?.length ?? 0) + (props.customerDocLinks?.length ?? 0) > 0 || props.canManageLinks) && (
         <MenuLinkSection
           id="links"
+          slug={workspace.slug}
+          canManage={props.canManageLinks}
           title="Quick Links"
           icon={<Link2 size={11} />}
           href={`${base}/links`}
           active={pathname === `${base}/links`}
           groups={[
-            { label: "Important Document Links", doc: true, items: props.docLinks ?? [] },
-            { label: "Customer Facing Documents", doc: true, items: props.customerDocLinks ?? [] },
-            { label: "Websites", items: props.links ?? [] },
+            { label: "Important Document Links", doc: true, kind: "docs", items: props.docLinks ?? [] },
+            { label: "Customer Facing Documents", doc: true, kind: "customer_docs", items: props.customerDocLinks ?? [] },
+            { label: "Websites", kind: "links", items: props.links ?? [] },
           ]}
           footer={{ label: (props.links?.length ?? 0) + (props.docLinks?.length ?? 0) + (props.customerDocLinks?.length ?? 0) ? "See all with details" : "Add a link", href: `${base}/links` }}
         />

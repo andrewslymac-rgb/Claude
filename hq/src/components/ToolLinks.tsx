@@ -1,8 +1,11 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { ArrowDown, ArrowLeftRight, ArrowUp, ExternalLink, FileText, Pencil, Plus, Star, Trash2 } from "lucide-react";
-import { addLinkAction, moveLinkAction, removeLinkAction, swapLinksAction, toggleLinkStarAction, updateLinkAction } from "@/app/tool-actions";
+import { useEffect, useState, useTransition } from "react";
+import { DndContext, closestCenter, MouseSensor, TouchSensor, KeyboardSensor, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
+import { SortableContext, arrayMove, verticalListSortingStrategy, useSortable, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { ArrowLeftRight, ExternalLink, FileText, GripVertical, Pencil, Plus, Star, Trash2 } from "lucide-react";
+import { addLinkAction, moveLinkAction, removeLinkAction, reorderLinksAction, toggleLinkStarAction, updateLinkAction } from "@/app/tool-actions";
 import { useToast } from "@/components/ui/Toast";
 
 type Link = { id: string; label: string; url: string; description?: string; starred?: boolean };
@@ -54,9 +57,28 @@ function LinkForm({ kind, initial, saveLabel, busy, onSave, onCancel }: { kind: 
   );
 }
 
+/** One draggable row. The grip is the only drag handle, so links and buttons still click normally. */
+function SortableRow({ id, enabled, children }: { id: string; enabled: boolean; children: (handle: React.ReactNode) => React.ReactNode }) {
+  const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({ id, disabled: !enabled });
+  const handle = enabled ? (
+    <button ref={setActivatorNodeRef} {...attributes} {...listeners} className="mt-3 ml-1 flex h-8 w-6 shrink-0 cursor-grab touch-none items-center justify-center rounded text-ink-faint hover:bg-hover hover:text-ink active:cursor-grabbing" aria-label="Drag to reorder" title="Drag to reorder">
+      <GripVertical size={16} />
+    </button>
+  ) : null;
+  return (
+    <div ref={setNodeRef} style={{ transform: CSS.Transform.toString(transform), transition }} className={`relative bg-card ${isDragging ? "z-10 rounded-lg shadow-xl ring-1 ring-line" : ""}`}>
+      {children(handle)}
+    </div>
+  );
+}
+
 /** One list of menu links with descriptions: Tools, Reports, Websites or Documents. Only owners and admins can add, edit, move or remove. */
-export function ToolLinks({ slug, links, kind = "tools", canManage = true }: { slug: string; links: Link[]; kind?: Kind; canManage?: boolean }) {
+export function ToolLinks({ slug, links: initial, kind = "tools", canManage = true }: { slug: string; links: Link[]; kind?: Kind; canManage?: boolean }) {
   const w = WORDS[kind];
+  // Local copy so a drop shows instantly; refreshed whenever the server sends a new list.
+  const [links, setLinks] = useState(initial);
+  useEffect(() => setLinks(initial), [initial]);
+  const sensors = useSensors(useSensor(MouseSensor, { activationConstraint: { distance: 4 } }), useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 6 } }), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState<string | null>(null);
   const [moving, setMoving] = useState<string | null>(null);
@@ -71,16 +93,30 @@ export function ToolLinks({ slug, links, kind = "tools", canManage = true }: { s
   const nStarred = links.filter((l) => l.starred).length;
   const groupHead = (text: string) => <div className="eyebrow bg-side/40 px-4 py-2">{text}</div>;
   const Icon = kind === "docs" || kind === "customer_docs" ? FileText : ExternalLink;
+  // Drag only reorders within a group (starred or not), since stars are per person but the order is shared.
+  const onDragEnd = (e: DragEndEvent) => {
+    const from = links.findIndex((l) => l.id === e.active.id);
+    const to = e.over ? links.findIndex((l) => l.id === e.over!.id) : -1;
+    if (from < 0 || to < 0 || from === to || Boolean(links[from].starred) !== Boolean(links[to].starred)) return;
+    const next = arrayMove(links, from, to);
+    setLinks(next);
+    const group = next.filter((l) => Boolean(l.starred) === Boolean(links[from].starred)).map((l) => l.id);
+    run(() => reorderLinksAction(slug, kind, group));
+  };
   return (
     <div className="card divide-y divide-line">
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+      <SortableContext items={links.map((l) => l.id)} strategy={verticalListSortingStrategy}>
       {links.map((l, i) => (
-        <div key={l.id}>
+        <SortableRow key={l.id} id={l.id} enabled={canManage && editing !== l.id}>
+        {(handle) => (<>
           {nStarred > 0 && i === 0 && groupHead("Starred")}
           {nStarred > 0 && i === nStarred && groupHead("All others")}
           {editing === l.id ? (
             <LinkForm kind={kind} initial={l} saveLabel="Save" busy={busy} onCancel={() => setEditing(null)} onSave={(v) => run(() => updateLinkAction(slug, kind, l.id, v), () => setEditing(null))} />
           ) : (
             <div className="flex min-h-14 items-start gap-1 pr-2">
+              {handle}
               <a href={l.url} target="_blank" rel="noopener noreferrer" className="flex min-w-0 flex-1 items-start gap-3 px-4 py-3 hover:bg-hover">
                 {l.starred ? <Star size={16} className="mt-0.5 shrink-0 fill-current text-amber-400" /> : <Icon size={16} className="mt-0.5 shrink-0 text-accent" />}
                 <span className="min-w-0">
@@ -102,21 +138,6 @@ export function ToolLinks({ slug, links, kind = "tools", canManage = true }: { s
                 </button>
                 {canManage && (
                   <>
-                    {(() => {
-                      // Neighbours on screen, within the same group (starred or not), so a move is always visible.
-                      const prev = i > 0 && Boolean(links[i - 1].starred) === Boolean(l.starred) ? links[i - 1] : null;
-                      const next = i < links.length - 1 && Boolean(links[i + 1].starred) === Boolean(l.starred) ? links[i + 1] : null;
-                      return (
-                        <span className="flex flex-col">
-                          <button onClick={() => prev && run(() => swapLinksAction(slug, kind, l.id, prev.id))} disabled={busy || !prev} className="rounded p-0.5 text-ink-faint hover:bg-hover hover:text-ink disabled:opacity-30" aria-label={`Move ${l.label} up`} title="Move up">
-                            <ArrowUp size={14} />
-                          </button>
-                          <button onClick={() => next && run(() => swapLinksAction(slug, kind, l.id, next.id))} disabled={busy || !next} className="rounded p-0.5 text-ink-faint hover:bg-hover hover:text-ink disabled:opacity-30" aria-label={`Move ${l.label} down`} title="Move down">
-                            <ArrowDown size={14} />
-                          </button>
-                        </span>
-                      );
-                    })()}
                     <button onClick={() => (setAdding(false), setEditing(l.id))} disabled={busy} className="tap-icon rounded-lg p-2 text-ink-faint hover:bg-hover hover:text-ink" aria-label={`Edit ${l.label}`} title="Edit name, address or description">
                       <Pencil size={16} />
                     </button>
@@ -153,8 +174,11 @@ export function ToolLinks({ slug, links, kind = "tools", canManage = true }: { s
               <button onClick={() => setMoving(null)} className="btn btn-ghost btn-sm">Cancel</button>
             </div>
           )}
-        </div>
+        </>)}
+        </SortableRow>
       ))}
+      </SortableContext>
+      </DndContext>
       {!canManage ? (
         links.length ? null : <p className="px-4 py-6 text-sm text-ink-soft">Nothing here yet.</p>
       ) : adding ? (
