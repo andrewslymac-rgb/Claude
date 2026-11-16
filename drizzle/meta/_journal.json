@@ -246,6 +246,20 @@
       "when": 1794788105801,
       "tag": "0034_move_review_request_to_tools",
       "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1794789521822,
+      "tag": "0035_more_link_descriptions",
+      "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1794789544757,
+      "tag": "0036_adapt_request_off_to_reports",
+      "breakpoints": true
     }
   ]
 }

@@ -3,24 +3,24 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Search, FileText, CheckSquare, UserRound, CornerDownLeft } from "lucide-react";
+import { Search, FileText, CheckSquare, UserRound, CornerDownLeft, ExternalLink, MessagesSquare, LayoutGrid } from "lucide-react";
 import { searchAllAction } from "@/app/actions";
 
 type Results = Awaited<ReturnType<typeof searchAllAction>>;
-type Row = { key: string; kind: "page" | "task" | "person"; title: string; sub?: string; icon: React.ReactNode; href: string; tag?: string };
+type Row = { key: string; kind: "screen" | "link" | "page" | "task" | "meeting" | "person"; title: string; sub?: string; icon: React.ReactNode; href: string; tag?: string; external?: boolean };
 
-/** ⌘K: pages and SOPs, tasks, and people, with keyboard navigation. */
+/** ⌘K: Orbit screens, menu links (tools, reports, documents, websites), pages and SOPs, tasks, meetings and people, with keyboard navigation. */
 export function SearchPalette({ slug, onClose }: { slug: string; onClose: () => void }) {
   const router = useRouter();
   const [q, setQ] = useState("");
-  const [res, setRes] = useState<Results>({ pages: [], tasks: [], people: [] });
+  const [res, setRes] = useState<Results>({ pages: [], tasks: [], people: [], links: [], meetings: [], screens: [] });
   const [loading, setLoading] = useState(false);
   const [sel, setSel] = useState(0);
   const input = useRef<HTMLInputElement>(null);
 
   useEffect(() => input.current?.focus(), []);
   useEffect(() => {
-    if (!q.trim()) return setRes({ pages: [], tasks: [], people: [] });
+    if (!q.trim()) return setRes({ pages: [], tasks: [], people: [], links: [], meetings: [], screens: [] });
     setLoading(true);
     const t = setTimeout(async () => {
       try {
@@ -35,8 +35,11 @@ export function SearchPalette({ slug, onClose }: { slug: string; onClose: () => 
 
   const rows = useMemo<Row[]>(
     () => [
+      ...res.screens.map((x) => ({ key: `s:${x.href}`, kind: "screen" as const, title: x.title, sub: "Open in Orbit", icon: <LayoutGrid size={15} className="text-ink-faint" />, href: x.href })),
+      ...res.links.map((l) => ({ key: `l:${l.id}`, kind: "link" as const, title: l.label, sub: l.description || l.url, icon: <ExternalLink size={15} className="text-ink-faint" />, href: l.url, tag: l.list, external: true })),
       ...res.pages.map((h) => ({ key: `p:${h.id}`, kind: "page" as const, title: h.title || "Untitled", sub: h.snippet ? `…${h.snippet}…` : undefined, icon: <span className="text-base leading-none">{h.icon ?? "📄"}</span>, href: `/w/${slug}/p/${h.id}`, tag: h.isSop ? "SOP" : undefined })),
       ...res.tasks.map((t) => ({ key: `t:${t.id}`, kind: "task" as const, title: t.title, sub: `${t.frequency} · ${t.who}`, icon: <CheckSquare size={15} className="text-ink-faint" />, href: `/w/${slug}/tasks`, tag: t.state === "overdue" ? "Overdue" : t.state === "today" ? "Today" : undefined })),
+      ...res.meetings.map((m) => ({ key: `m:${m.id}`, kind: "meeting" as const, title: m.series, sub: new Date(m.at).toLocaleString("en-US", { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }), icon: <MessagesSquare size={15} className="text-ink-faint" />, href: `/w/${slug}/meetings/${m.id}` })),
       ...res.people.map((m) => ({ key: `u:${m.id}`, kind: "person" as const, title: m.name, sub: m.roles || m.email, icon: <UserRound size={15} className="text-ink-faint" />, href: m.canOpen ? `/w/${slug}/team/${m.id}` : `/w/${slug}/settings?tab=people` })),
     ],
     [res, slug],
@@ -45,11 +48,15 @@ export function SearchPalette({ slug, onClose }: { slug: string; onClose: () => 
   const open = (r?: Row) => {
     if (!r) return;
     onClose();
-    router.push(r.href);
+    if (r.external) window.open(r.href, "_blank", "noopener,noreferrer");
+    else router.push(r.href);
   };
   const sections: { label: string; kind: Row["kind"]; icon: React.ReactNode }[] = [
+    { label: "Go to", kind: "screen", icon: <LayoutGrid size={11} /> },
+    { label: "Tools & links", kind: "link", icon: <ExternalLink size={11} /> },
     { label: "Pages & SOPs", kind: "page", icon: <FileText size={11} /> },
     { label: "Tasks", kind: "task", icon: <CheckSquare size={11} /> },
+    { label: "Meetings", kind: "meeting", icon: <MessagesSquare size={11} /> },
     { label: "People", kind: "person", icon: <UserRound size={11} /> },
   ];
 
@@ -70,7 +77,7 @@ export function SearchPalette({ slug, onClose }: { slug: string; onClose: () => 
               if (e.key === "ArrowUp") (e.preventDefault(), setSel((s) => Math.max(s - 1, 0)));
               if (e.key === "Enter") open(rows[sel]);
             }}
-            placeholder="Search pages, SOPs, tasks and people…"
+            placeholder="Search everything: tools, links, pages, tasks, meetings, people…"
             className="h-12 flex-1 bg-transparent text-[15px] outline-none placeholder:text-ink-faint"
             aria-label="Search"
           />
@@ -80,7 +87,7 @@ export function SearchPalette({ slug, onClose }: { slug: string; onClose: () => 
           {q.trim() && !loading && rows.length === 0 && <p className="px-3 py-8 text-center text-sm text-ink-faint">No matches for &ldquo;{q}&rdquo;.</p>}
           {!q.trim() && (
             <div className="px-3 py-6 text-center text-sm text-ink-faint">
-              Type to search titles, page text, task names and people.
+              Type to search tools, reports, documents, websites, pages and SOPs, tasks, meetings and people.
               <div className="mt-2 flex justify-center gap-3 text-[11px]">
                 <span><kbd className="kbd">↑↓</kbd> move</span>
                 <span><kbd className="kbd">↵</kbd> open</span>
@@ -106,7 +113,7 @@ export function SearchPalette({ slug, onClose }: { slug: string; onClose: () => 
                           <span className="min-w-0 flex-1">
                             <span className="flex items-center gap-2 text-sm font-medium">
                               <span className="truncate">{r.title}</span>
-                              {r.tag && <span className={`rounded px-1.5 text-[10px] font-semibold ${r.tag === "Overdue" ? "bg-danger-soft text-danger" : "bg-warn-soft text-warn"}`}>{r.tag}</span>}
+                              {r.tag && <span className={`rounded px-1.5 text-[10px] font-semibold ${r.tag === "Overdue" ? "bg-danger-soft text-danger" : r.kind === "link" ? "bg-accent-soft text-accent" : "bg-warn-soft text-warn"}`}>{r.tag}</span>}
                             </span>
                             {r.sub && <span className="block truncate text-xs text-ink-faint">{r.sub}</span>}
                           </span>

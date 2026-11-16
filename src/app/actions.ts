@@ -8,6 +8,7 @@ import { getCurrentUser, destroySession } from "@/lib/auth/session";
 import { can, ForbiddenError } from "@/lib/permissions";
 import { widgetTypeEnum, type Role, type WidgetConfig, type WidgetType } from "@/db/schema";
 import * as pages from "@/lib/services/pages";
+import { listLinks, listStars } from "@/lib/tool-links";
 import * as dash from "@/lib/services/dashboard";
 import * as members from "@/lib/services/members";
 import * as wss from "@/lib/services/workspaces";
@@ -109,18 +110,62 @@ export async function searchAction(slug: string, q: string) {
 }
 
 /** ⌘K search: pages, tasks and people in one go. */
+/** Orbit's own screens, so "calendar" or "settings" finds them in search. */
+const SCREENS = [
+  { title: "Home", path: "", words: "home dashboard" },
+  { title: "Tracker", path: "/tasks", words: "tracker tasks to do checklist" },
+  { title: "Task calendar", path: "/tasks/calendar", words: "task calendar schedule" },
+  { title: "Team", path: "/team", words: "team people progress" },
+  { title: "Meetings", path: "/meetings", words: "meetings notes gemini" },
+  { title: "Flags", path: "/flags", words: "flags issues questions" },
+  { title: "Tools", path: "/tools", words: "tools apps" },
+  { title: "Reports", path: "/reports", words: "reports", admin: true },
+  { title: "Quick Links", path: "/links", words: "quick links documents websites customer facing" },
+  { title: "Document Library", path: "/library", words: "document library documents files drive" },
+  { title: "Settings", path: "/settings", words: "settings people roles integrations company" },
+];
+
 export async function searchAllAction(slug: string, q: string) {
-  const { workspace, abilities } = await requireAbility(slug, "read");
+  const { workspace, abilities, user } = await requireAbility(slug, "read");
   const term = z.string().max(200).parse(q).trim().toLowerCase();
-  if (!term) return { pages: [], tasks: [], people: [] };
-  const [pageHits, allTasks, { members: people }] = await Promise.all([pages.searchPages(workspace.id, term, 8), taskSvc.listTasks(workspace.id), members.listMembers(workspace.id)]);
+  const empty = { pages: [], tasks: [], people: [], links: [], meetings: [], screens: [] };
+  if (!term) return empty;
+  const isAdmin = can(abilities, "view_dashboards");
+  const kinds = (["tools", ...(isAdmin ? (["reports"] as const) : []), "docs", "customer_docs", "links"] as const);
+  const [pageHits, allTasks, { members: people }, linkLists, stars, meetingList] = await Promise.all([
+    pages.searchPages(workspace.id, term, 8),
+    taskSvc.listTasks(workspace.id),
+    members.listMembers(workspace.id),
+    Promise.all(kinds.map(async (k) => [k, await listLinks(workspace.id, k)] as const)),
+    listStars(user.id, workspace.id),
+    import("@/lib/meetings/service").then((m) => m.listMeetings(workspace.id, isAdmin)),
+  ]);
   const tasks = allTasks
     .filter((t) => t.title.toLowerCase().includes(term) || t.instructions.toLowerCase().includes(term))
     .slice(0, 6)
     .map((t) => ({ id: t.id, title: t.title, frequency: t.frequency, state: t.state, who: t.assignees.map((a) => a.name.split(" ")[0]).join(", ") || t.ownerRole || "anyone" }));
   const canSeeTeam = can(abilities, "manage_tasks");
   const matched = people.filter((m) => (m.name ?? "").toLowerCase().includes(term) || m.email.toLowerCase().includes(term)).slice(0, 5).map((m) => ({ id: m.userId, name: m.name ?? m.email, email: m.email, roles: m.jobRoles.map((r) => `${r.emoji} ${r.name}`).join(", "), canOpen: canSeeTeam }));
-  return { pages: pageHits, tasks, people: matched };
+  const LIST_NAME = { tools: "Tools", reports: "Reports", docs: "Important Document Links", customer_docs: "Customer Facing Documents", links: "Websites" } as const;
+  const host = (u: string) => {
+    try {
+      return new URL(u).hostname.replace(/^www\./, "");
+    } catch {
+      return "";
+    }
+  };
+  const links = linkLists
+    .flatMap(([k, list]) => list.map((l) => ({ ...l, list: LIST_NAME[k] })))
+    .filter((l) => `${l.label} ${l.description ?? ""} ${host(l.url)}`.toLowerCase().includes(term))
+    .sort((a, b) => Number(b.label.toLowerCase().includes(term)) - Number(a.label.toLowerCase().includes(term)) || Number(stars.includes(b.id)) - Number(stars.includes(a.id)))
+    .slice(0, 8)
+    .map((l) => ({ id: l.id, label: l.label, url: l.url, list: l.list, description: l.description ?? "" }));
+  const meetingsHit = meetingList
+    .filter((m) => `${m.series} ${m.summary}`.toLowerCase().includes(term))
+    .slice(0, 5)
+    .map((m) => ({ id: m.id, series: m.series, at: m.occurredAt.toISOString() }));
+  const screens = SCREENS.filter((s) => (!s.admin || isAdmin) && `${s.title} ${s.words}`.toLowerCase().includes(term)).map((s) => ({ title: s.title, href: `/w/${slug}${s.path}` }));
+  return { pages: pageHits, tasks, people: matched, links, meetings: meetingsHit, screens };
 }
 
 type Result = { ok: true; message?: string } | { ok: false; error: string };
