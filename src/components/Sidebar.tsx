@@ -23,7 +23,7 @@ type Node = { id: string; parentId: string | null; title: string; icon: string |
 export type ToolLinkNav = { id: string; label: string; url: string; starred?: boolean }[];
 export type CollectionNav = { id: string; label: string; icon: string; count: number; rootPageId: string | null };
 
-export function Sidebar(props: { workspace: Ws; workspaces: Ws[]; tree: Node[]; collections: CollectionNav[]; user: { name: string; email: string; isAppAdmin: boolean; firstName?: string | null; lastName?: string | null }; canEdit: boolean; canManage: boolean; attention?: number; overdue: OverdueItem[]; me: string; openFlags?: number; pendingAi?: number; newFeedback?: number; canManageTasks?: boolean; toolLinks?: ToolLinkNav | null; reportLinks?: ToolLinkNav | null; links?: ToolLinkNav; docLinks?: ToolLinkNav; canManageLinks?: boolean }) {
+export function Sidebar(props: { workspace: Ws; workspaces: Ws[]; tree: Node[]; collections: CollectionNav[]; user: { name: string; email: string; isAppAdmin: boolean; firstName?: string | null; lastName?: string | null }; canEdit: boolean; canManage: boolean; attention?: number; overdue: OverdueItem[]; me: string; openFlags?: number; pendingAi?: number; newFeedback?: number; canManageTasks?: boolean; toolLinks?: ToolLinkNav | null; reportLinks?: ToolLinkNav | null; links?: ToolLinkNav; docLinks?: ToolLinkNav; customerDocLinks?: ToolLinkNav; canManageLinks?: boolean }) {
   const { workspace, canEdit, collections } = props;
   const [overdueOpen, setOverdueOpen] = useState(false);
   useEffect(() => {
@@ -134,7 +134,7 @@ export function Sidebar(props: { workspace: Ws; workspaces: Ws[]; tree: Node[]; 
       {props.reportLinks && (
         <MenuLinkSection id="reports" title="Reports" icon={<BarChart3 size={11} />} href={`${base}/reports`} active={pathname === `${base}/reports`} groups={[{ items: props.reportLinks }]} footer={{ label: props.reportLinks.length ? "See all with details" : "Add a report", href: `${base}/reports` }} />
       )}
-      {((props.links?.length ?? 0) + (props.docLinks?.length ?? 0) > 0 || props.canManageLinks) && (
+      {((props.links?.length ?? 0) + (props.docLinks?.length ?? 0) + (props.customerDocLinks?.length ?? 0) > 0 || props.canManageLinks) && (
         <MenuLinkSection
           id="links"
           title="Quick Links"
@@ -143,9 +143,10 @@ export function Sidebar(props: { workspace: Ws; workspaces: Ws[]; tree: Node[]; 
           active={pathname === `${base}/links`}
           groups={[
             { label: "Documents", doc: true, items: props.docLinks ?? [] },
+            { label: "Customer Facing Documents", doc: true, items: props.customerDocLinks ?? [] },
             { label: "Websites", items: props.links ?? [] },
           ]}
-          footer={{ label: (props.links?.length ?? 0) + (props.docLinks?.length ?? 0) ? "See all with details" : "Add a link", href: `${base}/links` }}
+          footer={{ label: (props.links?.length ?? 0) + (props.docLinks?.length ?? 0) + (props.customerDocLinks?.length ?? 0) ? "See all with details" : "Add a link", href: `${base}/links` }}
         />
       )}
 
