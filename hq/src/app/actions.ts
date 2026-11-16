@@ -119,7 +119,7 @@ const SCREENS = [
   { title: "Meetings", path: "/meetings", words: "meetings notes gemini" },
   { title: "Flags", path: "/flags", words: "flags issues questions" },
   { title: "Tools", path: "/tools", words: "tools apps" },
-  { title: "Reports", path: "/reports", words: "reports", admin: true },
+  { title: "Reports", path: "/reports", words: "reports" },
   { title: "Quick Links", path: "/links", words: "quick links documents websites customer facing" },
   { title: "Document Library", path: "/library", words: "document library documents files drive" },
   { title: "Settings", path: "/settings", words: "settings people roles integrations company" },
@@ -131,7 +131,7 @@ export async function searchAllAction(slug: string, q: string) {
   const empty = { pages: [], tasks: [], people: [], links: [], meetings: [], screens: [] };
   if (!term) return empty;
   const isAdmin = can(abilities, "view_dashboards");
-  const kinds = (["tools", ...(isAdmin ? (["reports"] as const) : []), "docs", "customer_docs", "links"] as const);
+  const kinds = ["tools", "reports", "docs", "customer_docs", "links"] as const;
   const [pageHits, allTasks, { members: people }, linkLists, stars, meetingList] = await Promise.all([
     pages.searchPages(workspace.id, term, 8),
     taskSvc.listTasks(workspace.id),
@@ -164,7 +164,7 @@ export async function searchAllAction(slug: string, q: string) {
     .filter((m) => `${m.series} ${m.summary}`.toLowerCase().includes(term))
     .slice(0, 5)
     .map((m) => ({ id: m.id, series: m.series, at: m.occurredAt.toISOString() }));
-  const screens = SCREENS.filter((s) => (!s.admin || isAdmin) && `${s.title} ${s.words}`.toLowerCase().includes(term)).map((s) => ({ title: s.title, href: `/w/${slug}${s.path}` }));
+  const screens = SCREENS.filter((s) => `${s.title} ${s.words}`.toLowerCase().includes(term)).map((s) => ({ title: s.title, href: `/w/${slug}${s.path}` }));
   return { pages: pageHits, tasks, people: matched, links, meetings: meetingsHit, screens };
 }
 

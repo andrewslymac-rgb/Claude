@@ -184,13 +184,12 @@ export function buildServer(p: AiPrincipal) {
     return text(flags.map((f) => `- [${f.severity}] ${f.title} (${f.type.replace("_", " ")}${f.pageTitle ? `, about "${f.pageTitle}"` : ""})${f.whatWeFound ? `\n  ${f.whatWeFound}` : ""}`).join("\n"));
   });
 
-  server.registerTool("get_dashboard", { title: "Dashboard summary", description: "What the workspace home shows: tasks needing attention, documents due for review, open flags, and the company's menu links (Tools, Quick Links, and Reports for owners and admins) with their descriptions.", inputSchema: {} }, async () => {
-    const isAdmin = Boolean(await workspaceForUser(p.userId, wsSlug, "admin"));
+  server.registerTool("get_dashboard", { title: "Dashboard summary", description: "What the workspace home shows: tasks needing attention, documents due for review, open flags, and the company's menu links (Tools, Reports and Quick Links) with their descriptions.", inputSchema: {} }, async () => {
     const [tasks, docs, flags, lists] = await Promise.all([
       tasksSvc.listTasks(ws),
       pagesSvc.listLibrary(ws),
       flagsSvc.listFlags(ws),
-      Promise.all((["tools", ...(isAdmin ? (["reports"] as const) : []), "docs", "customer_docs", "links"] as const).map(async (k) => [k, await listLinks(ws, k)] as const)),
+      Promise.all((["tools", "reports", "docs", "customer_docs", "links"] as const).map(async (k) => [k, await listLinks(ws, k)] as const)),
     ]);
     const attention = tasks.filter((t) => t.state === "overdue" || t.state === "today");
     const NAMES = { tools: "Tools", reports: "Reports", docs: "Quick Links / Important Document Links", customer_docs: "Quick Links / Customer Facing Documents", links: "Quick Links / Websites" } as const;
