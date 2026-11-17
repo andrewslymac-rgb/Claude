@@ -20,6 +20,8 @@ export default async function WorkspaceLayout({ children, params }: { children: 
   const [tree, workspaces, tasks, flags, pendingAi, collections, counts, fb] = await Promise.all([listTree(workspace.id), listWorkspacesForUser(user), listTasks(workspace.id), listFlags(workspace.id), countPending(workspace.id), listCollections(workspace.id), collectionCounts(workspace.id), listFeedback(workspace.id)]);
   const attention = tasks.filter((t) => t.state === "overdue" || t.state === "today").length;
   const openFlags = flags.filter((f) => f.status === "open").length;
+  // Meeting action items nobody owns yet: shown as a badge to the people who can assign them.
+  const meetingsToReview = can(abilities, "manage_tasks") ? await import("@/lib/meetings/service").then((m) => m.countToReview(workspace.id, can(abilities, "view_dashboards"))) : 0;
   const stars = await listStars(user.id, workspace.id);
   // Tools and Reports: everyone in the company sees them; owners and admins manage them.
   const toolLinks = withStars(await listLinks(workspace.id, "tools"), stars);
@@ -47,6 +49,7 @@ export default async function WorkspaceLayout({ children, params }: { children: 
         overdue={tasks.filter((t) => t.state === "overdue").map((t) => ({ id: t.id, title: t.title, frequency: t.frequency, whenText: t.whenText, nextDueOn: t.nextDueOn!, assignees: t.assignees.map((a) => a.name), ownerRole: t.ownerRole }))}
         me={user.id}
         openFlags={openFlags}
+        meetingsToReview={meetingsToReview}
         newFeedback={can(abilities, "manage_members") ? fb.filter((f) => f.status === "new").length : 0}
         pendingAi={pendingAi}
         canManageTasks={can(abilities, "manage_tasks")}

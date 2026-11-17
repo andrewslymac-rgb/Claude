@@ -797,7 +797,7 @@ export const meetingSources = pgTable("meeting_sources", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
-export type MeetingNextStep = { owner: string | null; title: string; text: string; taskId?: string | null; /** Marked done in Orbit without a task. */ doneAt?: string | null };
+export type MeetingNextStep = { owner: string | null; title: string; text: string; taskId?: string | null; /** Marked done in Orbit without a task. */ doneAt?: string | null; /** Reviewed and judged not needed. */ dismissedAt?: string | null };
 export type MeetingPart = { title: string; text: string };
 
 /** One meeting, read from its Google Meet "Notes by Gemini" doc. The doc stays the source of truth. */

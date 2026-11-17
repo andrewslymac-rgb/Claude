@@ -1,7 +1,7 @@
 import "server-only";
 import { and, desc, eq, inArray, isNull } from "drizzle-orm";
 import { db, schema } from "@/db";
-import type { Meeting, MeetingNextStep } from "@/db/schema";
+import type { Frequency, Meeting, MeetingNextStep } from "@/db/schema";
 import { exportDocMarkdown, getFile, listChildren, FOLDER, GDOC, SHORTCUT, driveEnabled, type DriveFile } from "@/lib/drive/client";
 import { folderIdFrom } from "@/lib/drive/sync";
 import { getSetting, setSetting } from "@/lib/services/app-settings";
@@ -157,7 +157,7 @@ export async function syncMeetings(workspaceId: string): Promise<MeetingSyncResu
             const [old] = await db.select({ nextSteps: meetings.nextSteps }).from(meetings).where(eq(meetings.id, prev.id));
             values.nextSteps = values.nextSteps.map((n) => {
               const o = old?.nextSteps.find((x) => x.title === n.title && x.owner === n.owner);
-              return { ...n, taskId: o?.taskId ?? null, doneAt: o?.doneAt ?? null };
+              return { ...n, taskId: o?.taskId ?? null, doneAt: o?.doneAt ?? null, dismissedAt: o?.dismissedAt ?? null };
             });
             await db.update(meetings).set(values).where(eq(meetings.id, prev.id));
             res.updated++;
@@ -207,8 +207,13 @@ export async function syncAllMeetings() {
 
 // ---------------------------------------------------------------- next step → task
 
-/** Turns one next step into a one-off task, assigned to the matched person if there is one. */
-export async function nextStepToTask(workspaceId: string, meetingId: string, index: number, userId: string) {
+export type StepTaskChoice = { assigneeId?: string | null; frequency?: Frequency; dueOn?: string | null };
+
+/**
+ * Turns one next step into a task. With no choice given it's a one-off for the matched person;
+ * a reviewer can instead pick who owns it, how often it repeats and when it's first due.
+ */
+export async function nextStepToTask(workspaceId: string, meetingId: string, index: number, userId: string, choice: StepTaskChoice = {}) {
   const [m] = await db.select().from(meetings).where(and(eq(meetings.workspaceId, workspaceId), eq(meetings.id, meetingId)));
   if (!m) throw new Error("Meeting not found.");
   const step = m.nextSteps[index];
@@ -217,8 +222,8 @@ export async function nextStepToTask(workspaceId: string, meetingId: string, ind
     const [t] = await db.select({ id: tasks.id }).from(tasks).where(and(eq(tasks.id, step.taskId), isNull(tasks.archivedAt)));
     if (t) return t.id;
   }
-  const taskId = await makeTask(m, index, userId, await peopleMap(workspaceId));
-  const next = m.nextSteps.map((s, i) => (i === index ? { ...s, taskId } : s));
+  const taskId = await makeTask(m, index, userId, await peopleMap(workspaceId), choice);
+  const next = m.nextSteps.map((s, i) => (i === index ? { ...s, taskId, dismissedAt: null } : s));
   await db.update(meetings).set({ nextSteps: next }).where(eq(meetings.id, m.id));
   return taskId;
 }
@@ -273,17 +278,18 @@ export async function setAutoTasks(workspaceId: string, on: boolean) {
 }
 
 /** Creates the task for one next step, assigned to the matched person, labelled with the meeting. */
-async function makeTask(m: Meeting, index: number, createdById: string, people: Map<string, string | null>) {
+async function makeTask(m: Meeting, index: number, createdById: string, people: Map<string, string | null>, choice: StepTaskChoice = {}) {
   const step = m.nextSteps[index];
-  const userId = step.owner ? people.get(norm(step.owner)) ?? null : null;
+  const userId = choice.assigneeId !== undefined ? choice.assigneeId : step.owner ? people.get(norm(step.owner)) ?? null : null;
+  const frequency = choice.frequency ?? "once";
   const label = meetingLabel(m);
   const t = await createTask(
     m.workspaceId,
     {
       title: step.title.slice(0, 200),
-      frequency: "once",
+      frequency,
       instructions: [step.text, step.owner ? `Named in the meeting: ${step.owner}.` : "", `From ${label}`, `Full notes: ${m.docUrl}`].filter(Boolean).join("\n\n"),
-      dueOn: addDays(todayISO(), 3),
+      dueOn: choice.dueOn ?? (frequency === "once" ? addDays(todayISO(), 3) : todayISO()),
       assigneeIds: userId ? [userId] : [],
     },
     createdById,
@@ -306,7 +312,7 @@ export async function autoCreateFor(meetingId: string) {
   const next = [...m.nextSteps];
   for (let i = 0; i < next.length; i++) {
     const s = next[i];
-    if (s.taskId || s.doneAt || !s.owner || !people.get(norm(s.owner))) continue;
+    if (s.taskId || s.doneAt || s.dismissedAt || !s.owner || !people.get(norm(s.owner))) continue;
     next[i] = { ...s, taskId: await makeTask({ ...m, nextSteps: next }, i, owner.id, people) };
     made++;
   }
@@ -316,7 +322,7 @@ export async function autoCreateFor(meetingId: string) {
 
 // ---------------------------------------------------------------- next-step status
 
-export type StepStatus = { status: "open" | "task" | "done"; taskDue?: string | null; taskOverdue?: boolean; taskRemoved?: boolean };
+export type StepStatus = { status: "open" | "task" | "done"; taskDue?: string | null; taskOverdue?: boolean; taskRemoved?: boolean; /** Closed as "not needed" rather than done. */ dismissed?: boolean };
 
 /** Open (nobody has it), a live task (with its due date), or done (task done, or marked done here). */
 export async function stepStatuses(list: Meeting[]): Promise<Map<string, StepStatus[]>> {
@@ -329,6 +335,7 @@ export async function stepStatuses(list: Meeting[]): Promise<Map<string, StepSta
     out.set(
       m.id,
       m.nextSteps.map((n) => {
+        if (n.dismissedAt) return { status: "done", dismissed: true };
         if (n.doneAt) return { status: "done" };
         if (!n.taskId) return { status: "open" };
         const t = byId.get(n.taskId);
@@ -345,6 +352,22 @@ export async function stepStatuses(list: Meeting[]): Promise<Map<string, StepSta
 export async function setStepDone(workspaceId: string, meetingId: string, index: number, done: boolean) {
   const [m] = await db.select().from(meetings).where(and(eq(meetings.workspaceId, workspaceId), eq(meetings.id, meetingId)));
   if (!m || !m.nextSteps[index]) throw new Error("That next step no longer exists.");
-  const next = m.nextSteps.map((s, i) => (i === index ? { ...s, doneAt: done ? new Date().toISOString() : null } : s));
+  // Reopening clears both "done" and "not needed".
+  const next = m.nextSteps.map((s, i) => (i === index ? { ...s, doneAt: done ? new Date().toISOString() : null, dismissedAt: null } : s));
   await db.update(meetings).set({ nextSteps: next }).where(eq(meetings.id, m.id));
+}
+
+/** Reviewed and not needed: closes the next step without a task and without calling it done. */
+export async function dismissStep(workspaceId: string, meetingId: string, index: number) {
+  const [m] = await db.select().from(meetings).where(and(eq(meetings.workspaceId, workspaceId), eq(meetings.id, meetingId)));
+  if (!m || !m.nextSteps[index]) throw new Error("That next step no longer exists.");
+  const next = m.nextSteps.map((s, i) => (i === index ? { ...s, dismissedAt: new Date().toISOString(), doneAt: null } : s));
+  await db.update(meetings).set({ nextSteps: next }).where(eq(meetings.id, m.id));
+}
+
+/** How many next steps nobody has dealt with yet (no task, not done, not dismissed). For the menu badge. */
+export async function countToReview(workspaceId: string, seeAll: boolean) {
+  const list = await listMeetings(workspaceId, seeAll);
+  const st = await stepStatuses(list);
+  return list.reduce((n, m) => n + (st.get(m.id) ?? []).filter((s) => s.status === "open").length, 0);
 }

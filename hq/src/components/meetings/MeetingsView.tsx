@@ -23,7 +23,7 @@ export function MeetingsView({ slug, company, isAdmin, canMakeTasks, orbitDriveE
   const [series, setSeries] = useState<string>("all");
   const [person, setPerson] = useState<string>("all");
   const [range, setRange] = useState<"30" | "90" | "all">("90");
-  const [stepView, setStepView] = useState<"open" | "done" | "all">("open");
+  const [stepView, setStepView] = useState<"open" | "task" | "done" | "all">("open");
   const [setup, setSetup] = useState(isAdmin && sources.length === 0);
   const [busy, start] = useTransition();
   const toast = useToast();
@@ -70,9 +70,13 @@ export function MeetingsView({ slug, company, isAdmin, canMakeTasks, orbitDriveE
   });
   // "Still open" = nobody has it yet, or its task isn't done. Oldest first, so forgotten items surface.
   const allSteps = shown.flatMap((m) => m.nextSteps.map((s, i) => ({ m, s, i, st: m.status[i] ?? { status: "open" as const } }))).filter(({ s }) => person === "all" || s.owner === person);
-  const openCount = allSteps.filter(({ st }) => st.status !== "done").length;
+  // "To review" = nobody has dealt with it yet: no task, not done, not dismissed.
+  const openCount = allSteps.filter(({ st }) => st.status === "open").length;
+  const taskCount = allSteps.filter(({ st }) => st.status === "task").length;
   const steps = allSteps
-    .filter(({ st }) => (stepView === "all" ? true : stepView === "done" ? st.status === "done" : st.status !== "done"))
+    .filter(({ st }) => (stepView === "all" ? true : st.status === stepView))
+  const suggest = new Map(names.filter((n) => n.match && n.match !== "none").map((n) => [n.name, n.match]));
+  const stepsSorted = steps
     .sort((a, b) => (stepView === "open" ? a.m.at.localeCompare(b.m.at) : b.m.at.localeCompare(a.m.at)));
   const decisions = shown.flatMap((m) => m.decisions.map((d) => ({ m, d })));
 
@@ -117,7 +121,7 @@ export function MeetingsView({ slug, company, isAdmin, canMakeTasks, orbitDriveE
           <div className="flex gap-1 border-b border-line">
             {([
               ["meetings", "Meetings", <MessagesSquare key="m" size={14} />, shown.length],
-              ["steps", "Next steps", <ListChecks key="s" size={14} />, openCount],
+              ["steps", "To review", <ListChecks key="s" size={14} />, openCount],
               ["decisions", "Decisions", <Gavel key="d" size={14} />, decisions.length],
             ] as const).map(([k, label, icon, n]) => (
               <button key={k} onClick={() => setTab(k)} className={`-mb-px flex min-h-11 items-center gap-1.5 border-b-2 px-3 text-sm ${tab === k ? "border-accent font-medium text-ink" : "border-transparent text-ink-soft hover:text-ink"}`}>
@@ -159,7 +163,7 @@ export function MeetingsView({ slug, company, isAdmin, canMakeTasks, orbitDriveE
                   <h2 className="eyebrow mb-2">{month}</h2>
                   <ul className="card divide-y divide-line">
                     {ms.map((m) => {
-                      const open = m.nextSteps.filter((n) => !n.taskId).length;
+                      const open = m.status.filter((x) => x.status === "open").length;
                       return (
                         <li key={m.id}>
                           <Link href={`/w/${slug}/meetings/${m.id}`} className="flex items-start gap-3 px-4 py-3 hover:bg-hover">
@@ -191,19 +195,19 @@ export function MeetingsView({ slug, company, isAdmin, canMakeTasks, orbitDriveE
           {tab === "steps" && (
             <>
               <div className="flex flex-wrap items-center gap-2">
-                {([["open", `Still open (${openCount})`], ["done", "Done"], ["all", "All"]] as const).map(([k, label]) => (
+                {([["open", `To review (${openCount})`], ["task", `Assigned (${taskCount})`], ["done", "Closed"], ["all", "All"]] as const).map(([k, label]) => (
                   <button key={k} onClick={() => setStepView(k)} className={`min-h-9 rounded-full border px-3 text-sm ${stepView === k ? "border-accent bg-accent-soft text-accent" : "border-line text-ink-soft hover:bg-hover"}`}>{label}</button>
                 ))}
-                {stepView === "open" && <span className="text-xs text-ink-faint">Oldest first. Set the date range to All time to see everything.</span>}
+                {stepView === "open" && <span className="text-xs text-ink-faint">Action items from your meetings that nobody owns yet. Assign each one, mark it done, or close it as not needed. Oldest first.</span>}
               </div>
-              {steps.length ? (
+              {stepsSorted.length ? (
                 <ul className="card divide-y divide-line">
-                  {steps.map(({ m, s, i, st }) => (
-                    <StepRow key={`${m.id}-${i}`} slug={slug} meetingId={m.id} index={i} step={s} status={st} meetingAt={m.at} canMakeTasks={canMakeTasks} meetingLabel={{ href: `/w/${slug}/meetings/${m.id}`, text: `${m.series} · ${fmtDay(m.at)}` }} />
+                  {stepsSorted.map(({ m, s, i, st }) => (
+                    <StepRow key={`${m.id}-${i}`} slug={slug} meetingId={m.id} index={i} step={s} status={st} meetingAt={m.at} canMakeTasks={canMakeTasks} team={team} suggestedId={s.owner ? suggest.get(s.owner) ?? null : null} meetingLabel={{ href: `/w/${slug}/meetings/${m.id}`, text: `${m.series} · ${fmtDay(m.at)}` }} />
                   ))}
                 </ul>
               ) : (
-                <p className="card px-4 py-8 text-center text-sm text-ink-soft">No next steps match.</p>
+                <p className="card px-4 py-8 text-center text-sm text-ink-soft">{stepView === "open" ? "Nothing to review. Every action item has an owner or is closed." : "Nothing here."}</p>
               )}
             </>
           )}

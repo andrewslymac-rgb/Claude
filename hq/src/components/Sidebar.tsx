@@ -23,7 +23,7 @@ type Node = { id: string; parentId: string | null; title: string; icon: string |
 export type ToolLinkNav = { id: string; label: string; url: string; starred?: boolean }[];
 export type CollectionNav = { id: string; label: string; icon: string; count: number; rootPageId: string | null };
 
-export function Sidebar(props: { workspace: Ws; workspaces: Ws[]; tree: Node[]; collections: CollectionNav[]; user: { name: string; email: string; isAppAdmin: boolean; firstName?: string | null; lastName?: string | null }; canEdit: boolean; canManage: boolean; attention?: number; overdue: OverdueItem[]; me: string; openFlags?: number; pendingAi?: number; newFeedback?: number; canManageTasks?: boolean; toolLinks?: ToolLinkNav | null; reportLinks?: ToolLinkNav | null; links?: ToolLinkNav; docLinks?: ToolLinkNav; customerDocLinks?: ToolLinkNav; canManageLinks?: boolean }) {
+export function Sidebar(props: { workspace: Ws; workspaces: Ws[]; tree: Node[]; collections: CollectionNav[]; user: { name: string; email: string; isAppAdmin: boolean; firstName?: string | null; lastName?: string | null }; canEdit: boolean; canManage: boolean; attention?: number; overdue: OverdueItem[]; me: string; openFlags?: number; meetingsToReview?: number; pendingAi?: number; newFeedback?: number; canManageTasks?: boolean; toolLinks?: ToolLinkNav | null; reportLinks?: ToolLinkNav | null; links?: ToolLinkNav; docLinks?: ToolLinkNav; customerDocLinks?: ToolLinkNav; canManageLinks?: boolean }) {
   const { workspace, canEdit, collections } = props;
   const [overdueOpen, setOverdueOpen] = useState(false);
   useEffect(() => {
@@ -123,7 +123,7 @@ export function Sidebar(props: { workspace: Ws; workspaces: Ws[]; tree: Node[]; 
           <span className={props.overdue.length ? "text-danger" : "text-ink-faint"}><AlertTriangle size={16} /></span> <span className="flex-1 text-left">Past due</span>
           {props.overdue.length > 0 && <span className="num rounded-full bg-danger px-1.5 text-[11px] font-semibold text-paper">{props.overdue.length}</span>}
         </button>
-        <NavItem href={`${base}/meetings`} icon={<MessagesSquare size={16} />} label="Meetings" active={pathname.startsWith(`${base}/meetings`)} />
+        <NavItem href={`${base}/meetings`} icon={<MessagesSquare size={16} />} label="Meetings" active={pathname.startsWith(`${base}/meetings`)} badge={props.meetingsToReview || undefined} />
         <NavItem href={`${base}/flags`} icon={<Flag size={16} />} label="Flags" active={pathname.startsWith(`${base}/flags`)} badge={props.openFlags || undefined} />
       </nav>
 

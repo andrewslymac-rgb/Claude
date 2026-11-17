@@ -1083,12 +1083,17 @@ export async function setMeetingSeriesSharedAction(slug: string, series: string,
 }
 
 /** Anyone who can see the meeting and manage tasks can turn a next step into a task. */
-export async function meetingStepToTaskAction(slug: string, meetingId: string, index: number): Promise<Result> {
+export async function meetingStepToTaskAction(slug: string, meetingId: string, index: number, choice?: { assigneeId?: string | null; frequency?: string; dueOn?: string | null }): Promise<Result> {
   return wrap(async () => {
     const { user, workspace, abilities } = await requireAbility(slug, "manage_tasks");
     const m = await import("@/lib/meetings/service");
     if (!(await m.getMeeting(workspace.id, uuid.parse(meetingId), can(abilities, "view_dashboards")))) throw new ForbiddenError();
-    const id = await m.nextStepToTask(workspace.id, meetingId, z.number().int().min(0).max(200).parse(index), user.id);
+    const c = z.object({ assigneeId: uuid.nullable().optional(), frequency: z.enum(["once", "daily", "weekly", "monthly", "quarterly", "annual"]).optional(), dueOn: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional() }).parse(choice ?? {});
+    if (c.assigneeId) {
+      const { members: people } = await members.listMembers(workspace.id);
+      if (!people.some((p) => p.userId === c.assigneeId)) throw new Error("That person isn't in this company.");
+    }
+    const id = await m.nextStepToTask(workspace.id, meetingId, z.number().int().min(0).max(200).parse(index), user.id, c);
     revalidatePath(`/w/${slug}`, "layout");
     return id;
   });
@@ -1123,7 +1128,18 @@ export async function setMeetingStepDoneAction(slug: string, meetingId: string, 
     const m = await import("@/lib/meetings/service");
     if (!(await m.getMeeting(workspace.id, uuid.parse(meetingId), can(abilities, "view_dashboards")))) throw new ForbiddenError();
     await m.setStepDone(workspace.id, meetingId, z.number().int().min(0).max(200).parse(index), done);
-    revalidatePath(`/w/${slug}/meetings`, "layout");
+    revalidatePath(`/w/${slug}`, "layout");
+  });
+}
+
+/** Reviewed and not needed. People who manage tasks decide this. */
+export async function dismissMeetingStepAction(slug: string, meetingId: string, index: number): Promise<Result> {
+  return wrap(async () => {
+    const { workspace, abilities } = await requireAbility(slug, "manage_tasks");
+    const m = await import("@/lib/meetings/service");
+    if (!(await m.getMeeting(workspace.id, uuid.parse(meetingId), can(abilities, "view_dashboards")))) throw new ForbiddenError();
+    await m.dismissStep(workspace.id, meetingId, z.number().int().min(0).max(200).parse(index));
+    revalidatePath(`/w/${slug}`, "layout");
   });
 }
 

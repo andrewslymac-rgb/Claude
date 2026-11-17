@@ -78,7 +78,7 @@ export default async function Home({ params }: { params: Promise<{ slug: string 
                 icon: null,
                 subtitle: m.summary || m.summaryPoints[0]?.title || undefined,
                 updatedAt: m.occurredAt.toISOString(),
-                count: m.nextSteps.filter((n) => !n.taskId).length,
+                count: m.nextSteps.filter((n) => !n.taskId && !n.doneAt && !n.dismissedAt).length,
               })),
             };
           }

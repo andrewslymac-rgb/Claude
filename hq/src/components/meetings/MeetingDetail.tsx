@@ -3,10 +3,10 @@
 import { useRouter } from "next/navigation";
 import { ChevronDown, ChevronLeft, ExternalLink, Gavel, ListChecks, MessagesSquare, Sparkles, Users } from "lucide-react";
 import { useState } from "react";
-import { StepRow, fmtLong, type MeetingView } from "./shared";
+import { StepRow, fmtLong, type MeetingView, type StepPerson } from "./shared";
 
 /** One meeting: the overview, decisions and next steps up top; topic details folded below. */
-export function MeetingDetail({ slug, m, canMakeTasks }: { slug: string; m: MeetingView; canMakeTasks: boolean }) {
+export function MeetingDetail({ slug, m, canMakeTasks, team, suggest }: { slug: string; m: MeetingView; canMakeTasks: boolean; team?: StepPerson[]; suggest?: Record<string, string> }) {
   const router = useRouter();
   const [openTopics, setOpenTopics] = useState<Set<number>>(new Set());
   const toggle = (i: number) => setOpenTopics((s) => (s.has(i) ? (s.delete(i), new Set(s)) : new Set(s.add(i))));
@@ -53,7 +53,7 @@ export function MeetingDetail({ slug, m, canMakeTasks }: { slug: string; m: Meet
           <h2 className="mb-2 flex items-center gap-1.5 text-sm font-semibold"><ListChecks size={14} className="text-accent" /> Next steps <span className="font-normal text-ink-faint">{m.nextSteps.length}</span></h2>
           <ul className="card divide-y divide-line">
             {m.nextSteps.map((s, i) => (
-              <StepRow key={i} slug={slug} meetingId={m.id} index={i} step={s} status={m.status[i]} meetingAt={m.at} canMakeTasks={canMakeTasks} />
+              <StepRow key={i} slug={slug} meetingId={m.id} index={i} step={s} status={m.status[i]} meetingAt={m.at} canMakeTasks={canMakeTasks} team={team} suggestedId={s.owner ? suggest?.[s.owner.trim().toLowerCase().replace(/\s+/g, " ")] ?? null : null} />
             ))}
           </ul>
         </section>
