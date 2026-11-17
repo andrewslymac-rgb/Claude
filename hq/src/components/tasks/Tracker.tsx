@@ -13,12 +13,12 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { PopMenu, MenuItem } from "@/components/ui/Menu";
 
 const TABS: { key: Frequency; label: string }[] = [
+  { key: "once", label: "One-off" },
   { key: "daily", label: "Daily" },
   { key: "weekly", label: "Weekly" },
   { key: "monthly", label: "Monthly" },
   { key: "quarterly", label: "Quarterly" },
   { key: "annual", label: "Annual" },
-  { key: "once", label: "One-off" },
 ];
 
 type Group = { key: string; name: string; memberId: string | null; roleId?: string | null; emoji?: string; color?: string; holders?: string[]; tasks: TaskRow[] };
