@@ -18,6 +18,7 @@ import { storeSnapshot } from "@/lib/integrations/jobber";
 import { workspaceForUser, workspaceForUserBySlug, workspacesForUserId } from "@/lib/services/workspaces";
 import * as driveSync from "@/lib/drive/sync";
 import * as feedbackSvc from "@/lib/services/feedback";
+import * as meetingsSvc from "@/lib/meetings/service";
 
 const MAX_WRITE_CHARS = 60_000;
 
@@ -31,9 +32,9 @@ const fail = (s: string) => ({ content: [{ type: "text" as const, text: s }], is
  */
 export function buildServer(p: AiPrincipal) {
   const server = new McpServer(
-    { name: "Orbit", version: "0.5.0" },
+    { name: "Orbit", version: "0.6.0" },
     {
-      instructions: `You are connected to Orbit, the company headquarters. This connection was made from ${p.workspaceName}, and it reaches every company the signed-in person can open: call list_companies to see them, then pass workspace (the company's slug or name) to any tool to work in a different company. Pages hold SOPs, policies and company knowledge; Google Drive documents are organized into document areas (list_document_areas). Tasks are recurring operations work. Always search before answering questions about policy, and cite the page title. Pages marked "Needs review" or "Draft" may not be approved. Edits to SOPs and policies go to an approval queue for a person to review before they apply; tell the user when that happens.`,
+      instructions: `You are connected to Orbit, the company headquarters. This connection was made from ${p.workspaceName}, and it reaches every company the signed-in person can open: call list_companies to see them, then pass workspace (the company's slug or name) to any tool to work in a different company. Pages hold SOPs, policies and company knowledge; Google Drive documents are organized into document areas (list_document_areas). Tasks are recurring operations work. Meetings hold Google Meet notes: summaries, decisions and next steps (list_meetings, get_meeting); a next step can become a task, be marked done or be closed as not needed. Always search before answering questions about policy, and cite the page title. Pages marked "Needs review" or "Draft" may not be approved. Edits to SOPs and policies go to an approval queue for a person to review before they apply; tell the user when that happens.`,
     },
   );
   const actor: Actor = { type: "ai", tokenId: p.grantId, userId: p.userId };
@@ -45,7 +46,7 @@ export function buildServer(p: AiPrincipal) {
   const can = (s: string) => (p.scopes as string[]).includes(s);
   const link = (id: string) => `${process.env.APP_URL ?? ""}/w/${wsSlug}/p/${id}`;
 
-  const WRITE_TOOLS = new Set(["update_feedback", "add_document_note", "create_page", "update_page", "append_to_page", "create_task", "update_task", "complete_task", "undo_complete_task", "skip_task", "remove_task", "add_task_note", "set_follow_up", "create_flag", "update_flag", "sync_document_area"]);
+  const WRITE_TOOLS = new Set(["meeting_step_to_task", "set_meeting_step", "sync_meetings", "update_feedback", "add_document_note", "create_page", "update_page", "append_to_page", "create_task", "update_task", "complete_task", "undo_complete_task", "skip_task", "remove_task", "add_task_note", "set_follow_up", "create_flag", "update_flag", "sync_document_area"]);
   const SELF_ROUTED = new Set(["update_field_service_snapshot", "list_companies"]);
   const workspaceArg = z.string().max(120).optional().describe("Company slug or name (see list_companies). Omit for the company this connection was made from.");
   const register = server.registerTool.bind(server);
@@ -468,6 +469,123 @@ export function buildServer(p: AiPrincipal) {
         return text(`Dashboard updated for ${target.name}: ${snap.today.length} visits today, ${snap.requestsNew} new requests, ${snap.quotesAwaiting.count} quotes waiting ($${snap.quotesAwaiting.total}), ${snap.invoicesPastDue.count} overdue invoices ($${snap.invoicesPastDue.total}).`);
       },
     );
+  }
+
+  // ------------------------------------------------------------------ meetings
+  // Owners and admins see every meeting; everyone else only the meeting types shared with the team.
+  const seesAllMeetings = async () => Boolean(await workspaceForUser(p.userId, wsSlug, "admin"));
+  const stepLabel = (s: meetingsSvc.StepStatus | undefined) =>
+    !s || s.status === "open" ? (s?.taskRemoved ? "to review (its task was removed)" : "to review") : s.status === "task" ? `task${s.taskDue ? `, due ${fmtDate(s.taskDue)}` : ""}${s.taskOverdue ? " (overdue)" : ""}` : s.dismissed ? "not needed" : "done";
+  const meetingLink = (id: string) => `${process.env.APP_URL ?? ""}/w/${wsSlug}/meetings/${id}`;
+
+  server.registerTool(
+    "list_meetings",
+    {
+      title: "List meetings",
+      description: "Meeting notes synced from Google Meet, newest first: id, meeting type, date, attendees and how many next steps still need review. Filter by meeting type, date range, or only meetings with next steps to review.",
+      inputSchema: {
+        series: z.string().max(200).optional().describe("Meeting type (series) name, or part of it"),
+        from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+        to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+        to_review_only: z.boolean().optional().describe("Only meetings with next steps nobody has dealt with yet"),
+        limit: z.number().int().min(1).max(100).optional(),
+      },
+    },
+    async ({ series, from, to, to_review_only, limit }) => {
+      let list = await meetingsSvc.listMeetings(ws, await seesAllMeetings());
+      if (series) list = list.filter((m) => m.series.toLowerCase().includes(series.toLowerCase()));
+      if (from) list = list.filter((m) => m.occurredAt.toISOString().slice(0, 10) >= from);
+      if (to) list = list.filter((m) => m.occurredAt.toISOString().slice(0, 10) <= to);
+      const st = await meetingsSvc.stepStatuses(list);
+      const open = (id: string) => (st.get(id) ?? []).filter((x) => x.status === "open").length;
+      if (to_review_only) list = list.filter((m) => open(m.id) > 0);
+      const total = list.length;
+      list = list.slice(0, limit ?? 30);
+      if (!list.length) return text(`No meetings found in ${wsName}`);
+      return text(
+        `${total} meeting${total === 1 ? "" : "s"} in ${wsName}${total > list.length ? ` (showing ${list.length})` : ""}\n\n` +
+          list.map((m) => `- ${meetingsSvc.meetingLabel(m)} (id: ${m.id}) · ${m.attendees.length} attendees · ${m.nextSteps.length} next steps, ${open(m.id)} to review`).join("\n"),
+      );
+    },
+  );
+
+  server.registerTool(
+    "get_meeting",
+    { title: "Read a meeting", description: "One meeting's notes: summary, decisions, topics and every next step with its number and status (to review, task, done, not needed). Use the step number with meeting_step_to_task or set_meeting_step.", inputSchema: { meeting_id: z.string().uuid() } },
+    async ({ meeting_id }) => {
+      const m = await meetingsSvc.getMeeting(ws, meeting_id, await seesAllMeetings());
+      if (!m) return fail("Meeting not found.");
+      const st = (await meetingsSvc.stepStatuses([m])).get(m.id) ?? [];
+      const parts = (title: string, list: { title: string; text: string }[]) => (list.length ? `## ${title}\n\n${list.map((x) => `- ${x.title ? `**${x.title}** ` : ""}${x.text}`).join("\n")}` : "");
+      return text(
+        [
+          `# ${meetingsSvc.meetingLabel(m)}`,
+          `Attendees: ${m.attendees.join(", ") || "not listed"}\nOrbit: ${meetingLink(m.id)}\nGoogle Doc: ${m.docUrl}`,
+          m.summary ? `## Summary\n\n${m.summary}` : "",
+          parts("Summary points", m.summaryPoints),
+          parts("Decisions", m.decisions),
+          parts("Topics", m.topics),
+          m.nextSteps.length ? `## Next steps\n\n${m.nextSteps.map((n, i) => `${i + 1}. [${stepLabel(st[i])}] ${n.owner ? `${n.owner}: ` : ""}${n.title ? `${n.title}. ` : ""}${n.text}${n.taskId && st[i]?.status !== "open" ? ` (task id: ${n.taskId})` : ""}`).join("\n")}` : "## Next steps\n\nNone.",
+        ]
+          .filter(Boolean)
+          .join("\n\n"),
+      );
+    },
+  );
+
+  if (can("write:tasks")) {
+    const stepArg = z.number().int().min(1).max(200).describe("The next step's number as shown by get_meeting (1 = first)");
+
+    server.registerTool(
+      "meeting_step_to_task",
+      {
+        title: "Turn a meeting next step into a task",
+        description: "Creates a task on the tracker from one next step of a meeting and links the two. Choose who owns it, how often it repeats and when it is due. Without an assignee it goes to the person named in the notes, if Orbit knows them.",
+        inputSchema: { meeting_id: z.string().uuid(), step: stepArg, assignee: z.string().max(100).optional().describe("Name or email of a workspace member (see list_members)"), frequency: z.enum(["once", "daily", "weekly", "monthly", "quarterly", "annual"]).optional(), due_on: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional() },
+      },
+      async ({ meeting_id, step, assignee, frequency, due_on }) => {
+        const m = await meetingsSvc.getMeeting(ws, meeting_id, await seesAllMeetings());
+        if (!m) return fail("Meeting not found.");
+        if (!m.nextSteps[step - 1]) return fail(`That meeting has ${m.nextSteps.length} next steps. Use get_meeting to see them.`);
+        let assigneeId: string | undefined;
+        if (assignee) {
+          const r = await tasksSvc.resolveAssignees(ws, [assignee]);
+          if (r.unknown.length || !r.ids.length) return fail(`I don't know who ${assignee} is. Use list_members to see the team.`);
+          assigneeId = r.ids[0];
+        }
+        const taskId = await meetingsSvc.nextStepToTask(ws, meeting_id, step - 1, p.userId, { assigneeId, frequency: frequency as Frequency | undefined, dueOn: due_on });
+        const t = (await tasksSvc.listTasks(ws)).find((x) => x.id === taskId);
+        await logActivity({ workspaceId: ws, grantId: p.grantId, tool: "meeting_step_to_task", summary: `Made task "${t?.title ?? taskId}" from ${meetingsSvc.meetingLabel(m)}`, taskId });
+        return text(`Task "${t?.title ?? ""}" (id: ${taskId})${t ? `, ${FREQUENCY_LABELS[t.frequency]}, next due ${t.nextDueOn ? fmtDate(t.nextDueOn) : "unscheduled"}` : ""}${assignee ? `, assigned to ${assignee}` : ""}.`);
+      },
+    );
+
+    server.registerTool(
+      "set_meeting_step",
+      {
+        title: "Close or reopen a meeting next step",
+        description: "Marks one next step of a meeting as done, as not needed (reviewed, no task), or open again so it goes back to the review list. Does not create a task.",
+        inputSchema: { meeting_id: z.string().uuid(), step: stepArg, status: z.enum(["done", "not_needed", "open"]) },
+      },
+      async ({ meeting_id, step, status }) => {
+        const m = await meetingsSvc.getMeeting(ws, meeting_id, await seesAllMeetings());
+        if (!m) return fail("Meeting not found.");
+        const n = m.nextSteps[step - 1];
+        if (!n) return fail(`That meeting has ${m.nextSteps.length} next steps. Use get_meeting to see them.`);
+        if (status === "not_needed") await meetingsSvc.dismissStep(ws, meeting_id, step - 1);
+        else await meetingsSvc.setStepDone(ws, meeting_id, step - 1, status === "done");
+        const words = status === "done" ? "done" : status === "not_needed" ? "not needed" : "open again";
+        await logActivity({ workspaceId: ws, grantId: p.grantId, tool: "set_meeting_step", summary: `Marked a next step ${words} in ${meetingsSvc.meetingLabel(m)}: "${(n.title || n.text).slice(0, 80)}"` });
+        return text(`Step ${step} is now ${words}.`);
+      },
+    );
+
+    server.registerTool("sync_meetings", { title: "Sync meetings now", description: "Pulls the latest meeting notes from Google Drive for this company (Orbit also does this every 30 minutes). Owners and admins only.", inputSchema: {} }, async () => {
+      if (!(await seesAllMeetings())) return fail("Only an owner or admin can sync meetings.");
+      const r = await meetingsSvc.syncMeetings(ws);
+      await logActivity({ workspaceId: ws, grantId: p.grantId, tool: "sync_meetings", summary: `Synced meetings: ${r.added} new, ${r.updated} updated, ${r.removed} removed` });
+      return text(`Synced ${wsName}: ${r.added} new, ${r.updated} updated, ${r.removed} removed${r.tasksMade ? `, ${r.tasksMade} tasks made automatically` : ""}${r.unreadable ? `, ${r.unreadable} files Orbit couldn't read` : ""}${r.errors.length ? `. Problems: ${r.errors.join("; ")}` : ""}.`);
+    });
   }
 
   return server;
