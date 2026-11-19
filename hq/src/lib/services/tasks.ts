@@ -39,6 +39,9 @@ export type TaskRow = {
   /** Who added the task (null if that person's account is gone) and when. */
   createdBy: string | null;
   createdAt: string;
+  /** Flagged urgent: shown first, in its own strip, for the whole team. */
+  urgent: boolean;
+  urgentNote: string | null;
 };
 
 export async function listTasks(workspaceId: string): Promise<TaskRow[]> {
@@ -90,6 +93,8 @@ export async function listTasks(workspaceId: string): Promise<TaskRow[]> {
     sourceMeetingId: t.sourceMeetingId,
     createdBy: t.createdById ? creatorName.get(t.createdById) ?? null : null,
     createdAt: t.createdAt.toISOString(),
+    urgent: t.priority === "urgent",
+    urgentNote: t.priority === "urgent" ? t.urgentNote : null,
   }));
 }
 
@@ -115,6 +120,8 @@ export type TaskInput = {
   sopPageId?: string | null;
   dueOn?: string | null;
   assigneeIds?: string[];
+  urgent?: boolean;
+  urgentNote?: string | null;
 };
 
 /** A free-text role name (imports, AI) becomes a real job role so it shows up everywhere. */
@@ -140,6 +147,8 @@ export async function createTask(workspaceId: string, input: TaskInput, createdB
       sopPageId: input.sopPageId ?? null,
       dueOn: input.dueOn ?? null,
       nextDueOn: computeNextDue(input.frequency, input.dueOn ?? null, null),
+      priority: input.urgent ? "urgent" : "normal",
+      urgentNote: input.urgent ? input.urgentNote?.trim().slice(0, 60) || null : null,
       sourceMeetingId: opts.source?.meetingId ?? null,
       sourceLabel: opts.source?.label ?? null,
       createdById,
@@ -174,6 +183,7 @@ export async function updateTask(workspaceId: string, id: string, input: Partial
       dueOn,
       nextDueOn: computeNextDue(frequency, dueOn, t.lastDoneOn, undefined, t.dueOverride),
       updatedAt: new Date(),
+      ...(input.urgent === undefined ? {} : { priority: input.urgent ? ("urgent" as const) : ("normal" as const), urgentNote: input.urgent ? (input.urgentNote === undefined ? t.urgentNote : input.urgentNote?.trim().slice(0, 60) || null) : null }),
     })
     .where(eq(tasks.id, id));
   if (input.assigneeIds) {
@@ -210,7 +220,8 @@ export async function completeTask(workspaceId: string, id: string, userId: stri
   // Same day twice = one completion.
   const [existing] = await db.select().from(taskCompletions).where(and(eq(taskCompletions.taskId, id), eq(taskCompletions.doneOn, doneOn)));
   if (!existing) await db.insert(taskCompletions).values({ taskId: id, doneOn, doneById: userId, note });
-  await db.update(tasks).set({ dueOverride: null }).where(eq(tasks.id, id));
+  // Urgent applies to this one occurrence: done means it's no longer urgent.
+  await db.update(tasks).set({ dueOverride: null, priority: "normal", urgentNote: null }).where(eq(tasks.id, id));
   await recompute(t.id);
 }
 

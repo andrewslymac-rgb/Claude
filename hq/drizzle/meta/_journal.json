@@ -281,6 +281,13 @@
       "when": 1795049552791,
       "tag": "0039_outstanding_microchip",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1795112278308,
+      "tag": "0040_cultured_vulture",
+      "breakpoints": true
     }
   ]
 }

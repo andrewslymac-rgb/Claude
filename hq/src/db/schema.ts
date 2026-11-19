@@ -391,6 +391,10 @@ export const tasks = pgTable(
     archivedAt: timestamp("archived_at", { withTimezone: true }),
     /** On hold: kept, but not due, not overdue and not counted until resumed. */
     pausedAt: timestamp("paused_at", { withTimezone: true }),
+    /** "urgent" tasks are pulled to the top of the tracker for everyone. "high" is reserved for later use. */
+    priority: text("priority").$type<"normal" | "high" | "urgent">().notNull().default("normal"),
+    /** Short label shown with an urgent task, e.g. "Before end of day". */
+    urgentNote: text("urgent_note"),
     /** Made from a meeting's next step: which meeting, and a readable label that outlives it. */
     sourceMeetingId: uuid("source_meeting_id").references((): AnyPgColumn => meetings.id, { onDelete: "set null" }),
     sourceLabel: text("source_label"),

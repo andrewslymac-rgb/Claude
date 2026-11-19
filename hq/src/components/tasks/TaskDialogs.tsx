@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState, useTransition } from "react";
-import { Check, X, Trash2, History, CalendarClock, MessageSquare, Bell, BellOff, Maximize2, Video } from "lucide-react";
+import { AlertTriangle, Check, X, Trash2, History, CalendarClock, MessageSquare, Bell, BellOff, Maximize2, Video } from "lucide-react";
 import { StatusPicker, Attachments } from "./TaskExtras";
 import { addTaskNoteAction, archiveTaskAction, completeTaskAction, createTaskAction, deleteTaskNoteAction, listCompletionsAction, listTaskNotesAction, moveDueAction, setFollowUpAction, updateTaskAction } from "@/app/actions";
 import { doneThisPeriod, todayISO } from "@/lib/recurrence";
@@ -64,6 +64,22 @@ export function TaskDrawer({ slug, task, members, roles = [], pages, categories,
           <span className={`rounded px-2 py-0.5 font-medium ${TONE[DUE_LABELS[task.state].tone]}`}>{task.state === "done" ? "Done" : DUE_LABELS[task.state].label}</span>
           {task.pausedAt && <span className="text-ink-faint">since {new Date(task.pausedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "America/Los_Angeles" })}</span>}
         </div>
+
+        {task.urgent ? (
+          <div className="mt-4 flex items-center gap-2 rounded-xl border border-danger bg-danger-soft px-3 py-2.5 text-sm text-danger">
+            <AlertTriangle size={16} className="shrink-0" />
+            <span className="min-w-0 flex-1 font-semibold uppercase tracking-wide">Urgent{task.urgentNote ? <span className="ml-1.5 font-medium normal-case tracking-normal">· {task.urgentNote}</span> : null}</span>
+            {canEdit && (
+              <button disabled={busy} onClick={() => start(async () => { await updateTaskAction(slug, task.id, { urgent: false }); })} className="btn btn-sm shrink-0">Not urgent</button>
+            )}
+          </div>
+        ) : (
+          canEdit && task.state !== "done" && (
+            <button disabled={busy} onClick={() => start(async () => { await updateTaskAction(slug, task.id, { urgent: true, urgentNote: "Before end of day" }); })} className="btn btn-sm mt-4 text-danger" title="Pull this to the top of the tracker for the whole team">
+              <AlertTriangle size={14} /> Mark urgent
+            </button>
+          )
+        )}
 
         {task.sourceLabel && (
           <Link
@@ -373,6 +389,8 @@ export function TaskDrawer({ slug, task, members, roles = [], pages, categories,
 
 export const Chip = ({ children }: { children: React.ReactNode }) => <span className="rounded bg-hover px-2 py-0.5 text-ink-soft">{children}</span>;
 
+export const URGENT_LABELS = ["Before end of day", "Before noon", "Today", "ASAP"];
+
 export function TaskForm({ slug, task, members, roles = [], pages, categories, preset, onClose, onCreated }: { slug: string; task?: TaskRow; members: Member[]; roles?: JobRole[]; pages: PageOpt[]; categories: readonly string[]; preset?: { frequency?: Frequency; assigneeIds?: string[]; roleId?: string | null }; onClose: () => void; onCreated?: (title: string) => void }) {
   const [title, setTitle] = useState(task?.title ?? "");
   const [frequency, setFrequency] = useState<Frequency>(task?.frequency ?? preset?.frequency ?? "weekly");
@@ -385,13 +403,15 @@ export function TaskForm({ slug, task, members, roles = [], pages, categories, p
   const [dueOn, setDueOn] = useState(task?.dueOn ?? "");
   const [nextDue, setNextDue] = useState(task?.nextDueOn ?? "");
   const [lastDone, setLastDone] = useState(task?.lastDoneOn && task.lastDoneOn !== "today" ? task.lastDoneOn : "");
+  const [urgent, setUrgent] = useState(task?.urgent ?? false);
+  const [urgentNote, setUrgentNote] = useState(task?.urgentNote ?? "");
   const [busy, start] = useTransition();
   const [error, setError] = useState("");
 
   const submit = () =>
     start(async () => {
       try {
-        const input = { title, frequency, whenText: whenText || null, category: category || null, instructions, assigneeIds: assignees, roleId, sopPageId: sopPageId || null, dueOn: dueOn || null };
+        const input = { title, frequency, whenText: whenText || null, category: category || null, instructions, assigneeIds: assignees, roleId, sopPageId: sopPageId || null, dueOn: dueOn || null, urgent, urgentNote: urgent ? urgentNote.trim() || null : null };
         if (task) {
           const origLast = task.lastDoneOn && task.lastDoneOn !== "today" ? task.lastDoneOn : "";
           await updateTaskAction(slug, task.id, {
@@ -430,6 +450,25 @@ export function TaskForm({ slug, task, members, roles = [], pages, categories, p
             <span className="text-xs text-ink-faint">{frequency === "once" ? "Due date" : "First due (optional)"}</span>
             <input type="date" value={dueOn} onChange={(e) => setDueOn(e.target.value)} className="field mt-1" />
           </label>
+          <div className={`rounded-lg border p-3 ${urgent ? "border-danger bg-danger-soft" : "border-line"}`}>
+            <label className="flex cursor-pointer items-center gap-2.5">
+              <input type="checkbox" checked={urgent} onChange={(e) => setUrgent(e.target.checked)} className="size-4" />
+              <span className={`font-medium ${urgent ? "text-danger" : ""}`}>Urgent</span>
+              <span className="text-xs text-ink-faint">Shows at the top of the tracker for the whole team</span>
+            </label>
+            {urgent && (
+              <>
+                <input value={urgentNote} onChange={(e) => setUrgentNote(e.target.value)} maxLength={60} placeholder="Label (optional), e.g. Before end of day" className="field mt-2" aria-label="Urgent label" />
+                <div className="mt-1.5 flex flex-wrap gap-1.5">
+                  {URGENT_LABELS.map((l) => (
+                    <button key={l} type="button" onClick={() => setUrgentNote(l)} className={`rounded-full border px-2.5 py-1 text-xs ${urgentNote === l ? "border-danger bg-card text-danger" : "border-line bg-card text-ink-soft"}`}>
+                      {l}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
           {task && (
             <div className="grid grid-cols-1 gap-3 rounded-lg border border-line bg-side/40 p-3 sm:grid-cols-2">
               <label className="block">

@@ -473,6 +473,8 @@ const taskInput = z.object({
   sopPageId: uuid.nullable().optional(),
   dueOn: isoDate.nullable().optional(),
   assigneeIds: z.array(uuid).max(20).optional(),
+  urgent: z.boolean().optional(),
+  urgentNote: z.string().max(60).nullable().optional(),
 });
 
 /** What the New task form needs, loaded on demand so the button can live anywhere. */

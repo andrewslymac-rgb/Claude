@@ -176,7 +176,8 @@ export function buildServer(p: AiPrincipal) {
     const q = person?.trim().toLowerCase();
     const rows = all.filter((t) => (!filter || filter === "all" || (filter === "attention" ? t.state === "overdue" || t.state === "today" : t.frequency === filter)) && (!q || t.assignees.some((a) => a.name.toLowerCase() === q || a.name.toLowerCase().split(" ")[0] === q)));
     if (!rows.length) return text("No tasks match.");
-    return text(rows.map((t) => `- ${t.title} (id: ${t.id}) · ${FREQUENCY_LABELS[t.frequency]}${t.whenText ? ` · ${t.whenText}` : ""} · ${DUE_LABELS[t.state].label}${t.nextDueOn ? ` ${fmtDate(t.nextDueOn)}` : ""} · owner: ${t.assignees.map((a) => a.name).join(", ") || t.ownerRole || "anyone"}${t.category ? ` · ${t.category}` : ""}${t.followUpOn ? ` · follow-up ${fmtDate(t.followUpOn)}` : ""}${t.noteCount ? ` · ${t.noteCount} notes` : ""}`).join("\n"));
+    rows.sort((x, y) => Number(y.urgent) - Number(x.urgent));
+    return text(rows.map((t) => `- ${t.urgent ? `URGENT${t.urgentNote ? ` (${t.urgentNote})` : ""}: ` : ""}${t.title} (id: ${t.id}) · ${FREQUENCY_LABELS[t.frequency]}${t.whenText ? ` · ${t.whenText}` : ""} · ${DUE_LABELS[t.state].label}${t.nextDueOn ? ` ${fmtDate(t.nextDueOn)}` : ""} · owner: ${t.assignees.map((a) => a.name).join(", ") || t.ownerRole || "anyone"}${t.category ? ` · ${t.category}` : ""}${t.followUpOn ? ` · follow-up ${fmtDate(t.followUpOn)}` : ""}${t.noteCount ? ` · ${t.noteCount} notes` : ""}`).join("\n"));
   });
 
   server.registerTool("list_flags", { title: "List open flags", description: "Open questions, contradictions and compliance risks waiting on a decision.", inputSchema: {} }, async () => {
@@ -287,6 +288,8 @@ export function buildServer(p: AiPrincipal) {
   if (can("write:tasks")) {
     const freq = z.enum(["once", "daily", "weekly", "monthly", "quarterly", "annual"]);
     const people = z.array(z.string().max(100)).max(20).optional().describe("Names or emails of workspace members, e.g. [\"Brittany\"]. Empty list = anyone.");
+    const urgentArg = z.boolean().optional().describe("true pulls the task to the top of the tracker for the whole team, in a red Urgent strip. Cleared when the task is completed.");
+    const urgentNoteArg = z.string().max(60).optional().describe('Short label shown with an urgent task, e.g. "Before end of day"');
     const roleArg = z.string().max(60).nullable().optional().describe("A job role that owns the task, e.g. \"Team Lead\" (see list_roles). Created if it doesn't exist. null clears it.");
 
     server.registerTool(
@@ -294,12 +297,12 @@ export function buildServer(p: AiPrincipal) {
       {
         title: "Create a task",
         description: "Creates a one-off or recurring task on the tracker, optionally assigned to people by name.",
-        inputSchema: { title: z.string().min(1).max(200), frequency: freq.optional(), when_text: z.string().max(120).optional().describe('e.g. "Every Friday" or "By the 5th"'), due_on: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(), category: z.string().max(40).optional(), instructions: z.string().max(5000).optional(), role: roleArg, owner_role: z.string().max(60).optional().describe("Same as role (kept for older clients)"), assignees: people },
+        inputSchema: { title: z.string().min(1).max(200), frequency: freq.optional(), when_text: z.string().max(120).optional().describe('e.g. "Every Friday" or "By the 5th"'), due_on: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(), category: z.string().max(40).optional(), instructions: z.string().max(5000).optional(), role: roleArg, owner_role: z.string().max(60).optional().describe("Same as role (kept for older clients)"), assignees: people, urgent: urgentArg, urgent_note: urgentNoteArg },
       },
       async (a) => {
         const r = a.assignees ? await tasksSvc.resolveAssignees(ws, a.assignees) : { ids: [], unknown: [] };
         if (r.unknown.length) return fail(`I don't know who ${r.unknown.join(", ")} is. Use list_members to see the team.`);
-        const t = await tasksSvc.createTask(ws, { title: a.title, frequency: (a.frequency ?? "once") as Frequency, whenText: a.when_text, dueOn: a.due_on, category: a.category, instructions: a.instructions, ownerRole: a.role ?? a.owner_role ?? null, assigneeIds: r.ids }, p.userId);
+        const t = await tasksSvc.createTask(ws, { urgent: a.urgent, urgentNote: a.urgent_note, title: a.title, frequency: (a.frequency ?? "once") as Frequency, whenText: a.when_text, dueOn: a.due_on, category: a.category, instructions: a.instructions, ownerRole: a.role ?? a.owner_role ?? null, assigneeIds: r.ids }, p.userId);
         await logActivity({ workspaceId: ws, grantId: p.grantId, tool: "create_task", summary: `Created task "${a.title}" (${FREQUENCY_LABELS[t.frequency]})`, taskId: t.id });
         return text(`Created task "${a.title}" (id: ${t.id}), ${FREQUENCY_LABELS[t.frequency]}, next due ${t.nextDueOn ? fmtDate(t.nextDueOn) : "unscheduled"}${r.ids.length ? `, assigned to ${a.assignees!.join(", ")}` : ""}.`);
       },
@@ -309,14 +312,14 @@ export function buildServer(p: AiPrincipal) {
       "update_task",
       {
         title: "Edit a task",
-        description: "Changes a task's title, cadence, when-text, due date, category, instructions, role or assignees. Only the fields you pass change. Pass assignees to replace who does it.",
-        inputSchema: { task_id: z.string().uuid(), title: z.string().min(1).max(200).optional(), frequency: freq.optional(), when_text: z.string().max(120).nullable().optional(), due_on: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(), category: z.string().max(40).nullable().optional(), instructions: z.string().max(5000).optional(), role: roleArg, owner_role: z.string().max(60).nullable().optional(), assignees: people },
+        description: "Changes a task's title, cadence, when-text, due date, category, instructions, role, assignees or urgent flag. Only the fields you pass change. Pass assignees to replace who does it.",
+        inputSchema: { task_id: z.string().uuid(), title: z.string().min(1).max(200).optional(), frequency: freq.optional(), when_text: z.string().max(120).nullable().optional(), due_on: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(), category: z.string().max(40).nullable().optional(), instructions: z.string().max(5000).optional(), role: roleArg, owner_role: z.string().max(60).nullable().optional(), assignees: people, urgent: urgentArg, urgent_note: urgentNoteArg },
       },
       async (a) => {
         const r = a.assignees ? await tasksSvc.resolveAssignees(ws, a.assignees) : null;
         if (r?.unknown.length) return fail(`I don't know who ${r.unknown.join(", ")} is. Use list_members to see the team.`);
         const roleArgValue = a.role !== undefined ? a.role : a.owner_role;
-        await tasksSvc.updateTask(ws, a.task_id, { title: a.title, frequency: a.frequency as Frequency | undefined, whenText: a.when_text, dueOn: a.due_on, category: a.category, instructions: a.instructions, ...(roleArgValue === null ? { roleId: null, ownerRole: null } : roleArgValue ? { ownerRole: roleArgValue } : {}), assigneeIds: r?.ids }, p.userId);
+        await tasksSvc.updateTask(ws, a.task_id, { urgent: a.urgent, urgentNote: a.urgent_note, title: a.title, frequency: a.frequency as Frequency | undefined, whenText: a.when_text, dueOn: a.due_on, category: a.category, instructions: a.instructions, ...(roleArgValue === null ? { roleId: null, ownerRole: null } : roleArgValue ? { ownerRole: roleArgValue } : {}), assigneeIds: r?.ids }, p.userId);
         const t = (await tasksSvc.listTasks(ws)).find((x) => x.id === a.task_id);
         await logActivity({ workspaceId: ws, grantId: p.grantId, tool: "update_task", summary: `Edited task "${t?.title ?? a.task_id}"`, taskId: a.task_id });
         return text(t ? `Updated "${t.title}": ${FREQUENCY_LABELS[t.frequency]}${t.whenText ? ` · ${t.whenText}` : ""} · next due ${t.nextDueOn ? fmtDate(t.nextDueOn) : "—"} · owner: ${t.assignees.map((x) => x.name).join(", ") || t.ownerRole || "anyone"}` : "Updated.");
@@ -358,6 +361,7 @@ export function buildServer(p: AiPrincipal) {
       return text(
         [
           `# ${t.title}`,
+          t.urgent ? `URGENT${t.urgentNote ? `: ${t.urgentNote}` : ""}` : "",
           `${FREQUENCY_LABELS[t.frequency]}${t.whenText ? ` · ${t.whenText}` : ""} · ${DUE_LABELS[t.state].label}${t.nextDueOn ? ` ${fmtDate(t.nextDueOn)}` : ""} · owner: ${t.assignees.map((a) => a.name).join(", ") || t.ownerRole || "anyone"}${t.category ? ` · ${t.category}` : ""}`,
           `Created${t.createdBy ? ` by ${t.createdBy}` : ""} on ${fmtDate(new Date(t.createdAt).toLocaleDateString("en-CA", { timeZone: "America/Los_Angeles" }))}${t.sourceLabel ? ` · from ${t.sourceLabel}` : ""}`,
           t.followUpOn ? `Follow-up: ${fmtDate(t.followUpOn)}${t.followUpNote ? ` — ${t.followUpNote}` : ""}` : "",

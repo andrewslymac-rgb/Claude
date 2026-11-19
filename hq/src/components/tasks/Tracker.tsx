@@ -3,7 +3,7 @@
 import { useAct } from "@/components/ui/Toast";
 import Link from "next/link";
 import { useMemo, useState, useTransition } from "react";
-import { Check, Plus, MoreHorizontal, Users, ChevronRight, SkipForward, Trash2, Pencil, UserPlus, Bell, MessageSquare, CalendarDays } from "lucide-react";
+import { AlertTriangle, Check, Plus, MoreHorizontal, Users, ChevronRight, SkipForward, Trash2, Pencil, UserPlus, Bell, MessageSquare, CalendarDays } from "lucide-react";
 import { archiveTaskAction, completeTaskAction, createTaskAction, moveDueAction, undoTaskAction, updateTaskAction } from "@/app/actions";
 import type { TaskRow } from "@/lib/services/tasks";
 import type { Frequency } from "@/db/schema";
@@ -66,7 +66,7 @@ export function Tracker({ slug, tasks, members, roles = [], pages, categories, m
     return out.filter((g) => g.tasks.length || (canEdit && g.memberId === me) || (mode === "full" && (g.memberId || g.roleId)));
   }, [groupBy, inTab, members, roles, canEdit, mode, me]);
 
-  const visible = (ts: TaskRow[]) => (hideDone ? ts.filter((t) => !isDone(t)) : ts).sort((a, b) => Number(isDone(a)) - Number(isDone(b)) || rank(a) - rank(b) || a.title.localeCompare(b.title));
+  const visible = (ts: TaskRow[]) => (hideDone ? ts.filter((t) => !isDone(t)) : ts).sort((a, b) => Number(isDone(a)) - Number(isDone(b)) || Number(b.urgent) - Number(a.urgent) || rank(a) - rank(b) || a.title.localeCompare(b.title));
 
   const toggle = (t: TaskRow) => {
     const revert = () => setLocal((l) => ({ ...l, [t.id]: {} }));
@@ -75,11 +75,17 @@ export function Tracker({ slug, tasks, members, roles = [], pages, categories, m
       setLocal((l) => ({ ...l, [t.id]: { lastDoneOn: null, state: "today", canUndo: false } }));
       act(() => undoTaskAction(slug, t.id), revert);
     } else {
-      setLocal((l) => ({ ...l, [t.id]: { lastDoneOn: today, state: t.frequency === "once" ? "done" : "later", canUndo: true } }));
+      setLocal((l) => ({ ...l, [t.id]: { lastDoneOn: today, state: t.frequency === "once" ? "done" : "later", canUndo: true, urgent: false, urgentNote: null } }));
       act(() => completeTaskAction(slug, t.id), revert);
     }
   };
 
+  // Urgent tasks from every tab and every person, so nobody has to go looking for them.
+  const urgentRows = rows.filter((t) => t.urgent && !isDone(t) && t.state !== "paused").sort((a, b) => rank(a) - rank(b) || a.title.localeCompare(b.title));
+  const setUrgent = (t: TaskRow, on: boolean) => {
+    setLocal((l) => ({ ...l, [t.id]: { ...l[t.id], urgent: on, urgentNote: on ? "Before end of day" : null } }));
+    act(() => updateTaskAction(slug, t.id, on ? { urgent: true, urgentNote: "Before end of day" } : { urgent: false }), () => setLocal((l) => ({ ...l, [t.id]: {} })));
+  };
   const doneCount = inTab.filter(isDone).length;
   const period = PERIOD_LABELS[tab];
 
@@ -103,6 +109,31 @@ export function Tracker({ slug, tasks, members, roles = [], pages, categories, m
             </>
           }
         />
+      )}
+
+      {urgentRows.length > 0 && (
+        <section className={`rounded-xl border-2 border-danger bg-danger-soft p-3 ${mode === "full" ? "mt-5" : "mb-3"}`} aria-label="Urgent tasks">
+          <h2 className="flex items-center gap-1.5 text-sm font-bold uppercase tracking-wide text-danger">
+            <AlertTriangle size={16} /> Urgent <span className="rounded-full bg-danger px-1.5 text-[11px] text-paper">{urgentRows.length}</span>
+          </h2>
+          <ul className="mt-2 space-y-1">
+            {urgentRows.map((t) => (
+              <li key={t.id} className="flex min-h-11 min-w-0 items-center gap-2 rounded-lg bg-card px-2 py-1.5">
+                <button onClick={() => toggle(t)} title="Mark done" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-danger text-transparent hover:bg-danger-soft hover:text-danger md:h-7 md:w-7">
+                  <Check size={14} />
+                </button>
+                <button onClick={() => setOpen(t)} className="min-w-0 flex-1 text-left">
+                  <div className="line-clamp-2 text-sm font-semibold leading-snug">{t.title}</div>
+                  <div className="truncate text-xs text-ink-soft">
+                    {t.assignees.length ? t.assignees.map((a) => a.name.split(" ")[0]).join(", ") : t.role ? `${t.role.emoji} ${t.role.name}` : t.ownerRole || "Anyone"}
+                    {t.nextDueOn ? ` · ${t.state === "overdue" ? "was due" : "due"} ${fmtDate(t.nextDueOn)}` : ""}
+                  </div>
+                </button>
+                {t.urgentNote && <span className="shrink-0 rounded-full bg-danger px-2.5 py-1 text-[11px] font-semibold text-paper">{t.urgentNote}</span>}
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
 
       {/* Tabs */}
@@ -202,6 +233,7 @@ export function Tracker({ slug, tasks, members, roles = [], pages, categories, m
                           <Bell size={10} /> {fmtDate(t.followUpOn)}
                         </span>
                       )}
+                      {!done && t.urgent && <span className="shrink-0 rounded bg-danger px-1.5 py-0.5 text-[10px] font-bold uppercase text-paper">Urgent</span>}
                       {!done && (t.state === "overdue" || t.state === "today") && <span className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium ${TONE[DUE_LABELS[t.state].tone]}`}>{DUE_LABELS[t.state].label}</span>}
                       {canEdit ? (
                         <button onClick={() => setMenu(menu === t.id ? null : t.id)} className="tap-icon shrink-0 rounded p-1 text-ink-faint hover:bg-line hover:text-ink md:opacity-0 md:group-hover:opacity-100" aria-label="More">
@@ -217,6 +249,11 @@ export function Tracker({ slug, tasks, members, roles = [], pages, categories, m
                         <MenuItem icon={<UserPlus size={14} />} onClick={() => (setMenu(null), setReassign(t))}>
                           Reassign
                         </MenuItem>
+                        {!done && (
+                          <MenuItem icon={<AlertTriangle size={14} />} onClick={() => (setMenu(null), setUrgent(t, !t.urgent))}>
+                            {t.urgent ? "Not urgent" : "Mark urgent"}
+                          </MenuItem>
+                        )}
                         {!done && (
                           <MenuItem icon={<SkipForward size={14} />} onClick={() => (setMenu(null), act(() => moveDueAction(slug, t.id)))}>
                             Skip this time
