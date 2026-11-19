@@ -22,9 +22,10 @@ export default async function MeetingPage({ params }: { params: Promise<{ slug: 
     <MeetingDetail
       slug={slug}
       canMakeTasks={canMakeTasks}
+      isAdmin={can(abilities, "view_dashboards")}
       team={members.map((p) => ({ id: p.userId, name: p.name ?? p.email }))}
       suggest={suggest}
-      m={{ id: m.id, series: m.series, at: m.occurredAt.toISOString(), docUrl: m.docUrl, attendees: m.attendees, summary: m.summary, points: m.summaryPoints, decisions: m.decisions, nextSteps: m.nextSteps, topics: m.topics, recognised: m.recognised, status }}
+      m={{ id: m.id, series: m.series, at: m.occurredAt.toISOString(), docUrl: m.docUrl, platform: m.platform, transcript: m.transcript, attendees: m.attendees, summary: m.summary, points: m.summaryPoints, decisions: m.decisions, nextSteps: m.nextSteps, topics: m.topics, recognised: m.recognised, status }}
     />
   );
 }

@@ -46,7 +46,7 @@ export function buildServer(p: AiPrincipal) {
   const can = (s: string) => (p.scopes as string[]).includes(s);
   const link = (id: string) => `${process.env.APP_URL ?? ""}/w/${wsSlug}/p/${id}`;
 
-  const WRITE_TOOLS = new Set(["meeting_step_to_task", "set_meeting_step", "sync_meetings", "update_feedback", "add_document_note", "create_page", "update_page", "append_to_page", "create_task", "update_task", "complete_task", "undo_complete_task", "skip_task", "remove_task", "add_task_note", "set_follow_up", "create_flag", "update_flag", "sync_document_area"]);
+  const WRITE_TOOLS = new Set(["add_meeting", "meeting_step_to_task", "set_meeting_step", "sync_meetings", "update_feedback", "add_document_note", "create_page", "update_page", "append_to_page", "create_task", "update_task", "complete_task", "undo_complete_task", "skip_task", "remove_task", "add_task_note", "set_follow_up", "create_flag", "update_flag", "sync_document_area"]);
   const SELF_ROUTED = new Set(["update_field_service_snapshot", "list_companies"]);
   const workspaceArg = z.string().max(120).optional().describe("Company slug or name (see list_companies). Omit for the company this connection was made from.");
   const register = server.registerTool.bind(server);
@@ -521,7 +521,7 @@ export function buildServer(p: AiPrincipal) {
       return text(
         [
           `# ${meetingsSvc.meetingLabel(m)}`,
-          `Attendees: ${m.attendees.join(", ") || "not listed"}\nOrbit: ${meetingLink(m.id)}\nGoogle Doc: ${m.docUrl}`,
+          `Attendees: ${m.attendees.join(", ") || "not listed"}\nOrbit: ${meetingLink(m.id)}\n${m.docUrl ? `Google Doc: ${m.docUrl}` : `Added by hand (${m.platform ?? "other"})`}`,
           m.summary ? `## Summary\n\n${m.summary}` : "",
           parts("Summary points", m.summaryPoints),
           parts("Decisions", m.decisions),
@@ -578,6 +578,36 @@ export function buildServer(p: AiPrincipal) {
         const words = status === "done" ? "done" : status === "not_needed" ? "not needed" : "open again";
         await logActivity({ workspaceId: ws, grantId: p.grantId, tool: "set_meeting_step", summary: `Marked a next step ${words} in ${meetingsSvc.meetingLabel(m)}: "${(n.title || n.text).slice(0, 80)}"` });
         return text(`Step ${step} is now ${words}.`);
+      },
+    );
+
+    server.registerTool(
+      "add_meeting",
+      {
+        title: "Add a meeting",
+        description: "Adds a meeting that was not held in Google Meet (Zoom, Teams, a phone call, in person, a recorder app) from notes you have already structured: summary, decisions and next steps. Next steps then show up under To review. Owners and admins only. Only include what the source notes or transcript actually say.",
+        inputSchema: {
+          title: z.string().min(1).max(120).describe("The meeting's name, e.g. \"Vendor call with Univar\". Recurring meetings should reuse the same name."),
+          occurred_at: z.string().max(40).describe("When it happened, ISO 8601 with offset, e.g. 2026-11-18T14:00:00-08:00"),
+          platform: z.string().min(1).max(40).describe("Where it was held: Zoom, Microsoft Teams, Phone call, In person, or the app's name"),
+          attendees: z.array(z.string().max(120)).max(60).optional(),
+          summary: z.string().max(2000),
+          summary_points: z.array(z.object({ title: z.string().max(200), text: z.string().max(2000) })).max(12).optional(),
+          decisions: z.array(z.object({ title: z.string().max(200), text: z.string().max(2000) })).max(40).optional(),
+          next_steps: z.array(z.object({ owner: z.string().max(120).nullable().optional().describe("Person named for it, or null"), title: z.string().min(1).max(200), text: z.string().max(2000).optional() })).max(60).optional(),
+          topics: z.array(z.object({ title: z.string().max(200), text: z.string().max(6000) })).max(40).optional(),
+          transcript: z.string().max(300000).optional().describe("The full transcript or raw notes, kept with the meeting"),
+        },
+      },
+      async (a) => {
+        if (!(await seesAllMeetings())) return fail("Only an owner or admin can add meetings.");
+        const when = new Date(a.occurred_at);
+        if (Number.isNaN(when.getTime())) return fail("occurred_at isn't a valid date and time.");
+        const imp = await import("@/lib/meetings/importer");
+        const parts = { attendees: a.attendees ?? [], summary: a.summary, summaryPoints: a.summary_points ?? [], decisions: a.decisions ?? [], nextSteps: (a.next_steps ?? []).map((n) => ({ owner: n.owner ?? null, title: n.title, text: n.text ?? "" })), topics: a.topics ?? [] };
+        const { id, tasksMade } = await imp.addMeeting(ws, { title: a.title, occurredAt: when, platform: a.platform, transcript: a.transcript ?? null, parts }, p.userId);
+        await logActivity({ workspaceId: ws, grantId: p.grantId, tool: "add_meeting", summary: `Added meeting "${a.title}" (${a.platform}) with ${parts.nextSteps.length} next steps` });
+        return text(`Added "${a.title}" (id: ${id}) with ${parts.nextSteps.length} next steps to review${tasksMade ? `, ${tasksMade} tasks made automatically` : ""}. ${meetingLink(id)}`);
       },
     );
 

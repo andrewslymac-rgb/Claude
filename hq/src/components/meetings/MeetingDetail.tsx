@@ -1,13 +1,18 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { ChevronDown, ChevronLeft, ExternalLink, Gavel, ListChecks, MessagesSquare, Sparkles, Users } from "lucide-react";
-import { useState } from "react";
+import { ChevronDown, ChevronLeft, ExternalLink, FileText, Trash2, Gavel, ListChecks, MessagesSquare, Sparkles, Users } from "lucide-react";
+import { useState, useTransition } from "react";
+import { deleteAddedMeetingAction } from "@/app/actions";
+import { useToast } from "@/components/ui/Toast";
 import { StepRow, fmtLong, type MeetingView, type StepPerson } from "./shared";
 
 /** One meeting: the overview, decisions and next steps up top; topic details folded below. */
-export function MeetingDetail({ slug, m, canMakeTasks, team, suggest }: { slug: string; m: MeetingView; canMakeTasks: boolean; team?: StepPerson[]; suggest?: Record<string, string> }) {
+export function MeetingDetail({ slug, m, canMakeTasks, isAdmin, team, suggest }: { isAdmin?: boolean; slug: string; m: MeetingView; canMakeTasks: boolean; team?: StepPerson[]; suggest?: Record<string, string> }) {
   const router = useRouter();
+  const [busy, start] = useTransition();
+  const [showText, setShowText] = useState(false);
+  const toast = useToast();
   const [openTopics, setOpenTopics] = useState<Set<number>>(new Set());
   const toggle = (i: number) => setOpenTopics((s) => (s.has(i) ? (s.delete(i), new Set(s)) : new Set(s.add(i))));
   return (
@@ -26,12 +31,41 @@ export function MeetingDetail({ slug, m, canMakeTasks, team, suggest }: { slug: 
             ))}
           </div>
         )}
-        <a href={m.docUrl} target="_blank" rel="noopener noreferrer" className="btn btn-sm mt-4">
-          <ExternalLink size={14} /> Full notes and transcript in Google Docs
-        </a>
+        {m.docUrl ? (
+          <a href={m.docUrl} target="_blank" rel="noopener noreferrer" className="btn btn-sm mt-4">
+            <ExternalLink size={14} /> Full notes and transcript in Google Docs
+          </a>
+        ) : (
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            <span className="rounded-full bg-accent-soft px-2.5 py-1 text-xs font-medium text-accent">{m.platform ?? "Added by hand"}</span>
+            {m.transcript && (
+              <button onClick={() => setShowText((o) => !o)} className="btn btn-sm">
+                <FileText size={14} /> {showText ? "Hide" : "Show"} the full text
+              </button>
+            )}
+            {isAdmin && (
+              <button
+                disabled={busy}
+                onClick={() =>
+                  confirm("Remove this meeting from Orbit? Tasks already made from it stay.") &&
+                  start(async () => {
+                    const r = await deleteAddedMeetingAction(slug, m.id);
+                    if (!r.ok) return toast(r.error, false);
+                    router.push(`/w/${slug}/meetings`);
+                    router.refresh();
+                  })
+                }
+                className="btn btn-ghost btn-sm text-danger"
+              >
+                <Trash2 size={14} /> Remove
+              </button>
+            )}
+          </div>
+        )}
+        {showText && m.transcript && <pre className="card mt-3 max-h-[60vh] overflow-auto whitespace-pre-wrap p-4 text-xs leading-relaxed text-ink-soft">{m.transcript}</pre>}
       </header>
 
-      {!m.recognised && <p className="rounded-xl bg-warn-soft px-4 py-3 text-sm text-warn">Orbit couldn&apos;t find Gemini&apos;s usual sections in this doc. Open it in Google Docs to read it.</p>}
+      {!m.recognised && m.docUrl && <p className="rounded-xl bg-warn-soft px-4 py-3 text-sm text-warn">Orbit couldn&apos;t find Gemini&apos;s usual sections in this doc. Open it in Google Docs to read it.</p>}
 
       {(m.summary || m.points.length > 0) && (
         <section>

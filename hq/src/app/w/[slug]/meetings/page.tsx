@@ -32,6 +32,7 @@ export default async function MeetingsPage({ params }: { params: Promise<{ slug:
         series: m.series,
         at: m.occurredAt.toISOString(),
         docUrl: m.docUrl,
+        platform: m.platform,
         attendees: m.attendees,
         summary: m.summary,
         points: m.summaryPoints,

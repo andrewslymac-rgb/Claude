@@ -73,8 +73,8 @@ export function TaskDrawer({ slug, task, members, roles = [], pages, categories,
             <Video size={16} className="mt-0.5 shrink-0 text-accent" />
             <span className="min-w-0">
               <span className="block text-xs font-medium uppercase tracking-wide text-accent">From a meeting</span>
-              <span className="block">{task.sourceLabel.replace(/^Google Meet · /, "")}</span>
-              <span className="block text-xs text-ink-soft">Google Meet{task.sourceMeetingId ? " · tap for the notes" : ""}</span>
+              <span className="block">{task.sourceLabel.split(" · ").slice(1).join(" · ") || task.sourceLabel}</span>
+              <span className="block text-xs text-ink-soft">{task.sourceLabel.split(" · ")[0]}{task.sourceMeetingId ? " · tap for the notes" : ""}</span>
             </span>
           </Link>
         )}

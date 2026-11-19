@@ -9,7 +9,7 @@ import { useToast } from "@/components/ui/Toast";
 import type { MeetingNextStep, MeetingPart } from "@/db/schema";
 import type { StepStatus } from "@/lib/meetings/service";
 
-export type MeetingView = { id: string; series: string; at: string; docUrl: string; attendees: string[]; summary: string; points: MeetingPart[]; decisions: MeetingPart[]; nextSteps: MeetingNextStep[]; topics: MeetingPart[]; recognised: boolean; status: StepStatus[] };
+export type MeetingView = { id: string; series: string; at: string; docUrl: string; attendees: string[]; summary: string; points: MeetingPart[]; decisions: MeetingPart[]; nextSteps: MeetingNextStep[]; topics: MeetingPart[]; recognised: boolean; status: StepStatus[]; platform?: string | null; transcript?: string | null };
 
 const TZ = "America/Los_Angeles";
 export const fmtDay = (iso: string) => new Date(iso).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: TZ });

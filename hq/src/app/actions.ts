@@ -1143,6 +1143,40 @@ export async function dismissMeetingStepAction(slug: string, meetingId: string, 
   });
 }
 
+/** Owners and admins add a meeting held outside Google Meet: pasted or uploaded notes or a transcript. */
+export async function addMeetingAction(slug: string, input: { title: string; date: string; time?: string; platform: string; attendees?: string; text: string }): Promise<{ ok: true; id: string; message: string } | { ok: false; error: string }> {
+  try {
+    const { user, workspace } = await meetingAdmin(slug);
+    const imp = await import("@/lib/meetings/importer");
+    const a = z
+      .object({ title: z.string().trim().min(1).max(120), date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), time: z.string().regex(/^\d{2}:\d{2}$/).optional().or(z.literal("")), platform: z.string().trim().min(1).max(40), attendees: z.string().max(2000).optional(), text: z.string() })
+      .parse(input);
+    const text = a.text.trim();
+    if (text.length < 40) throw new Error("Paste the notes or transcript, or choose a file.");
+    if (text.length > imp.MAX_TRANSCRIPT_CHARS) throw new Error(`That's too long to read in one go (${Math.round(text.length / 1000)}k characters; the limit is ${imp.MAX_TRANSCRIPT_CHARS / 1000}k). Split it into two meetings.`);
+    // The time typed is Pacific time; find the matching instant whichever side of daylight saving it falls on.
+    const local = `${a.date}T${a.time || "12:00"}:00`;
+    const occurredAt = ["-08:00", "-07:00"].map((off) => new Date(local + off)).find((d) => d.toLocaleString("sv-SE", { timeZone: "America/Los_Angeles" }).replace(" ", "T") === local) ?? new Date(`${local}-08:00`);
+    const { parts, how } = await imp.extractMeeting(text, { title: a.title });
+    const typed = (a.attendees ?? "").split(/[,\n]/).map((x) => x.trim()).filter(Boolean).slice(0, 60);
+    const { id, tasksMade } = await imp.addMeeting(workspace.id, { title: a.title, occurredAt, platform: a.platform, transcript: text, parts, attendees: typed }, user.id);
+    revalidatePath(`/w/${slug}`, "layout");
+    const found = `${parts.nextSteps.length} next step${parts.nextSteps.length === 1 ? "" : "s"} and ${parts.decisions.length} decision${parts.decisions.length === 1 ? "" : "s"}`;
+    return { ok: true, id, message: how === "none" ? "Saved with the full text. Summaries and next steps need the AI key (see Ask your meetings)." : `Added: ${found}${tasksMade ? `, ${tasksMade} task${tasksMade === 1 ? "" : "s"} made` : ""}.` };
+  } catch (e) {
+    return { ok: false, error: e instanceof z.ZodError ? "Please check the form and try again." : (e as Error).message };
+  }
+}
+
+export async function deleteAddedMeetingAction(slug: string, meetingId: string): Promise<Result> {
+  return wrap(async () => {
+    const { workspace } = await meetingAdmin(slug);
+    const imp = await import("@/lib/meetings/importer");
+    await imp.deleteAddedMeeting(workspace.id, uuid.parse(meetingId));
+    revalidatePath(`/w/${slug}`, "layout");
+  });
+}
+
 /**
  * Review many next steps at once: close them as done or not needed, or turn each into a task.
  * Only steps still waiting for review are touched; anything already handled is skipped.

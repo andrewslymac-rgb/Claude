@@ -3,10 +3,10 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Ban, Check, ChevronRight, Copy, ListPlus, FolderPlus, Gavel, ListChecks, MessagesSquare, RefreshCw, Search, Settings2, Trash2, Users } from "lucide-react";
+import { Ban, Check, ChevronRight, Copy, ListPlus, Plus, Upload, FolderPlus, Gavel, ListChecks, MessagesSquare, RefreshCw, Search, Settings2, Trash2, Users } from "lucide-react";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { useToast } from "@/components/ui/Toast";
-import { bulkMeetingStepsAction, addMeetingSourceAction, removeMeetingSourceAction, setMeetingAutoTasksAction, setMeetingPersonAction, setMeetingSeriesSharedAction, syncMeetingsAction } from "@/app/actions";
+import { addMeetingAction, bulkMeetingStepsAction, addMeetingSourceAction, removeMeetingSourceAction, setMeetingAutoTasksAction, setMeetingPersonAction, setMeetingSeriesSharedAction, syncMeetingsAction } from "@/app/actions";
 import { StepRow, fmtDay, type MeetingView } from "./shared";
 import { AskBox } from "./AskBox";
 
@@ -35,7 +35,8 @@ export function MeetingsView({ slug, company, isAdmin, canMakeTasks, orbitDriveE
   const [bulkFreq, setBulkFreq] = useState<(typeof CADENCES)[number][0]>("once");
   const [bulkDue, setBulkDue] = useState("");
   const [armed, setArmed] = useState(false);
-  const [setup, setSetup] = useState(isAdmin && sources.length === 0);
+  const [setup, setSetup] = useState(isAdmin && sources.length === 0 && meetings.length === 0);
+  const [adding, setAdding] = useState(false);
   const [busy, start] = useTransition();
   const toast = useToast();
   const router = useRouter();
@@ -149,6 +150,9 @@ export function MeetingsView({ slug, company, isAdmin, canMakeTasks, orbitDriveE
               <button onClick={() => start(async () => { const r = await syncMeetingsAction(slug); toast(r.ok ? r.message ?? "Synced" : r.error, r.ok); router.refresh(); })} disabled={busy || !sources.length} className="btn btn-sm">
                 <RefreshCw size={14} className={busy ? "animate-spin" : ""} /> Sync now
               </button>
+              <button onClick={() => setAdding((o) => !o)} className="btn btn-sm">
+                <Plus size={14} /> Add a meeting
+              </button>
               <button onClick={() => setSetup((o) => !o)} className="btn btn-sm">
                 <Settings2 size={14} /> Sources and sharing
               </button>
@@ -157,11 +161,13 @@ export function MeetingsView({ slug, company, isAdmin, canMakeTasks, orbitDriveE
         }
       />
 
+      {isAdmin && adding && <AddMeetingPanel slug={slug} aiEnabled={aiEnabled} names={seriesCounts.map(([n]) => n)} onClose={() => setAdding(false)} />}
+
       {isAdmin && setup && <SetupPanel slug={slug} orbitDriveEmail={orbitDriveEmail} sources={sources} seriesCounts={seriesCounts} shared={shared} autoTasksFrom={autoTasksFrom} team={team} names={names} />}
 
       {!meetings.length ? (
         <div className="card px-4 py-10 text-center text-sm text-ink-soft">
-          {isAdmin ? "No meetings yet. Connect your Google Meet notes folder under Sources and sharing." : "No meetings have been shared with the team yet."}
+          {isAdmin ? "No meetings yet. Connect your Google Meet notes folder under Sources and sharing, or use Add a meeting for one held somewhere else." : "No meetings have been shared with the team yet."}
         </div>
       ) : (
         <>
@@ -221,7 +227,10 @@ export function MeetingsView({ slug, company, isAdmin, canMakeTasks, orbitDriveE
                               <div className="text-lg font-semibold leading-tight">{new Date(m.at).toLocaleDateString("en-US", { day: "numeric", timeZone: "America/Los_Angeles" })}</div>
                             </div>
                             <div className="min-w-0 flex-1">
-                              <div className="font-medium">{m.series}</div>
+                              <div className="font-medium">
+                                {m.series}
+                                {m.platform && <span className="ml-2 rounded-full border border-line px-2 py-0.5 text-[11px] font-normal text-ink-soft">{m.platform}</span>}
+                              </div>
                               {m.summary && <p className="mt-0.5 line-clamp-2 text-sm text-ink-soft">{m.summary}</p>}
                               <div className="mt-1 flex flex-wrap gap-x-3 text-xs text-ink-faint">
                                 {m.decisions.length > 0 && <span>{m.decisions.length} decision{m.decisions.length === 1 ? "" : "s"}</span>}
@@ -366,6 +375,108 @@ export function MeetingsView({ slug, company, isAdmin, canMakeTasks, orbitDriveE
         </>
       )}
     </div>
+  );
+}
+
+const PLATFORM_CHOICES = ["Zoom", "Microsoft Teams", "Phone call", "In person", "Other"];
+const TEXT_LIMIT = 300_000;
+
+/** Owners and admins: add a meeting held outside Google Meet by pasting or uploading its notes or transcript. */
+function AddMeetingPanel({ slug, aiEnabled, names, onClose }: { slug: string; aiEnabled: boolean; names: string[]; onClose: () => void }) {
+  const today = new Date().toLocaleDateString("en-CA", { timeZone: "America/Los_Angeles" });
+  const [title, setTitle] = useState("");
+  const [date, setDate] = useState(today);
+  const [time, setTime] = useState("");
+  const [platform, setPlatform] = useState(PLATFORM_CHOICES[0]);
+  const [attendees, setAttendees] = useState("");
+  const [text, setText] = useState("");
+  const [fileName, setFileName] = useState("");
+  const [busy, start] = useTransition();
+  const toast = useToast();
+  const router = useRouter();
+  const readFile = async (f: File | undefined) => {
+    if (!f) return;
+    if (!/\.(txt|md|vtt|srt|csv|json)$/i.test(f.name) && !f.type.startsWith("text/")) return toast("Choose a text file (.txt, .md, .vtt or .srt). For a Word doc or PDF, copy the text and paste it.", false);
+    const body = await f.text();
+    setText(body);
+    setFileName(f.name);
+    if (!title) setTitle(f.name.replace(/\.[a-z0-9]+$/i, "").replace(/[_-]+/g, " ").slice(0, 120));
+  };
+  const over = text.length > TEXT_LIMIT;
+  return (
+    <form
+      className="card space-y-3 p-4 text-sm md:p-5"
+      onSubmit={(e) => {
+        e.preventDefault();
+        start(async () => {
+          const r = await addMeetingAction(slug, { title, date, time, platform, attendees, text });
+          toast(r.ok ? r.message : r.error, r.ok);
+          if (r.ok) {
+            onClose();
+            router.push(`/w/${slug}/meetings/${r.id}`);
+            router.refresh();
+          }
+        });
+      }}
+    >
+      <div>
+        <h2 className="font-semibold">Add a meeting</h2>
+        <p className="mt-1 text-ink-soft">
+          For meetings held outside Google Meet. Paste the notes or transcript, or choose a text file.{" "}
+          {aiEnabled ? "Orbit writes the summary, decisions and next steps from it, and the next steps go to To review." : "Without the AI key Orbit saves the text but can't pull out the summary or next steps."}
+        </p>
+      </div>
+      <div className="grid gap-2 sm:grid-cols-2">
+        <label className="text-xs text-ink-soft sm:col-span-2">
+          Meeting name
+          <input value={title} onChange={(e) => setTitle(e.target.value)} list="meeting-names" required maxLength={120} placeholder="e.g. Vendor call with Univar" className="field mt-1" />
+          <datalist id="meeting-names">
+            {names.map((n) => (
+              <option key={n} value={n} />
+            ))}
+          </datalist>
+        </label>
+        <label className="text-xs text-ink-soft">
+          Date
+          <input type="date" value={date} max={today} onChange={(e) => setDate(e.target.value)} required className="field mt-1" />
+        </label>
+        <label className="text-xs text-ink-soft">
+          Time (optional)
+          <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className="field mt-1" />
+        </label>
+        <label className="text-xs text-ink-soft">
+          Where it was held
+          <select value={platform} onChange={(e) => setPlatform(e.target.value)} className="field mt-1">
+            {PLATFORM_CHOICES.map((p) => (
+              <option key={p}>{p}</option>
+            ))}
+          </select>
+        </label>
+        <label className="text-xs text-ink-soft">
+          Who was there (optional)
+          <input value={attendees} onChange={(e) => setAttendees(e.target.value)} placeholder="Names, separated by commas" className="field mt-1" />
+        </label>
+      </div>
+      <label className="block text-xs text-ink-soft">
+        Notes or transcript
+        <textarea value={text} onChange={(e) => { setText(e.target.value); setFileName(""); }} rows={8} placeholder="Paste here…" className="field mt-1 font-mono text-xs" />
+      </label>
+      <div className="flex flex-wrap items-center gap-2">
+        <label className="btn btn-sm cursor-pointer">
+          <Upload size={14} /> Choose a file
+          <input type="file" accept=".txt,.md,.vtt,.srt,.csv,text/*" className="hidden" onChange={(e) => { void readFile(e.target.files?.[0]); e.target.value = ""; }} />
+        </label>
+        <span className={`text-xs ${over ? "text-danger" : "text-ink-faint"}`}>
+          {fileName ? `${fileName} · ` : ""}
+          {text.length ? `${text.length < 1000 ? text.length : `${Math.round(text.length / 1000)}k`} characters` : "Text files only: .txt, .md, .vtt, .srt"}
+          {over ? ` (limit ${TEXT_LIMIT / 1000}k: split it into two meetings)` : ""}
+        </span>
+        <span className="ml-auto flex gap-2">
+          <button type="button" onClick={onClose} className="btn btn-ghost btn-sm">Cancel</button>
+          <button disabled={busy || !title.trim() || text.trim().length < 40 || over} className="btn btn-primary btn-sm">{busy ? "Reading… this can take a minute" : "Add meeting"}</button>
+        </span>
+      </div>
+    </form>
   );
 }
 

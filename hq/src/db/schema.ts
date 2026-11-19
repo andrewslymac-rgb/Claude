@@ -821,6 +821,11 @@ export const meetings = pgTable(
     nextSteps: jsonb("next_steps").$type<MeetingNextStep[]>().notNull().default([]),
     topics: jsonb("topics").$type<MeetingPart[]>().notNull().default([]),
     recognised: boolean("recognised").notNull().default(true),
+    /** Set for meetings a person added by hand (Zoom, a phone call, in person). Null = synced from Google Meet notes. */
+    platform: text("platform"),
+    /** The pasted or uploaded transcript or notes of an added meeting. */
+    transcript: text("transcript"),
+    addedById: uuid("added_by_id").references(() => users.id, { onDelete: "set null" }),
     driveModifiedAt: timestamp("drive_modified_at", { withTimezone: true }),
     syncedAt: timestamp("synced_at", { withTimezone: true }).notNull().defaultNow(),
   },

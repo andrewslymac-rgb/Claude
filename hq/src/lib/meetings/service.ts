@@ -1,5 +1,5 @@
 import "server-only";
-import { and, desc, eq, inArray, isNull } from "drizzle-orm";
+import { and, desc, eq, getTableColumns, inArray, isNull, sql } from "drizzle-orm";
 import { db, schema } from "@/db";
 import type { Frequency, Meeting, MeetingNextStep } from "@/db/schema";
 import { exportDocMarkdown, getFile, listChildren, FOLDER, GDOC, SHORTCUT, driveEnabled, type DriveFile } from "@/lib/drive/client";
@@ -35,11 +35,14 @@ export async function setSeriesShared(workspaceId: string, series: string, share
   await setSetting(sharedKey(workspaceId), JSON.stringify([...cur]));
 }
 
+// Lists leave the transcript behind: it can be hundreds of thousands of characters per meeting.
+const listColumns = { ...getTableColumns(meetings), transcript: sql<string | null>`null`.as("transcript") };
+
 export async function listMeetings(workspaceId: string, seeAll: boolean): Promise<Meeting[]> {
-  if (seeAll) return db.select().from(meetings).where(eq(meetings.workspaceId, workspaceId)).orderBy(desc(meetings.occurredAt));
+  if (seeAll) return db.select(listColumns).from(meetings).where(eq(meetings.workspaceId, workspaceId)).orderBy(desc(meetings.occurredAt));
   const shared = await sharedSeries(workspaceId);
   if (!shared.length) return [];
-  return db.select().from(meetings).where(and(eq(meetings.workspaceId, workspaceId), inArray(meetings.series, shared))).orderBy(desc(meetings.occurredAt));
+  return db.select(listColumns).from(meetings).where(and(eq(meetings.workspaceId, workspaceId), inArray(meetings.series, shared))).orderBy(desc(meetings.occurredAt));
 }
 
 export async function getMeeting(workspaceId: string, id: string, seeAll: boolean) {
@@ -118,7 +121,7 @@ export async function syncMeetings(workspaceId: string): Promise<MeetingSyncResu
   const res: MeetingSyncResult = { added: 0, updated: 0, removed: 0, unreadable: 0, tasksMade: 0, errors: [] };
   if (!(await driveEnabled())) return { ...res, errors: ["Google Drive isn't connected to Orbit."] };
   const sources = await listSources(workspaceId);
-  const existing = new Map((await db.select({ id: meetings.id, driveFileId: meetings.driveFileId, driveModifiedAt: meetings.driveModifiedAt }).from(meetings).where(eq(meetings.workspaceId, workspaceId))).map((m) => [m.driveFileId, m]));
+  const existing = new Map((await db.select({ id: meetings.id, driveFileId: meetings.driveFileId, driveModifiedAt: meetings.driveModifiedAt }).from(meetings).where(and(eq(meetings.workspaceId, workspaceId), isNull(meetings.platform)))).map((m) => [m.driveFileId, m]));
   const seenIds = new Set<string>();
   let allOk = true;
 
@@ -183,11 +186,12 @@ export async function syncMeetings(workspaceId: string): Promise<MeetingSyncResu
   if (allOk && sources.length) {
     const gone = [...existing.keys()].filter((id) => !seenIds.has(id));
     if (gone.length) {
-      await db.delete(meetings).where(and(eq(meetings.workspaceId, workspaceId), inArray(meetings.driveFileId, gone)));
+      await db.delete(meetings).where(and(eq(meetings.workspaceId, workspaceId), isNull(meetings.platform), inArray(meetings.driveFileId, gone)));
       res.removed = gone.length;
     }
   } else if (!sources.length) {
-    await db.delete(meetings).where(eq(meetings.workspaceId, workspaceId));
+    // Meetings people added by hand stay; only the Google Meet ones depend on a folder.
+    await db.delete(meetings).where(and(eq(meetings.workspaceId, workspaceId), isNull(meetings.platform)));
   }
   return res;
 }
@@ -231,9 +235,9 @@ export async function nextStepToTask(workspaceId: string, meetingId: string, ind
 // ---------------------------------------------------------------- labels, people, automatic tasks
 
 /** "Google Meet · Adapt Weekly Admin Meeting · Fri, Nov 13 at 8:55 AM" */
-export function meetingLabel(m: Pick<Meeting, "series" | "occurredAt">) {
+export function meetingLabel(m: Pick<Meeting, "series" | "occurredAt"> & { platform?: string | null }) {
   const when = m.occurredAt.toLocaleString("en-US", { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZone: "America/Los_Angeles" }).replace(/, (\d+:\d+)/, " at $1");
-  return `Google Meet · ${m.series} · ${when}`;
+  return `${m.platform || "Google Meet"} · ${m.series} · ${when}`;
 }
 
 const norm = (s: string) => s.trim().toLowerCase().replace(/\s+/g, " ");
