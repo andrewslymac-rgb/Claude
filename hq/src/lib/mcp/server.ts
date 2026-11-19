@@ -359,6 +359,7 @@ export function buildServer(p: AiPrincipal) {
         [
           `# ${t.title}`,
           `${FREQUENCY_LABELS[t.frequency]}${t.whenText ? ` · ${t.whenText}` : ""} · ${DUE_LABELS[t.state].label}${t.nextDueOn ? ` ${fmtDate(t.nextDueOn)}` : ""} · owner: ${t.assignees.map((a) => a.name).join(", ") || t.ownerRole || "anyone"}${t.category ? ` · ${t.category}` : ""}`,
+          `Created${t.createdBy ? ` by ${t.createdBy}` : ""} on ${fmtDate(new Date(t.createdAt).toLocaleDateString("en-CA", { timeZone: "America/Los_Angeles" }))}${t.sourceLabel ? ` · from ${t.sourceLabel}` : ""}`,
           t.followUpOn ? `Follow-up: ${fmtDate(t.followUpOn)}${t.followUpNote ? ` — ${t.followUpNote}` : ""}` : "",
           t.instructions ? `\nInstructions:\n${t.instructions}` : "",
           notes.length ? `\nNotes:\n${notes.map((n) => `- ${fmtDate(n.createdAt.toISOString().slice(0, 10))} (${n.by ?? "someone"}): ${n.body}`).join("\n")}` : "\nNo notes yet.",

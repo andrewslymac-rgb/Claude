@@ -36,6 +36,9 @@ export type TaskRow = {
   /** "Google Meet · Adapt Weekly Admin Meeting · Fri, Nov 13 at 8:55 AM" when made from a meeting. */
   sourceLabel: string | null;
   sourceMeetingId: string | null;
+  /** Who added the task (null if that person's account is gone) and when. */
+  createdBy: string | null;
+  createdAt: string;
 };
 
 export async function listTasks(workspaceId: string): Promise<TaskRow[]> {
@@ -55,6 +58,9 @@ export async function listTasks(workspaceId: string): Promise<TaskRow[]> {
     .where(inArray(taskAssignees.taskId, ids));
   const byTask = new Map<string, { id: string; name: string }[]>();
   for (const a of assignees) byTask.set(a.taskId, [...(byTask.get(a.taskId) ?? []), { id: a.id, name: a.name ?? a.email }]);
+  const creatorIds = [...new Set(rows.map((r) => r.t.createdById).filter(Boolean) as string[])];
+  const creators = creatorIds.length ? await db.select({ id: users.id, name: users.name, email: users.email }).from(users).where(inArray(users.id, creatorIds)) : [];
+  const creatorName = new Map(creators.map((c) => [c.id, c.name ?? c.email]));
   const today = todayISO();
   const undoCutoff = new Date(Date.now() - 7 * 864e5).toISOString().slice(0, 10);
   return rows.map(({ t, sopTitle, roleName, roleEmoji, roleColor, noteCount }) => ({
@@ -82,6 +88,8 @@ export async function listTasks(workspaceId: string): Promise<TaskRow[]> {
     pausedAt: t.pausedAt?.toISOString() ?? null,
     sourceLabel: t.sourceLabel,
     sourceMeetingId: t.sourceMeetingId,
+    createdBy: t.createdById ? creatorName.get(t.createdById) ?? null : null,
+    createdAt: t.createdAt.toISOString(),
   }));
 }
 

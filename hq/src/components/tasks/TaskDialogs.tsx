@@ -119,6 +119,12 @@ export function TaskDrawer({ slug, task, members, roles = [], pages, categories,
               </dd>
             </>
           )}
+          <dt className="text-ink-faint">Created</dt>
+          <dd>
+            {task.createdBy ? `${task.createdBy} · ` : ""}
+            {new Date(task.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "America/Los_Angeles" })}
+            {task.sourceLabel ? " · from a meeting" : ""}
+          </dd>
         </dl>
 
         <StatusPicker slug={slug} task={task} isDoneNow={isDoneNow} canEdit={canEdit} onDone={() => onDone(task)} onUndo={() => onUndo(task)} />
