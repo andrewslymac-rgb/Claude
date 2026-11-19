@@ -3,10 +3,10 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronRight, Copy, FolderPlus, Gavel, ListChecks, MessagesSquare, RefreshCw, Search, Settings2, Trash2, Users } from "lucide-react";
+import { Ban, Check, ChevronRight, Copy, ListPlus, FolderPlus, Gavel, ListChecks, MessagesSquare, RefreshCw, Search, Settings2, Trash2, Users } from "lucide-react";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { useToast } from "@/components/ui/Toast";
-import { addMeetingSourceAction, removeMeetingSourceAction, setMeetingAutoTasksAction, setMeetingPersonAction, setMeetingSeriesSharedAction, syncMeetingsAction } from "@/app/actions";
+import { bulkMeetingStepsAction, addMeetingSourceAction, removeMeetingSourceAction, setMeetingAutoTasksAction, setMeetingPersonAction, setMeetingSeriesSharedAction, syncMeetingsAction } from "@/app/actions";
 import { StepRow, fmtDay, type MeetingView } from "./shared";
 import { AskBox } from "./AskBox";
 
@@ -16,6 +16,9 @@ type Person = { id: string; name: string };
 type Source = { id: string; label: string; folderId: string; lastSyncedAt: string | null; lastError: string | null };
 type Tab = "meetings" | "steps" | "decisions";
 const PREF = "orbit.meetings.prefs";
+const CADENCES = [["once", "One-off"], ["daily", "Daily"], ["weekly", "Weekly"], ["monthly", "Monthly"], ["quarterly", "Quarterly"], ["annual", "Annual"]] as const;
+type GroupBy = "none" | "meeting" | "person" | "type";
+type StepSort = "oldest" | "newest";
 
 export function MeetingsView({ slug, company, isAdmin, canMakeTasks, orbitDriveEmail, sources, shared, meetings, autoTasksFrom, team, names, aiEnabled }: { aiEnabled: boolean; slug: string; company: string; isAdmin: boolean; canMakeTasks: boolean; orbitDriveEmail: string | null; sources: Source[]; shared: string[]; meetings: MeetingView[]; autoTasksFrom: string | null; team: Person[]; names: Name[] }) {
   const [tab, setTab] = useState<Tab>("meetings");
@@ -24,6 +27,14 @@ export function MeetingsView({ slug, company, isAdmin, canMakeTasks, orbitDriveE
   const [person, setPerson] = useState<string>("all");
   const [range, setRange] = useState<"30" | "90" | "all">("90");
   const [stepView, setStepView] = useState<"open" | "task" | "done" | "all">("open");
+  const [groupBy, setGroupBy] = useState<GroupBy>("meeting");
+  const [stepSort, setStepSort] = useState<StepSort>("oldest");
+  const [picked, setPicked] = useState<Set<string>>(new Set());
+  const [bulkAssign, setBulkAssign] = useState(false);
+  const [bulkWho, setBulkWho] = useState("auto");
+  const [bulkFreq, setBulkFreq] = useState<(typeof CADENCES)[number][0]>("once");
+  const [bulkDue, setBulkDue] = useState("");
+  const [armed, setArmed] = useState(false);
   const [setup, setSetup] = useState(isAdmin && sources.length === 0);
   const [busy, start] = useTransition();
   const toast = useToast();
@@ -36,13 +47,15 @@ export function MeetingsView({ slug, company, isAdmin, canMakeTasks, orbitDriveE
       if (p.tab) setTab(p.tab);
       if (p.range) setRange(p.range);
       if (p.stepView) setStepView(p.stepView);
+      if (p.groupBy) setGroupBy(p.groupBy);
+      if (p.stepSort) setStepSort(p.stepSort);
     } catch {}
   }, []);
   useEffect(() => {
     try {
-      localStorage.setItem(PREF, JSON.stringify({ tab, range, stepView }));
+      localStorage.setItem(PREF, JSON.stringify({ tab, range, stepView, groupBy, stepSort }));
     } catch {}
-  }, [tab, range, stepView]);
+  }, [tab, range, stepView, groupBy, stepSort]);
 
   const seriesCounts = useMemo(() => {
     const c = new Map<string, number>();
@@ -76,8 +89,44 @@ export function MeetingsView({ slug, company, isAdmin, canMakeTasks, orbitDriveE
   const steps = allSteps
     .filter(({ st }) => (stepView === "all" ? true : st.status === stepView))
   const suggest = new Map(names.filter((n) => n.match && n.match !== "none").map((n) => [n.name, n.match]));
-  const stepsSorted = steps
-    .sort((a, b) => (stepView === "open" ? a.m.at.localeCompare(b.m.at) : b.m.at.localeCompare(a.m.at)));
+  const stepsSorted = steps.sort((a, b) => (stepSort === "oldest" ? a.m.at.localeCompare(b.m.at) : b.m.at.localeCompare(a.m.at)));
+  const keyOf = (x: { m: MeetingView; i: number }) => `${x.m.id}:${x.i}`;
+  // Group the list so a whole meeting (or person) can be reviewed, and selected, in one go.
+  const groups: { key: string; label: string; href?: string; items: typeof stepsSorted }[] = [];
+  for (const x of stepsSorted) {
+    const [key, label, href] =
+      groupBy === "meeting" ? [x.m.id, `${x.m.series} · ${fmtDay(x.m.at)}`, `/w/${slug}/meetings/${x.m.id}`] : groupBy === "person" ? [x.s.owner ?? "", x.s.owner ?? "Nobody named", undefined] : groupBy === "type" ? [x.m.series, x.m.series, undefined] : ["all", "", undefined];
+    const g = groups.find((y) => y.key === key);
+    if (g) g.items.push(x);
+    else groups.push({ key, label, href, items: [x] });
+  }
+  const reviewing = stepView === "open" && canMakeTasks;
+  const shownKeys = reviewing ? stepsSorted.map(keyOf) : [];
+  const chosen = shownKeys.filter((k) => picked.has(k));
+  const toItems = (keys: string[]) => keys.map((k) => ({ meetingId: k.split(":")[0], index: Number(k.split(":")[1]) }));
+  const pick = (keys: string[], on: boolean) =>
+    setPicked((prev) => {
+      const next = new Set(prev);
+      for (const k of keys) if (on) next.add(k); else next.delete(k);
+      return next;
+    });
+  const bulk = (keys: string[], op: "done" | "not_needed" | "task", choice?: { assigneeId?: string | null; frequency?: string; dueOn?: string | null }) =>
+    start(async () => {
+      const r = await bulkMeetingStepsAction(slug, toItems(keys), op, choice);
+      toast(r.ok ? r.message ?? "Done" : r.error, r.ok);
+      if (r.ok) {
+        setPicked(new Set());
+        setBulkAssign(false);
+        setArmed(false);
+        router.refresh();
+      }
+    });
+  // "Clear all" needs a second click within a few seconds, so it can't happen by accident.
+  useEffect(() => {
+    if (!armed) return;
+    const t = setTimeout(() => setArmed(false), 4000);
+    return () => clearTimeout(t);
+  }, [armed]);
   const decisions = shown.flatMap((m) => m.decisions.map((d) => ({ m, d })));
 
   // Group meetings by month for the list.
@@ -198,14 +247,102 @@ export function MeetingsView({ slug, company, isAdmin, canMakeTasks, orbitDriveE
                 {([["open", `To review (${openCount})`], ["task", `Assigned (${taskCount})`], ["done", "Closed"], ["all", "All"]] as const).map(([k, label]) => (
                   <button key={k} onClick={() => setStepView(k)} className={`min-h-9 rounded-full border px-3 text-sm ${stepView === k ? "border-accent bg-accent-soft text-accent" : "border-line text-ink-soft hover:bg-hover"}`}>{label}</button>
                 ))}
-                {stepView === "open" && <span className="text-xs text-ink-faint">Action items from your meetings that nobody owns yet. Assign each one, mark it done, or close it as not needed. Oldest first.</span>}
+                {stepView === "open" && <span className="text-xs text-ink-faint">Action items from your meetings that nobody owns yet. Assign, mark done or close as not needed, one at a time or tick several.</span>}
               </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <select value={groupBy} onChange={(e) => setGroupBy(e.target.value as GroupBy)} className="field w-auto py-2" aria-label="Group by">
+                  <option value="meeting">Group by meeting</option>
+                  <option value="person">Group by person</option>
+                  <option value="type">Group by meeting type</option>
+                  <option value="none">No grouping</option>
+                </select>
+                <select value={stepSort} onChange={(e) => setStepSort(e.target.value as StepSort)} className="field w-auto py-2" aria-label="Sort">
+                  <option value="oldest">Oldest first</option>
+                  <option value="newest">Newest first</option>
+                </select>
+                {reviewing && shownKeys.length > 0 && (
+                  <>
+                    <button onClick={() => pick(shownKeys, chosen.length !== shownKeys.length)} className="btn btn-sm">
+                      {chosen.length === shownKeys.length ? "Select none" : `Select all ${shownKeys.length}`}
+                    </button>
+                    <button
+                      disabled={busy}
+                      onClick={() => (armed ? bulk(shownKeys, "not_needed") : setArmed(true))}
+                      className={`btn btn-sm ml-auto ${armed ? "border-danger text-danger" : ""}`}
+                      title="Closes everything in this list as not needed. Click twice to confirm."
+                    >
+                      <Ban size={14} /> {armed ? `Click again to clear all ${shownKeys.length}` : `Clear all ${shownKeys.length}`}
+                    </button>
+                  </>
+                )}
+              </div>
+
+              {reviewing && chosen.length > 0 && (
+                <div className="sticky top-2 z-10 space-y-2 rounded-xl border border-accent/40 bg-card p-3 shadow-lg">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-sm font-medium">{chosen.length} selected</span>
+                    <button disabled={busy} onClick={() => setBulkAssign((o) => !o)} className="btn btn-primary btn-sm"><ListPlus size={14} /> Assign</button>
+                    <button disabled={busy} onClick={() => bulk(chosen, "done")} className="btn btn-sm"><Check size={14} /> Done</button>
+                    <button disabled={busy} onClick={() => bulk(chosen, "not_needed")} className="btn btn-sm"><Ban size={14} /> Not needed</button>
+                    <button onClick={() => { setPicked(new Set()); setBulkAssign(false); }} className="btn btn-ghost btn-sm ml-auto">Cancel</button>
+                  </div>
+                  {bulkAssign && (
+                    <form
+                      className="grid gap-2 sm:grid-cols-[1fr_auto_auto_auto] sm:items-end"
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        bulk(chosen, "task", { ...(bulkWho === "auto" ? {} : { assigneeId: bulkWho || null }), frequency: bulkFreq, dueOn: bulkDue || null });
+                      }}
+                    >
+                      <label className="text-xs text-ink-soft">
+                        Who owns them
+                        <select value={bulkWho} onChange={(e) => setBulkWho(e.target.value)} className="field mt-1" aria-label="Who owns them">
+                          <option value="auto">The person named in the notes</option>
+                          <option value="">Anyone</option>
+                          {team.map((p) => (
+                            <option key={p.id} value={p.id}>{p.name}</option>
+                          ))}
+                        </select>
+                      </label>
+                      <label className="text-xs text-ink-soft">
+                        How often
+                        <select value={bulkFreq} onChange={(e) => setBulkFreq(e.target.value as typeof bulkFreq)} className="field mt-1" aria-label="How often">
+                          {CADENCES.map(([k, l]) => (
+                            <option key={k} value={k}>{l}</option>
+                          ))}
+                        </select>
+                      </label>
+                      <label className="text-xs text-ink-soft">
+                        {bulkFreq === "once" ? "Due" : "First due"}
+                        <input type="date" value={bulkDue} onChange={(e) => setBulkDue(e.target.value)} className="field mt-1" aria-label="Due date" />
+                      </label>
+                      <button type="submit" disabled={busy} className="btn btn-primary btn-sm">Create {chosen.length} task{chosen.length === 1 ? "" : "s"}</button>
+                    </form>
+                  )}
+                </div>
+              )}
+
               {stepsSorted.length ? (
-                <ul className="card divide-y divide-line">
-                  {stepsSorted.map(({ m, s, i, st }) => (
-                    <StepRow key={`${m.id}-${i}`} slug={slug} meetingId={m.id} index={i} step={s} status={st} meetingAt={m.at} canMakeTasks={canMakeTasks} team={team} suggestedId={s.owner ? suggest.get(s.owner) ?? null : null} meetingLabel={{ href: `/w/${slug}/meetings/${m.id}`, text: `${m.series} · ${fmtDay(m.at)}` }} />
-                  ))}
-                </ul>
+                groups.map((g) => {
+                  const keys = g.items.map(keyOf);
+                  const on = keys.filter((k) => picked.has(k)).length;
+                  return (
+                    <section key={g.key}>
+                      {groupBy !== "none" && (
+                        <div className="mb-1.5 flex items-center gap-2 px-1">
+                          {reviewing && <input type="checkbox" className="size-4" checked={on === keys.length} ref={(el) => { if (el) el.indeterminate = on > 0 && on < keys.length; }} onChange={(e) => pick(keys, e.target.checked)} aria-label={`Select all in ${g.label}`} />}
+                          {g.href ? <Link href={g.href} className="eyebrow hover:text-ink">{g.label}</Link> : <h2 className="eyebrow">{g.label}</h2>}
+                          <span className="num text-xs text-ink-faint">{g.items.length}</span>
+                        </div>
+                      )}
+                      <ul className="card divide-y divide-line">
+                        {g.items.map(({ m, s, i, st }) => (
+                          <StepRow key={`${m.id}-${i}`} slug={slug} meetingId={m.id} index={i} step={s} status={st} meetingAt={m.at} canMakeTasks={canMakeTasks} team={team} suggestedId={s.owner ? suggest.get(s.owner) ?? null : null} meetingLabel={groupBy === "meeting" ? undefined : { href: `/w/${slug}/meetings/${m.id}`, text: `${m.series} · ${fmtDay(m.at)}` }} selected={picked.has(`${m.id}:${i}`)} onSelect={reviewing ? (v) => pick([`${m.id}:${i}`], v) : undefined} />
+                        ))}
+                      </ul>
+                    </section>
+                  );
+                })
               ) : (
                 <p className="card px-4 py-8 text-center text-sm text-ink-soft">{stepView === "open" ? "Nothing to review. Every action item has an owner or is closed." : "Nothing here."}</p>
               )}

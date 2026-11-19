@@ -1143,6 +1143,48 @@ export async function dismissMeetingStepAction(slug: string, meetingId: string, 
   });
 }
 
+/**
+ * Review many next steps at once: close them as done or not needed, or turn each into a task.
+ * Only steps still waiting for review are touched; anything already handled is skipped.
+ */
+export async function bulkMeetingStepsAction(
+  slug: string,
+  items: { meetingId: string; index: number }[],
+  op: "done" | "not_needed" | "task",
+  choice?: { assigneeId?: string | null; frequency?: string; dueOn?: string | null },
+): Promise<Result> {
+  return wrap(async () => {
+    const { user, workspace, abilities } = await requireAbility(slug, "manage_tasks");
+    const m = await import("@/lib/meetings/service");
+    const list = z.array(z.object({ meetingId: uuid, index: z.number().int().min(0).max(200) })).min(1).max(300).parse(items);
+    const action = z.enum(["done", "not_needed", "task"]).parse(op);
+    const c = z.object({ assigneeId: uuid.nullable().optional(), frequency: z.enum(["once", "daily", "weekly", "monthly", "quarterly", "annual"]).optional(), dueOn: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional() }).parse(choice ?? {});
+    if (c.assigneeId) {
+      const { members: people } = await members.listMembers(workspace.id);
+      if (!people.some((p) => p.userId === c.assigneeId)) throw new Error("That person isn't in this company.");
+    }
+    const seeAll = can(abilities, "view_dashboards");
+    const byMeeting = new Map<string, number[]>();
+    for (const it of list) byMeeting.set(it.meetingId, [...(byMeeting.get(it.meetingId) ?? []), it.index]);
+    let n = 0;
+    for (const [meetingId, indexes] of byMeeting) {
+      const meeting = await m.getMeeting(workspace.id, meetingId, seeAll);
+      if (!meeting) continue;
+      const status = (await m.stepStatuses([meeting])).get(meeting.id) ?? [];
+      for (const index of new Set(indexes)) {
+        if (status[index]?.status !== "open") continue;
+        if (action === "done") await m.setStepDone(workspace.id, meetingId, index, true);
+        else if (action === "not_needed") await m.dismissStep(workspace.id, meetingId, index);
+        else await m.nextStepToTask(workspace.id, meetingId, index, user.id, c);
+        n++;
+      }
+    }
+    revalidatePath(`/w/${slug}`, "layout");
+    const things = `${n} item${n === 1 ? "" : "s"}`;
+    return n === 0 ? "Nothing to change: those were already handled." : action === "done" ? `${things} marked done.` : action === "not_needed" ? `${things} closed as not needed.` : `${things} turned into tasks.`;
+  });
+}
+
 const askLog = new Map<string, number[]>();
 /** Ask a question across the meetings this person may see. 30 questions an hour per person. */
 export async function askMeetingsAction(slug: string, question: string) {

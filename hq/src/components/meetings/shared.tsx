@@ -24,7 +24,7 @@ export type StepPerson = { id: string; name: string };
  * A next step from a meeting, for review: who Gemini named and where it stands. A reviewer assigns it
  * (person, how often, first due date), marks it already done, or closes it as not needed.
  */
-export function StepRow({ slug, meetingId, index, step, status, canMakeTasks, meetingLabel, meetingAt, team, suggestedId }: { slug: string; meetingId: string; index: number; step: MeetingNextStep; status?: StepStatus; canMakeTasks: boolean; meetingLabel?: { href: string; text: string }; meetingAt?: string; team?: StepPerson[]; suggestedId?: string | null }) {
+export function StepRow({ slug, meetingId, index, step, status, canMakeTasks, meetingLabel, meetingAt, team, suggestedId, selected, onSelect }: { selected?: boolean; onSelect?: (on: boolean) => void; slug: string; meetingId: string; index: number; step: MeetingNextStep; status?: StepStatus; canMakeTasks: boolean; meetingLabel?: { href: string; text: string }; meetingAt?: string; team?: StepPerson[]; suggestedId?: string | null }) {
   const [busy, start] = useTransition();
   const [assigning, setAssigning] = useState(false);
   const [who, setWho] = useState<string>(suggestedId ?? "");
@@ -42,7 +42,12 @@ export function StepRow({ slug, meetingId, index, step, status, canMakeTasks, me
       router.refresh();
     });
   return (
-    <li className={`flex items-start gap-3 px-4 py-3 ${st.status === "done" ? "opacity-60" : ""}`}>
+    <li className={`flex items-start gap-3 px-4 py-3 ${st.status === "done" ? "opacity-60" : ""} ${selected ? "bg-accent-soft/50" : ""}`}>
+      {onSelect && (
+        <label className="-m-2 flex shrink-0 cursor-pointer p-2">
+          <input type="checkbox" checked={Boolean(selected)} onChange={(e) => onSelect(e.target.checked)} className="mt-0.5 size-4" aria-label={`Select: ${step.title}`} />
+        </label>
+      )}
       <div className="min-w-0 flex-1">
         <div className="text-sm">
           {step.owner && <span className="mr-1.5 rounded-full bg-accent-soft px-2 py-0.5 text-xs font-medium text-accent">{step.owner}</span>}
