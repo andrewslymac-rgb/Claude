@@ -11,9 +11,10 @@ import { DUE_LABELS } from "@/lib/recurrence";
 import { TONE } from "@/components/tasks/TaskDialogs";
 import { Avatar, CadenceBar, CAD_LABEL, CYCLE_WORD, Ring } from "./shared";
 
-type Status = "open" | "overdue" | "today" | "doneCycle" | "upcoming" | "all";
+type Status = "open" | "urgent" | "overdue" | "today" | "doneCycle" | "upcoming" | "all";
 const STATUSES: { key: Status; label: string }[] = [
   { key: "open", label: "Still to do" },
+  { key: "urgent", label: "Urgent" },
   { key: "overdue", label: "Overdue" },
   { key: "today", label: "Due today" },
   { key: "doneCycle", label: "Done this cycle" },
@@ -71,6 +72,8 @@ export function PersonView({ slug, person, tasks, summary, byDay, recent, today,
       switch (status) {
         case "open":
           return !doneNow && t.state !== "done";
+        case "urgent":
+          return t.urgent && !doneNow && t.state !== "done";
         case "overdue":
           return t.state === "overdue" && !done.has(t.id);
         case "today":
@@ -88,9 +91,12 @@ export function PersonView({ slug, person, tasks, summary, byDay, recent, today,
       last: (a, b) => (b.lastDoneOn ?? "").localeCompare(a.lastDoneOn ?? ""),
       title: (a, b) => a.title.localeCompare(b.title),
     };
-    return l.sort(by[sort]);
+    // Urgent work that's still open always comes first, whatever the sort.
+    const hot = (t: PersonTask) => Number(t.urgent && !(t.doneThisCycle || done.has(t.id)) && t.state !== "done");
+    return l.sort((a, b) => hot(b) - hot(a) || by[sort](a, b));
   }, [tasks, sources, cad, status, sort, done]);
 
+  const urgentCount = tasks.filter((t) => t.urgent && !(t.doneThisCycle || done.has(t.id)) && t.state !== "done").length;
   const counts = useMemo(() => {
     const m: Partial<Record<Frequency | "all", number>> = { all: 0 };
     for (const t of tasks) {
@@ -229,6 +235,7 @@ export function PersonView({ slug, person, tasks, summary, byDay, recent, today,
           {STATUSES.map((s) => (
             <button key={s.key} onClick={() => setStatus(s.key)} className={`tap rounded-full border px-3 py-1 text-xs ${status === s.key ? "border-accent bg-accent-soft text-accent" : "border-line text-ink-soft hover:bg-hover"}`}>
               {s.label}
+              {s.key === "urgent" && urgentCount > 0 && <span className="ml-1 rounded-full bg-danger px-1.5 text-[10px] font-semibold text-paper">{urgentCount}</span>}
             </button>
           ))}
           <span className="mx-1 hidden h-4 w-px bg-line sm:block" />
@@ -250,7 +257,7 @@ export function PersonView({ slug, person, tasks, summary, byDay, recent, today,
             const doneNow = t.doneThisCycle || done.has(t.id);
             const st = DUE_LABELS[t.state];
             return (
-              <li key={t.id} className="flex flex-wrap items-center gap-3 px-4 py-3">
+              <li key={t.id} className={`flex flex-wrap items-center gap-3 px-4 py-3 ${t.urgent && !doneNow ? "border-l-4 border-l-danger bg-danger-soft" : ""}`}>
                 <button
                   disabled={doneNow}
                   onClick={() => complete(t)}
@@ -261,7 +268,10 @@ export function PersonView({ slug, person, tasks, summary, byDay, recent, today,
                   {doneNow && <Check size={13} />}
                 </button>
                 <div className="min-w-0 flex-1">
-                  <Link href={`/w/${slug}/tasks/${t.id}`} className={`block truncate text-sm font-medium hover:underline ${doneNow ? "text-ink-faint line-through" : ""}`}>{t.title}</Link>
+                  <div className="flex min-w-0 items-center gap-2">
+                    {t.urgent && !doneNow && <span className="shrink-0 rounded bg-danger px-1.5 py-0.5 text-[10px] font-bold uppercase text-paper">Urgent{t.urgentNote ? ` · ${t.urgentNote}` : ""}</span>}
+                    <Link href={`/w/${slug}/tasks/${t.id}`} className={`block min-w-0 truncate text-sm font-medium hover:underline ${doneNow ? "text-ink-faint line-through" : ""}`}>{t.title}</Link>
+                  </div>
                   <div className="mt-0.5 flex flex-wrap gap-x-3 text-[11px] text-ink-faint">
                     <span>{CAD_LABEL[t.frequency]}{t.whenText ? ` · ${t.whenText}` : ""}</span>
                     <span>{SOURCE_LABEL[t.source]}{t.source === "role" && t.role ? `: ${t.role.emoji} ${t.role.name}` : ""}</span>
