@@ -32,9 +32,9 @@ const fail = (s: string) => ({ content: [{ type: "text" as const, text: s }], is
  */
 export function buildServer(p: AiPrincipal) {
   const server = new McpServer(
-    { name: "Orbit", version: "0.6.0" },
+    { name: "Orbit", version: "0.7.0" },
     {
-      instructions: `You are connected to Orbit, the company headquarters. This connection was made from ${p.workspaceName}, and it reaches every company the signed-in person can open: call list_companies to see them, then pass workspace (the company's slug or name) to any tool to work in a different company. Pages hold SOPs, policies and company knowledge; Google Drive documents are organized into document areas (list_document_areas). Tasks are recurring operations work. Meetings hold Google Meet notes: summaries, decisions and next steps (list_meetings, get_meeting); a next step can become a task, be marked done or be closed as not needed. Always search before answering questions about policy, and cite the page title. Pages marked "Needs review" or "Draft" may not be approved. Edits to SOPs and policies go to an approval queue for a person to review before they apply; tell the user when that happens.`,
+      instructions: `You are connected to Orbit, the company headquarters. This connection was made from ${p.workspaceName}, and it reaches every company the signed-in person can open: call list_companies to see them, then pass workspace (the company's slug or name) to any tool to work in a different company. Pages hold SOPs, policies and company knowledge; Google Drive documents are organized into document areas (list_document_areas). Tasks are recurring operations work. To put a photo or file on a task, call get_task_upload_link: images cannot be sent through this connection, so you either upload the file to that link yourself (if you can run commands) or give the person the link to tap. Web links (Loom, Google Docs) go on with attach_link_to_task. Meetings hold Google Meet notes: summaries, decisions and next steps (list_meetings, get_meeting); a next step can become a task, be marked done or be closed as not needed. Always search before answering questions about policy, and cite the page title. Pages marked "Needs review" or "Draft" may not be approved. Edits to SOPs and policies go to an approval queue for a person to review before they apply; tell the user when that happens.`,
     },
   );
   const actor: Actor = { type: "ai", tokenId: p.grantId, userId: p.userId };
@@ -46,7 +46,7 @@ export function buildServer(p: AiPrincipal) {
   const can = (s: string) => (p.scopes as string[]).includes(s);
   const link = (id: string) => `${process.env.APP_URL ?? ""}/w/${wsSlug}/p/${id}`;
 
-  const WRITE_TOOLS = new Set(["add_meeting", "meeting_step_to_task", "set_meeting_step", "sync_meetings", "update_feedback", "add_document_note", "create_page", "update_page", "append_to_page", "create_task", "update_task", "complete_task", "undo_complete_task", "skip_task", "remove_task", "add_task_note", "set_follow_up", "create_flag", "update_flag", "sync_document_area"]);
+  const WRITE_TOOLS = new Set(["attach_link_to_task", "get_task_upload_link", "add_meeting", "meeting_step_to_task", "set_meeting_step", "sync_meetings", "update_feedback", "add_document_note", "create_page", "update_page", "append_to_page", "create_task", "update_task", "complete_task", "undo_complete_task", "skip_task", "remove_task", "add_task_note", "set_follow_up", "create_flag", "update_flag", "sync_document_area"]);
   const SELF_ROUTED = new Set(["update_field_service_snapshot", "list_companies"]);
   const workspaceArg = z.string().max(120).optional().describe("Company slug or name (see list_companies). Omit for the company this connection was made from.");
   const register = server.registerTool.bind(server);
@@ -326,6 +326,36 @@ export function buildServer(p: AiPrincipal) {
       },
     );
 
+    server.registerTool(
+      "attach_link_to_task",
+      { title: "Attach a link to a task", description: "Adds a web link (a Loom video, a Google Doc, any https page) to a task's attachments.", inputSchema: { task_id: z.string().uuid(), url: z.string().url().max(2000), name: z.string().max(160).optional().describe("What to call it, e.g. \"Walkthrough video\"") } },
+      async ({ task_id, url, name }) => {
+        if (!/^https?:\/\//i.test(url)) return fail("Use a web link that starts with https://");
+        const files = await import("@/lib/services/task-files");
+        await files.addTaskLink(ws, task_id, name?.trim() || new URL(url).host, url, p.userId);
+        await logActivity({ workspaceId: ws, grantId: p.grantId, tool: "attach_link_to_task", summary: `Attached a link to a task: ${name?.trim() || new URL(url).host}`, taskId: task_id });
+        return text("Link attached.");
+      },
+    );
+
+    server.registerTool(
+      "get_task_upload_link",
+      {
+        title: "Get a link for adding photos or files to a task",
+        description:
+          "Returns a private link, good for one hour, that adds photos or files (up to 10 MB each) to one task. Use it whenever the person wants a picture or file they sent you attached to a task: image and file contents cannot be passed through this connection. Two ways to use the link. (1) If you can run shell commands and the file is on disk, upload it yourself: curl -F \"file=@/path/to/photo.jpg\" <upload_url> (repeat -F for up to 5 files), then confirm. (2) Otherwise give the person the page link and ask them to tap it and pick the photo; it needs no sign-in. Never say a file was attached unless the upload call returned ok.",
+        inputSchema: { task_id: z.string().uuid() },
+      },
+      async ({ task_id }) => {
+        const t = (await tasksSvc.listTasks(ws)).find((x) => x.id === task_id);
+        if (!t) return fail("Task not found.");
+        const links = await import("@/lib/services/upload-links");
+        const token = links.makeUploadToken({ workspaceId: ws, slug: wsSlug, taskId: task_id, userId: p.userId });
+        const base = process.env.APP_URL ?? "";
+        return text(`Upload link for "${t.title}" (works for ${links.UPLOAD_LINK_MINUTES} minutes).\n\nPage for a person to tap and pick files: ${base}/attach/${token}\n\nupload_url for a direct upload (multipart form field "file"): ${base}/api/attach/${token}\nExample: curl -F "file=@photo.jpg" "${base}/api/attach/${token}"`);
+      },
+    );
+
     server.registerTool("complete_task", { title: "Mark a task done", description: "Marks a task done today (or on a given date), optionally with a note about what happened.", inputSchema: { task_id: z.string().uuid(), done_on: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(), note: z.string().max(2000).optional() } }, async ({ task_id, done_on, note }) => {
       await tasksSvc.completeTask(ws, task_id, p.userId, done_on, note);
       const t = (await tasksSvc.listTasks(ws)).find((x) => x.id === task_id);
@@ -358,6 +388,7 @@ export function buildServer(p: AiPrincipal) {
       const t = (await tasksSvc.listTasks(ws)).find((x) => x.id === task_id);
       if (!t) return fail("Task not found.");
       const [notes, done] = await Promise.all([tasksSvc.listNotes(ws, task_id), tasksSvc.listCompletions(ws, task_id, 10)]);
+      const attached = await import("@/lib/services/task-files").then((f) => f.listTaskFiles(ws, task_id));
       return text(
         [
           `# ${t.title}`,
@@ -365,6 +396,7 @@ export function buildServer(p: AiPrincipal) {
           `${FREQUENCY_LABELS[t.frequency]}${t.whenText ? ` · ${t.whenText}` : ""} · ${DUE_LABELS[t.state].label}${t.nextDueOn ? ` ${fmtDate(t.nextDueOn)}` : ""} · owner: ${t.assignees.map((a) => a.name).join(", ") || t.ownerRole || "anyone"}${t.category ? ` · ${t.category}` : ""}`,
           `Created${t.createdBy ? ` by ${t.createdBy}` : ""} on ${fmtDate(new Date(t.createdAt).toLocaleDateString("en-CA", { timeZone: "America/Los_Angeles" }))}${t.sourceLabel ? ` · from ${t.sourceLabel}` : ""}`,
           t.followUpOn ? `Follow-up: ${fmtDate(t.followUpOn)}${t.followUpNote ? ` — ${t.followUpNote}` : ""}` : "",
+          attached.length ? `Attachments (${attached.length}): ${attached.map((f) => (f.url ? `${f.name} <${f.url}>` : f.name)).join(", ")}` : "",
           t.instructions ? `\nInstructions:\n${t.instructions}` : "",
           notes.length ? `\nNotes:\n${notes.map((n) => `- ${fmtDate(n.createdAt.toISOString().slice(0, 10))} (${n.by ?? "someone"}): ${n.body}`).join("\n")}` : "\nNo notes yet.",
           done.length ? `\nCompleted:\n${done.map((d) => `- ${fmtDate(d.doneOn)}${d.by ? ` by ${d.by}` : ""}${d.note ? ` — ${d.note}` : ""}`).join("\n")}` : "\nNever completed yet.",
