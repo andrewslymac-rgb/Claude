@@ -354,9 +354,15 @@ function QuickAdd({ slug, frequency, memberId, roleId, ownerName, onMore }: { sl
           value={v}
           onChange={(e) => setV(e.target.value)}
           enterKeyHint="done"
+          autoComplete="off"
           aria-label={`New ${label} task for ${ownerName}`}
-          placeholder={`New ${label} task for ${ownerName}`}
-          className="min-w-0 flex-1 bg-transparent py-1.5 text-sm outline-none placeholder:text-ink-faint focus-visible:outline-none"
+          placeholder={`Add a task for ${ownerName}`}
+          // On a phone the keyboard covers the bottom of the screen: once it's up, bring the box back into view.
+          onFocus={(e) => {
+            const el = e.currentTarget;
+            if (window.matchMedia("(pointer: coarse)").matches) setTimeout(() => el.scrollIntoView({ block: "center", behavior: "smooth" }), 350);
+          }}
+          className="bare-input min-w-0 flex-1 bg-transparent py-1.5 text-sm outline-none placeholder:text-ink-faint"
         />
         {v.trim() ? (
           <button disabled={busy} className="btn btn-primary btn-sm shrink-0">
