@@ -113,6 +113,7 @@ export async function searchAction(slug: string, q: string) {
 /** Orbit's own screens, so "calendar" or "settings" finds them in search. */
 const SCREENS = [
   { title: "Home", path: "", words: "home dashboard" },
+  { title: "Get an answer", path: "/answer", words: "get an answer ask question how do i help sop process" },
   { title: "Tracker", path: "/tasks", words: "tracker tasks to do checklist" },
   { title: "Task calendar", path: "/tasks/calendar", words: "task calendar schedule" },
   { title: "Team", path: "/team", words: "team people progress" },

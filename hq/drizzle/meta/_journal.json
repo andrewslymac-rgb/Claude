@@ -288,6 +288,13 @@
       "when": 1795112278308,
       "tag": "0040_cultured_vulture",
       "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1795262675381,
+      "tag": "0041_busy_talon",
+      "breakpoints": true
     }
   ]
 }

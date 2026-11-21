@@ -788,6 +788,30 @@ export const taskFiles = pgTable(
   (t) => [index("task_files_task_idx").on(t.taskId)],
 );
 
+/**
+ * Questions asked on the "Get an answer" page. Kept so owners can see what the team asks
+ * and, above all, which questions the company's published material couldn't answer.
+ */
+export const answerQuestions = pgTable(
+  "answer_questions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }),
+    question: text("question").notNull(),
+    answered: boolean("answered").notNull(),
+    sourceCount: integer("source_count").notNull().default(0),
+    /** The flag raised for an unanswered question, if one was. */
+    flagId: uuid("flag_id").references(() => flags.id, { onDelete: "set null" }),
+    /** An owner or admin dealt with it (wrote the SOP, or decided it isn't needed). */
+    handledAt: timestamp("handled_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("answer_questions_ws_idx").on(t.workspaceId, t.answered, t.createdAt)],
+);
+
 /** A Google Drive folder Orbit reads meeting notes from (e.g. someone's "Meet Recordings"). */
 export const meetingSources = pgTable("meeting_sources", {
   id: uuid("id").primaryKey().defaultRandom(),
