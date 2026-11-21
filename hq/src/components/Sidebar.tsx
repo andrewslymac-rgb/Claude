@@ -4,7 +4,7 @@ import { useAct } from "@/components/ui/Toast";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
-import { ChevronDown, ChevronRight, Home, LogOut, MoreHorizontal, Plus, Search, Settings, Trash2, CheckSquare, BookOpen, Library, Flag, Bot, FolderOpen, AlertTriangle, MessageSquareHeart, Users, UserRound, Briefcase, Wrench, Link2, BarChart3, CalendarDays, MessagesSquare } from "lucide-react";
+import { ChevronDown, ChevronRight, Home, Lock, LogOut, MoreHorizontal, Plus, Search, Settings, Trash2, CheckSquare, BookOpen, Library, Flag, Bot, FolderOpen, AlertTriangle, MessageSquareHeart, Users, UserRound, Briefcase, Wrench, Link2, BarChart3, CalendarDays, MessagesSquare } from "lucide-react";
 import { NamePrompt } from "@/components/NamePrompt";
 import { MenuLinkSection } from "@/components/MenuLinkSection";
 import { createPortal } from "react-dom";
@@ -150,6 +150,12 @@ export function Sidebar(props: { workspace: Ws; workspaces: Ws[]; tree: Node[]; 
           ]}
           footer={{ label: (props.links?.length ?? 0) + (props.docLinks?.length ?? 0) + (props.customerDocLinks?.length ?? 0) ? "See all with details" : "Add a link", href: `${base}/links` }}
         />
+      )}
+
+      {props.canManageLinks && (
+        <nav className="px-2 pt-1">
+          <NavItem href={`${base}/locked`} icon={<Lock size={16} />} label="Locked Links" active={pathname === `${base}/locked`} />
+        </nav>
       )}
 
       <div className="eyebrow flex items-center gap-1 px-4 pb-1 pt-3">
